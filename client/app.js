@@ -350,7 +350,15 @@ class Store {
                 body: JSON.stringify({ username, password, role })
             });
 
-            const data = await response.json();
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                // If response is not JSON, get text instead
+                const text = await response.text();
+                console.error('Server returned non-JSON response:', text);
+                return { success: false, error: 'Server error: ' + text.substring(0, 100) };
+            }
 
             if (!response.ok) {
                 return { success: false, error: data.message || 'Login failed' };
