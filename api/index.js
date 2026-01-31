@@ -506,6 +506,11 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         const { username, password, role } = req.body;
 
+        // Initialize users if not already done
+        if (users.length === 0) {
+            await initUsers();
+        }
+
         const user = users.find(u => u.username === username && u.role === role);
 
         if (!user) {
