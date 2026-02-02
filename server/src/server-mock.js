@@ -233,7 +233,7 @@ app.get('/api/users', auth, async (req, res) => {
   }
   try {
     const { role } = req.query;
-    let query = 'SELECT id, username, role, first_name, last_name, school, grade, grade_section, is_temporary_password, require_password_change, created_at, updated_at FROM users';
+    let query = 'SELECT id, username, role, first_name as "firstName", last_name as "lastName", school, grade, grade_section as "gradeSection", is_temporary_password as "isTemporaryPassword", require_password_change as "requirePasswordChange", created_at, updated_at FROM users';
     const params = [];
     if (role) {
       query += ' WHERE role = $1';
@@ -1476,7 +1476,7 @@ app.get('/api/classes/:classId', auth, async (req, res) => {
     }
     const classItem = rows[0];
     // Получаем студентов этого класса (по grade и name)
-    const studentsQuery = await pool.query('SELECT id, username, first_name, last_name, grade, grade_section, school, email FROM users WHERE role = $1 AND grade = $2', ['student', classItem.grade]);
+    const studentsQuery = await pool.query('SELECT id, username, first_name as "firstName", last_name as "lastName", grade, grade_section as "gradeSection", school, email FROM users WHERE role = $1 AND grade = $2', ['student', classItem.grade]);
     const studentData = studentsQuery.rows;
     res.json({
       success: true,
