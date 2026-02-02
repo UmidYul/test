@@ -11652,6 +11652,7 @@ async function renderAdminClasses() {
                                     <tr style="background: var(--bg-tertiary);">
                                         <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Класс</th>
                                         <th style="padding: 1rem; text-align: center; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Учеников</th>
+                                        <th style="padding: 1rem; text-align: center; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Учитель</th>
                                         <th style="padding: 1rem; text-align: center; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Создано</th>
                                         <th style="padding: 1rem; text-align: right; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Действия</th>
                                     </tr>
@@ -11666,10 +11667,14 @@ async function renderAdminClasses() {
             const classLabel = classItem.name
                 ? `${classItem.grade || ''}${classItem.name}`
                 : (classItem.sections?.length ? `${classItem.grade || ''} (${classItem.sections.join(', ')})` : (classItem.grade || '—'));
+            const teacherName = classItem.teacherFirstName && classItem.teacherLastName
+                ? `${classItem.teacherFirstName} ${classItem.teacherLastName}`
+                : '—';
             return `
                                         <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s;">
                                             <td style="padding: 1rem; font-weight: 600; color: var(--text-primary);">${classLabel}</td>
                                             <td style="padding: 1rem; text-align: center; color: #3B82F6; font-weight: 600;">${studentCount}</td>
+                                            <td style="padding: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">${teacherName}</td>
                                             <td style="padding: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">${createdDate}</td>
                                             <td style="padding: 1rem; text-align: right;">
                                                 <div class="class-actions" style="display: flex; gap: 0.4rem; justify-content: flex-end;">

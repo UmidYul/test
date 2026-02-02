@@ -1446,7 +1446,13 @@ app.get('/api/teacher/control-tests/results', auth, (req, res) => {
 // Get all classes/grades
 app.get('/api/classes', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at FROM classes ORDER BY grade, name');
+    const { rows } = await pool.query(`
+      SELECT c.id, c.grade, c.name, c.teacher_id as "teacherId", c.student_count as "studentCount", c.created_at,
+             u.first_name as "teacherFirstName", u.last_name as "teacherLastName"
+      FROM classes c
+      LEFT JOIN users u ON c.teacher_id = u.id
+      ORDER BY c.grade, c.name
+    `);
     console.log(`📚 Загружено классов: ${rows.length}`);
     res.json({ success: true, data: rows });
   } catch (error) {
