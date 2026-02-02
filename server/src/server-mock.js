@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Тестовое подключение к PostgreSQL
+
 import pool from './db.js';
 
 
@@ -221,20 +221,24 @@ app.delete('/api/subjects/:subjectId', auth, async (req, res) => {
 });
 
 // Get all users (admin only)
-app.get('/api/users', auth, (req, res) => {
+app.get('/api/users', auth, async (req, res) => {
   if (req.userRole !== 'admin') {
     return res.status(403).json({ message: 'Access denied' });
   }
-
-  let usersData = users.map(({ password, ...user }) => user);
-
-  // Filter by role if specified
-  const { role } = req.query;
-  if (role) {
-    usersData = usersData.filter(u => u.role === role);
+  try {
+    const { role } = req.query;
+    let query = 'SELECT id, username, role, first_name, last_name, school, grade, grade_section, is_temporary_password, require_password_change, created_at, updated_at FROM users';
+    const params = [];
+    if (role) {
+      query += ' WHERE role = $1';
+      params.push(role);
+    }
+    const { rows } = await pool.query(query, params);
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('❌ Ошибка при загрузке пользователей:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при загрузке пользователей' });
   }
-
-  res.json({ success: true, data: usersData });
 });
 
 // Get current user profile (PostgreSQL)
@@ -458,7 +462,7 @@ app.get('/api/health', (req, res) => {
 // MODULES API
 // ========================================
 
-import pool from './db.js';
+// ...удалён дублирующий import pool...
 
 // Get all modules for a subject
 app.get('/api/subjects/:subjectId/modules', auth, async (req, res) => {
