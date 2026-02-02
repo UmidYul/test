@@ -44,10 +44,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Главная страница
-app.get('/', (req, res) => {
-  res.send('Сервер работает!');
-});
+// ...existing code...
 
 // Все остальные маршруты — отдаём index.html фронта
 app.get('*', (req, res) => {
