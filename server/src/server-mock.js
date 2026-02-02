@@ -1548,9 +1548,9 @@ app.post('/api/classes', auth, async (req, res) => {
     }
     // Проверка teacherId, если указан
     let teacherIdInt = null;
-    if (teacherId) {
+    if (teacherId && teacherId !== 'undefined') {
       teacherIdInt = parseInt(teacherId, 10);
-      if (isNaN(teacherIdInt)) {
+      if (isNaN(teacherIdInt) || teacherIdInt <= 0) {
         return res.status(400).json({ success: false, error: 'Некорректный ID учителя' });
       }
       const { rows: teacherExists } = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [teacherIdInt, 'teacher']);
@@ -2016,9 +2016,9 @@ app.put('/api/classes/:classId', auth, async (req, res) => {
   try {
     // Проверка teacherId, если указан
     let teacherIdInt = null;
-    if (teacherId) {
+    if (teacherId && teacherId !== 'undefined') {
       teacherIdInt = parseInt(teacherId, 10);
-      if (isNaN(teacherIdInt)) {
+      if (isNaN(teacherIdInt) || teacherIdInt <= 0) {
         return res.status(400).json({ success: false, error: 'Некорректный ID учителя' });
       }
       const { rows: teacherExists } = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [teacherIdInt, 'teacher']);
