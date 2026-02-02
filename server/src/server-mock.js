@@ -1546,6 +1546,18 @@ app.post('/api/classes', auth, async (req, res) => {
     if (!grade || !name) {
       return res.status(400).json({ success: false, error: 'Укажите номер класса и название' });
     }
+    // Проверка teacherId, если указан
+    let teacherIdInt = null;
+    if (teacherId) {
+      teacherIdInt = parseInt(teacherId, 10);
+      if (isNaN(teacherIdInt)) {
+        return res.status(400).json({ success: false, error: 'Некорректный ID учителя' });
+      }
+      const { rows: teacherExists } = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [teacherIdInt, 'teacher']);
+      if (teacherExists.length === 0) {
+        return res.status(400).json({ success: false, error: 'Учитель не найден' });
+      }
+    }
     // Проверка на существование класса
     const { rows: existing } = await pool.query('SELECT id FROM classes WHERE grade = $1 AND name = $2', [grade, name]);
     if (existing.length > 0) {
@@ -1553,7 +1565,7 @@ app.post('/api/classes', auth, async (req, res) => {
     }
     const result = await pool.query(
       'INSERT INTO classes (grade, name, teacher_id, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at',
-      [grade, name, teacherId || null]
+      [grade, name, teacherIdInt]
     );
     const newClass = result.rows[0];
     console.log(`✅ Класс создан: ${newClass.id}`);
@@ -2002,9 +2014,21 @@ app.put('/api/classes/:classId', auth, async (req, res) => {
   const { classId } = req.params;
   const { name, teacherId } = req.body;
   try {
+    // Проверка teacherId, если указан
+    let teacherIdInt = null;
+    if (teacherId) {
+      teacherIdInt = parseInt(teacherId, 10);
+      if (isNaN(teacherIdInt)) {
+        return res.status(400).json({ success: false, error: 'Некорректный ID учителя' });
+      }
+      const { rows: teacherExists } = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [teacherIdInt, 'teacher']);
+      if (teacherExists.length === 0) {
+        return res.status(400).json({ success: false, error: 'Учитель не найден' });
+      }
+    }
     const result = await pool.query(
       'UPDATE classes SET name = COALESCE($1, name), teacher_id = $2 WHERE id = $3 RETURNING id, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at',
-      [name, teacherId, classId]
+      [name, teacherIdInt, classId]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
