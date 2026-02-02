@@ -7,25 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // Тестовое подключение к PostgreSQL
-import pkg from 'pg';
-const { Client } = pkg;
-
-const client = new Client({
-  host: '127.0.0.200',
-  port: 5432,
-  database: 'zedlyuz_testDB',
-  user: 'zedlyuz',
-  password: 'g@laxyA7', // Замените на ваш реальный пароль
-});
-
-client.connect()
-  .then(() => {
-    console.log('Connected to PostgreSQL!');
-    return client.end();
-  })
-  .catch(err => {
-    console.error('Connection error', err.stack);
-  });
+import pool from './db.js';
 
 
 const app = express();
@@ -47,467 +29,15 @@ app.use((req, res, next) => {
 // ...existing code...
 
 // Все остальные маршруты — отдаём index.html фронта
-app.get('*', (req, res) => {
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
   res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
-// In-memory database
-const users = [];
-const subjects = [];
-const modules = []; // Модули (темы) по предметам
-const tests = []; // Тесты в модулях
-const testResults = []; // Результаты прохождения тестов
-const testProgress = []; // Прогресс прохождения (для продолжения)
-const classes = []; // Классы (grades)
-const teacherTests = []; // Тесты для учителей (компетенции)
-const teacherTestResults = []; // Результаты тестов учителей
-const controlTests = []; // Контрольные работы
-const controlTestResults = []; // Результаты контрольных работ
-const otpCodes = []; // OTP codes with expiration
+// ...in-memory массивы больше не используются...
 
-// Enable initial data setup (admin account)
-const ADD_SAMPLE_DATA = true;
-
-function initDefaultSubjects() {
-  if (subjects.length > 0) {
-    return;
-  }
-
-  subjects.push(
-    { _id: '1', nameRu: 'Алгебра', nameUz: 'Algebra', questionsCount: 10 },
-    { _id: '2', nameRu: 'Геометрия', nameUz: 'Geometriya', questionsCount: 10 },
-    { _id: '3', nameRu: 'Физика', nameUz: 'Fizika', questionsCount: 10 },
-    { _id: '4', nameRu: 'Химия', nameUz: 'Kimyo', questionsCount: 10 },
-    { _id: '5', nameRu: 'Биология', nameUz: 'Biologiya', questionsCount: 10 },
-    { _id: '6', nameRu: 'История', nameUz: 'Tarix', questionsCount: 10 },
-    { _id: '7', nameRu: 'Литература', nameUz: 'Adabiyot', questionsCount: 10 },
-    { _id: '8', nameRu: 'География', nameUz: 'Geografiya', questionsCount: 10 },
-    { _id: '9', nameRu: 'Английский язык', nameUz: 'Ingliz tili', questionsCount: 10 },
-    { _id: '10', nameRu: 'Информатика', nameUz: 'Informatika', questionsCount: 10 }
-  );
-}
-
-// OTP Configuration
-const OTP_EXPIRY_MINUTES = 300; // 5 hours
-const OTP_LENGTH = 8;
-
-// Generate OTP code
-function generateOTP() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars
-  let otp = '';
-  for (let i = 0; i < OTP_LENGTH; i++) {
-    otp += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return otp;
-}
-
-// Initialize default users
-async function initUsers() {
-  const adminPassword = await bcrypt.hash('admin123', 10);
-  const teacherPassword = await bcrypt.hash('teacher123', 10);
-  const studentPassword = await bcrypt.hash('student123', 10);
-
-  users.push({
-    _id: '1',
-    username: 'admin',
-    password: adminPassword,
-    role: 'admin',
-    firstName: 'Администратор',
-    lastName: 'Системы',
-    school: 'Школа №1',
-    isTemporaryPassword: false
-  });
-
-  users.push({
-    _id: '2',
-    username: 'teacher1',
-    password: teacherPassword,
-    role: 'teacher',
-    firstName: 'Мария',
-    lastName: 'Иванова',
-    school: 'Школа №1',
-    subjects: ['1', '3'],
-    isTemporaryPassword: false
-  });
-
-  users.push({
-    _id: '3',
-    username: 'student1',
-    password: studentPassword,
-    role: 'student',
-    firstName: 'Алексей',
-    lastName: 'Петров',
-    school: 'Школа №1',
-    grade: '8',
-    gradeSection: 'А',
-    isTemporaryPassword: false,
-    interestTestResults: {
-      categories: {
-        math: 85,
-        science: 72,
-        tech: 90,
-        art: 45,
-        social: 60,
-        language: 55
-      },
-      results: {},
-      completedAt: new Date().toISOString()
-    }
-  });
-
-  // Add more students for different grades
-  users.push({
-    _id: '4',
-    username: 'student2',
-    password: studentPassword,
-    role: 'student',
-    firstName: 'Мария',
-    lastName: 'Сидорова',
-    school: 'Школа №1',
-    grade: '8',
-    gradeSection: 'А',
-    isTemporaryPassword: false
-  });
-
-  users.push({
-    _id: '5',
-    username: 'student3',
-    password: studentPassword,
-    role: 'student',
-    firstName: 'Иван',
-    lastName: 'Кузнецов',
-    school: 'Школа №1',
-    grade: '9',
-    gradeSection: 'Б',
-    isTemporaryPassword: false
-  });
-
-  users.push({
-    _id: '6',
-    username: 'student4',
-    password: studentPassword,
-    role: 'student',
-    firstName: 'Анна',
-    lastName: 'Васильева',
-    school: 'Школа №1',
-    grade: '7',
-    gradeSection: 'В',
-    isTemporaryPassword: false
-  });
-
-  // Initialize classes/grades
-  classes.push(
-    { _id: '1', grade: '7', sections: ['А', 'Б', 'В'], studentCount: 0 },
-    { _id: '2', grade: '8', sections: ['А', 'Б', 'В'], studentCount: 0 },
-    { _id: '3', grade: '9', sections: ['А', 'Б', 'В'], studentCount: 0 },
-    { _id: '4', grade: '10', sections: ['А', 'Б'], studentCount: 0 },
-    { _id: '5', grade: '11', sections: ['А', 'Б'], studentCount: 0 }
-  );
-
-  const teacherClass = classes.find(cls => cls.grade === '8');
-  if (teacherClass) {
-    teacherClass.teacherId = '2';
-  }
-
-  // Count students in each grade
-  classes.forEach(cls => {
-    cls.studentCount = users.filter(u => u.role === 'student' && u.grade === cls.grade).length;
-  });
-
-  initDefaultSubjects();
-
-  // Initialize some demo modules
-  modules.push(
-    {
-      _id: '1',
-      subjectId: '1',
-      nameRu: 'Алгебра',
-      nameUz: 'Algebra',
-      descriptionRu: 'Основы алгебры и линейные уравнения',
-      descriptionUz: 'Algebra asoslari va chiziqli tenglamalar',
-      createdBy: '2',
-      createdAt: new Date().toISOString()
-    },
-    {
-      _id: '2',
-      subjectId: '1',
-      nameRu: 'Геометрия',
-      nameUz: 'Geometriya',
-      descriptionRu: 'Планиметрия и стереометрия',
-      descriptionUz: 'Planimetriya va stereometriya',
-      createdBy: '2',
-      createdAt: new Date().toISOString()
-    },
-    {
-      _id: '3',
-      subjectId: '2',
-      nameRu: 'Механика',
-      nameUz: 'Mexanika',
-      descriptionRu: 'Кинематика и динамика',
-      descriptionUz: 'Kinematika va dinamika',
-      createdBy: '2',
-      createdAt: new Date().toISOString()
-    },
-    {
-      _id: '4',
-      subjectId: '2',
-      nameRu: 'Электричество',
-      nameUz: 'Elektr',
-      descriptionRu: 'Электростатика и электродинамика',
-      descriptionUz: 'Elektrostatika va elektrodinamika',
-      createdBy: '2',
-      createdAt: new Date().toISOString()
-    }
-  );
-
-  // Initialize demo tests with questions
-  tests.push(
-    {
-      _id: '1',
-      moduleId: '1',
-      nameRu: 'Линейные уравнения',
-      nameUz: 'Chiziqli tenglamalar',
-      duration: 30,
-      timeLimit: 15,
-      maxScore: 100,
-      status: 'published',
-      questions: [
-        {
-          questionRu: 'Решите уравнение: 2x + 5 = 13',
-          questionUz: '2x + 5 = 13 tenglamasini yeching',
-          answers: [
-            { textRu: 'x = 4', textUz: 'x = 4', isCorrect: true },
-            { textRu: 'x = 3', textUz: 'x = 3', isCorrect: false },
-            { textRu: 'x = 5', textUz: 'x = 5', isCorrect: false },
-            { textRu: 'x = 6', textUz: 'x = 6', isCorrect: false }
-          ]
-        },
-        {
-          questionRu: 'Чему равно значение x в уравнении: 3x - 7 = 14?',
-          questionUz: '3x - 7 = 14 tenglamasida x ning qiymati nechaga teng?',
-          answers: [
-            { textRu: 'x = 7', textUz: 'x = 7', isCorrect: true },
-            { textRu: 'x = 5', textUz: 'x = 5', isCorrect: false },
-            { textRu: 'x = 8', textUz: 'x = 8', isCorrect: false },
-            { textRu: 'x = 6', textUz: 'x = 6', isCorrect: false }
-          ]
-        },
-        {
-          questionRu: 'Решите уравнение: 5x = 25',
-          questionUz: '5x = 25 tenglamasini yeching',
-          answers: [
-            { textRu: 'x = 5', textUz: 'x = 5', isCorrect: true },
-            { textRu: 'x = 20', textUz: 'x = 20', isCorrect: false },
-            { textRu: 'x = 30', textUz: 'x = 30', isCorrect: false },
-            { textRu: 'x = 10', textUz: 'x = 10', isCorrect: false }
-          ]
-        }
-      ],
-      assignedGrades: ['8'], // Тест доступен только для 8 класса
-      createdBy: '2',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    {
-      _id: '2',
-      moduleId: '3',
-      nameRu: 'Законы Ньютона',
-      nameUz: 'Nyuton qonunlari',
-      duration: 25,
-      timeLimit: 12,
-      maxScore: 100,
-      status: 'published',
-      assignedGrades: ['9', '10', '11'], // Тест для 9-11 классов
-      questions: [
-        {
-          questionRu: 'Первый закон Ньютона описывает:',
-          questionUz: 'Nyutonning birinchi qonuni nimani tasvirlaydi:',
-          answers: [
-            { textRu: 'Инерцию тел', textUz: 'Jismlarning inertsiyasi', isCorrect: true },
-            { textRu: 'Силу тяжести', textUz: 'Og\'irlik kuchi', isCorrect: false },
-            { textRu: 'Скорость света', textUz: 'Yorug\'lik tezligi', isCorrect: false },
-            { textRu: 'Ускорение', textUz: 'Tezlanish', isCorrect: false }
-          ]
-        },
-        {
-          questionRu: 'Формула второго закона Ньютона:',
-          questionUz: 'Nyutonning ikkinchi qonuni formulasi:',
-          answers: [
-            { textRu: 'F = ma', textUz: 'F = ma', isCorrect: true },
-            { textRu: 'E = mc²', textUz: 'E = mc²', isCorrect: false },
-            { textRu: 'P = mv', textUz: 'P = mv', isCorrect: false },
-            { textRu: 'W = Fs', textUz: 'W = Fs', isCorrect: false }
-          ]
-        }
-      ],
-      createdBy: '2',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  );
-
-  // Add some demo test results
-  const now = new Date();
-  const daysAgo = (days) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
-
-  testResults.push(
-    // Student 1 (8A class) results
-    {
-      _id: 'r1',
-      userId: '3',
-      testId: '1',
-      testName: 'Линейные уравнения',
-      moduleId: '1',
-      subjectId: '1',
-      score: 67,
-      correctCount: 2,
-      totalCount: 3,
-      timeTaken: 600,
-      questionResults: [
-        { questionIndex: 0, selectedAnswer: 0, isCorrect: true },
-        { questionIndex: 1, selectedAnswer: 0, isCorrect: true },
-        { questionIndex: 2, selectedAnswer: 1, isCorrect: false }
-      ],
-      completedAt: daysAgo(5)
-    },
-    {
-      _id: 'r2',
-      userId: '3',
-      testId: '2',
-      testName: 'Test 2',
-      moduleId: '2',
-      subjectId: '1',
-      score: 90,
-      correctCount: 2,
-      totalCount: 2,
-      timeTaken: 450,
-      questionResults: [
-        { questionIndex: 0, selectedAnswer: 0, isCorrect: true },
-        { questionIndex: 1, selectedAnswer: 0, isCorrect: true }
-      ],
-      completedAt: daysAgo(3)
-    },
-    // Student 2 (8A class) results
-    {
-      _id: 'r3',
-      userId: '4',
-      testId: '1',
-      testName: 'Линейные уравнения',
-      moduleId: '1',
-      subjectId: '1',
-      score: 78,
-      correctCount: 2,
-      totalCount: 3,
-      timeTaken: 720,
-      questionResults: [
-        { questionIndex: 0, selectedAnswer: 0, isCorrect: true },
-        { questionIndex: 1, selectedAnswer: 1, isCorrect: false },
-        { questionIndex: 2, selectedAnswer: 0, isCorrect: true }
-      ],
-      completedAt: daysAgo(4)
-    },
-    {
-      _id: 'r4',
-      userId: '4',
-      testId: '2',
-      testName: 'Test 2',
-      moduleId: '2',
-      subjectId: '1',
-      score: 65,
-      correctCount: 1,
-      totalCount: 2,
-      timeTaken: 380,
-      questionResults: [
-        { questionIndex: 0, selectedAnswer: 1, isCorrect: false },
-        { questionIndex: 1, selectedAnswer: 0, isCorrect: true }
-      ],
-      completedAt: daysAgo(2)
-    },
-    // Student 3 (9B class) results
-    {
-      _id: 'r5',
-      userId: '5',
-      testId: '2',
-      testName: 'Test 2',
-      moduleId: '2',
-      subjectId: '1',
-      score: 95,
-      correctCount: 2,
-      totalCount: 2,
-      timeTaken: 500,
-      questionResults: [
-        { questionIndex: 0, selectedAnswer: 0, isCorrect: true },
-        { questionIndex: 1, selectedAnswer: 0, isCorrect: true }
-      ],
-      completedAt: daysAgo(1)
-    },
-    {
-      _id: 'r6',
-      userId: '5',
-      testId: '2',
-      testName: 'Test 2',
-      moduleId: '2',
-      subjectId: '1',
-      score: 88,
-      correctCount: 2,
-      totalCount: 2,
-      timeTaken: 480,
-      questionResults: [
-        { questionIndex: 0, selectedAnswer: 0, isCorrect: true },
-        { questionIndex: 1, selectedAnswer: 0, isCorrect: true }
-      ],
-      completedAt: daysAgo(6)
-    },
-    // Student 4 (7C class) - not assigned to test 1, won't appear
-    {
-      _id: 'r7',
-      userId: '6',
-      testId: '2',
-      testName: 'Test 2',
-      moduleId: '2',
-      subjectId: '1',
-      score: 72,
-      correctCount: 1,
-      totalCount: 2,
-      timeTaken: 650,
-      questionResults: [
-        { questionIndex: 0, selectedAnswer: 0, isCorrect: true },
-        { questionIndex: 1, selectedAnswer: 2, isCorrect: false }
-      ],
-      completedAt: daysAgo(7)
-    }
-  );
-
-  console.log('✅ Mock database initialized');
-  console.log('📝 Login credentials:');
-  console.log('   Admin: admin / admin123');
-  console.log('   Teacher: teacher1 / teacher123');
-  console.log('   Student: student1 / student123');
-  console.log(`📦 Subjects: ${subjects.length}, Modules: ${modules.length}, Tests: ${tests.length}`);
-  console.log(`🎓 Classes: ${classes.length}, Students: ${users.filter(u => u.role === 'student').length}`);
-  console.log(`📊 Test results: ${testResults.length}`);
-}
-
-async function ensureAdminUser() {
-  if (users.length > 0) return;
-  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-  const hashedPassword = await bcrypt.hash(adminPassword, 10);
-
-  users.push({
-    _id: '1',
-    username: adminUsername,
-    password: hashedPassword,
-    role: 'admin',
-    firstName: 'Администратор',
-    lastName: 'Системы',
-    school: '',
-    isTemporaryPassword: false
-  });
-
-  console.log('✅ Bootstrap admin created');
-  console.log(`   Admin: ${adminUsername} / ${adminPassword}`);
-}
 
 // Auth middleware
 const auth = (req, res, next) => {
@@ -537,92 +67,43 @@ const auth = (req, res, next) => {
 
 // Routes
 
-// Login
+// Login (PostgreSQL)
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password, role } = req.body;
-
-    const user = users.find(u => u.username === username && u.role === role);
-
+    const { rows } = await pool.query('SELECT * FROM users WHERE username = $1 AND role = $2', [username, role]);
+    const user = rows[0];
     if (!user) {
+      console.log(`[LOGIN] Failed login for ${username} (user not found)`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-
-    // Check if using OTP
-    if (user.isTemporaryPassword && user.requirePasswordChange) {
-      const otpRecord = otpCodes.find(o => o.username === username && !o.used);
-
-      if (!otpRecord) {
-        return res.status(401).json({ message: 'OTP not found or already used' });
-      }
-
-      // Check OTP expiry
-      if (new Date() > new Date(otpRecord.expiresAt)) {
-        return res.status(401).json({ message: 'OTP has expired. Please contact administrator.' });
-      }
-
-      // Validate OTP
-      const isOTPValid = await bcrypt.compare(password, user.password);
-      if (!isOTPValid) {
-        return res.status(401).json({ message: 'Invalid OTP' });
-      }
-
-      // OTP valid - mark as used and require password change
-      otpRecord.used = true;
-      otpRecord.usedAt = new Date().toISOString();
-
-      const token = jwt.sign(
-        { userId: user._id, role: user.role },
-        process.env.JWT_SECRET || 'your-super-secret-jwt-key',
-        { expiresIn: '1h' } // Short expiry for OTP login
-      );
-
-      return res.json({
-        token,
-        requirePasswordChange: true,
-        user: {
-          id: user._id,
-          username: user.username,
-          role: user.role,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          school: user.school,
-          grade: user.grade,
-          subjects: user.subjects || [],
-          isTemporaryPassword: true
-        }
-      });
-    }
-
-    // Normal password check
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log(`[LOGIN] Failed login for ${username} (wrong password)`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { userId: user.id, role: user.role },
       process.env.JWT_SECRET || 'your-super-secret-jwt-key',
       { expiresIn: '7d' }
     );
-
+    console.log(`[LOGIN] Success for ${username} (role: ${user.role})`);
     res.json({
       token,
-      requirePasswordChange: user.requirePasswordChange || false,
+      requirePasswordChange: user.require_password_change || false,
       user: {
-        id: user._id,
+        id: user.id,
         username: user.username,
         role: user.role,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.first_name,
+        lastName: user.last_name,
         school: user.school,
         grade: user.grade,
-        subjects: user.subjects || [],
-        isTemporaryPassword: user.isTemporaryPassword || false
+        isTemporaryPassword: user.is_temporary_password || false
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('[LOGIN] Error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -655,96 +136,88 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
   }
 });
 
-// Get all subjects
-app.get('/api/subjects', auth, (req, res) => {
-  res.json(subjects);
+// Get all subjects (PostgreSQL)
+app.get('/api/subjects', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM subjects ORDER BY id');
+    console.log(`[SUBJECTS] Fetched all subjects (${rows.length})`);
+    res.json(rows);
+  } catch (error) {
+    console.error('[SUBJECTS] Error fetching:', error);
+    res.status(500).json({ error: 'Ошибка при загрузке предметов' });
+  }
 });
 
-// Create subject (admin only)
-app.post('/api/subjects', auth, (req, res) => {
+// Create subject (PostgreSQL, admin only)
+app.post('/api/subjects', auth, async (req, res) => {
   if (req.userRole !== 'admin') {
     return res.status(403).json({ message: 'Access denied' });
   }
-
-  const { nameRu, nameUz, questionsCount } = req.body || {};
-
-  if (!nameRu || !nameUz) {
-    return res.status(400).json({ message: 'Заполните обязательные поля' });
-  }
-
-  const exists = subjects.find(
-    s => s.nameRu?.toLowerCase() === nameRu.toLowerCase() || s.nameUz?.toLowerCase() === nameUz.toLowerCase()
-  );
-  if (exists) {
-    return res.status(400).json({ message: 'Предмет уже существует' });
-  }
-
-  const newSubject = {
-    _id: Date.now().toString(),
-    nameRu: nameRu.trim(),
-    nameUz: nameUz.trim(),
-    questionsCount: Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0
-  };
-
-  subjects.push(newSubject);
-  res.json({ success: true, data: newSubject });
-});
-
-// Update subject (admin only)
-app.put('/api/subjects/:subjectId', auth, (req, res) => {
-  if (req.userRole !== 'admin') {
-    return res.status(403).json({ message: 'Access denied' });
-  }
-
-  const { subjectId } = req.params;
-  const subject = subjects.find(s => s._id === subjectId);
-  if (!subject) {
-    return res.status(404).json({ message: 'Subject not found' });
-  }
-
   const { nameRu, nameUz, questionsCount } = req.body || {};
   if (!nameRu || !nameUz) {
     return res.status(400).json({ message: 'Заполните обязательные поля' });
   }
-
-  subject.nameRu = nameRu.trim();
-  subject.nameUz = nameUz.trim();
-  if (Number.isFinite(Number(questionsCount))) {
-    subject.questionsCount = Number(questionsCount);
+  try {
+    const exists = await pool.query('SELECT 1 FROM subjects WHERE LOWER(name_ru) = LOWER($1) OR LOWER(name_uz) = LOWER($2)', [nameRu, nameUz]);
+    if (exists.rowCount > 0) {
+      return res.status(400).json({ message: 'Предмет уже существует' });
+    }
+    const result = await pool.query(
+      'INSERT INTO subjects (name_ru, name_uz, questions_count) VALUES ($1, $2, $3) RETURNING *',
+      [nameRu.trim(), nameUz.trim(), Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0]
+    );
+    console.log(`[SUBJECTS] Created subject: ${nameRu} / ${nameUz}`);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('[SUBJECTS] Error creating:', error);
+    res.status(500).json({ error: 'Ошибка при создании предмета' });
   }
-
-  res.json({ success: true, data: subject });
 });
 
-// Delete subject (admin only)
-app.delete('/api/subjects/:subjectId', auth, (req, res) => {
+// Update subject (PostgreSQL, admin only)
+app.put('/api/subjects/:subjectId', auth, async (req, res) => {
   if (req.userRole !== 'admin') {
     return res.status(403).json({ message: 'Access denied' });
   }
-
   const { subjectId } = req.params;
-  const subjectIndex = subjects.findIndex(s => s._id === subjectId);
-  if (subjectIndex === -1) {
-    return res.status(404).json({ message: 'Subject not found' });
+  const { nameRu, nameUz, questionsCount } = req.body || {};
+  if (!nameRu || !nameUz) {
+    return res.status(400).json({ message: 'Заполните обязательные поля' });
   }
-
-  const removedSubject = subjects.splice(subjectIndex, 1)[0];
-
-  // Remove related modules and tests
-  const moduleIdsToRemove = modules.filter(m => m.subjectId === subjectId).map(m => m._id);
-  for (let i = modules.length - 1; i >= 0; i--) {
-    if (modules[i].subjectId === subjectId) {
-      modules.splice(i, 1);
+  try {
+    const result = await pool.query(
+      'UPDATE subjects SET name_ru = $1, name_uz = $2, questions_count = $3 WHERE id = $4 RETURNING *',
+      [nameRu.trim(), nameUz.trim(), Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0, subjectId]
+    );
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Subject not found' });
     }
+    console.log(`[SUBJECTS] Updated subject id=${subjectId}`);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('[SUBJECTS] Error updating:', error);
+    res.status(500).json({ error: 'Ошибка при обновлении предмета' });
   }
+});
 
-  for (let i = tests.length - 1; i >= 0; i--) {
-    if (moduleIdsToRemove.includes(tests[i].moduleId)) {
-      tests.splice(i, 1);
+// Delete subject (PostgreSQL, admin only)
+app.delete('/api/subjects/:subjectId', auth, async (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  const { subjectId } = req.params;
+  try {
+    // TODO: каскадное удаление модулей и тестов (или ON DELETE CASCADE в БД)
+    const result = await pool.query('DELETE FROM subjects WHERE id = $1 RETURNING *', [subjectId]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Subject not found' });
     }
+    console.log(`[SUBJECTS] Deleted subject id=${subjectId}`);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('[SUBJECTS] Error deleting:', error);
+    res.status(500).json({ error: 'Ошибка при удалении предмета' });
   }
-
-  res.json({ success: true, data: removedSubject });
 });
 
 // Get all users (admin only)
@@ -764,19 +237,18 @@ app.get('/api/users', auth, (req, res) => {
   res.json({ success: true, data: usersData });
 });
 
-// Get current user profile (any authenticated user)
-app.get('/api/users/me', auth, (req, res) => {
+// Get current user profile (PostgreSQL)
+app.get('/api/users/me', auth, async (req, res) => {
   try {
-    console.log('📝 GET /api/users/me - User ID:', req.userId);
-    const user = users.find(u => u._id === req.userId);
+    console.log(`[PROFILE] GET /api/users/me - User ID: ${req.userId}`);
+    const { rows } = await pool.query('SELECT id, username, role, first_name, last_name, school, grade, grade_section FROM users WHERE id = $1', [req.userId]);
+    const user = rows[0];
     if (!user) {
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
     }
-
-    // Don't send password
-    const { password, ...userProfile } = user;
-    res.json({ success: true, data: userProfile });
+    res.json({ success: true, data: user });
   } catch (error) {
+    console.error('[PROFILE] Error:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке профиля' });
   }
 });
@@ -821,121 +293,38 @@ app.get('/api/teachers/students/:studentId', auth, (req, res) => {
   }
 });
 
-// Register new user (admin only)
+// Register new user (PostgreSQL, admin only)
 app.post('/api/users/register', async (req, res) => {
   try {
     const body = req.body || {};
-    const { username, role, firstName, lastName, school, grade, gradeSection, subjects, homeroomClassId, classTeacherId } = body;
-
+    const { username, role, firstName, lastName, school, grade, gradeSection } = body;
     if (!username || !role || !firstName || !lastName) {
       return res.status(400).json({ success: false, error: 'Заполните обязательные поля' });
     }
-
     // Check if user exists
-    if (users.find(u => u.username === username)) {
+    const exists = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
+    if (exists.rowCount > 0) {
       return res.status(400).json({ success: false, error: 'Пользователь уже существует' });
     }
-
-    // Generate OTP for new user
+    // Генерируем временный пароль (OTP)
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     const hashedOTP = await bcrypt.hash(otp, 10);
-
-    const newUser = {
-      _id: Date.now().toString(),
-      username,
-      password: hashedOTP, // OTP as initial password
-      role,
-      firstName,
-      lastName,
-      school: school || 'School',
-      isTemporaryPassword: true,
-      requirePasswordChange: true
-    };
-
-    // Add role-specific fields
-    if (role === 'student') {
-      const normalizedGrade = (grade || '9').toString().trim();
-      const normalizedSection = (gradeSection || 'А').toString().trim();
-
-      newUser.grade = normalizedGrade;
-      newUser.gradeSection = normalizedSection || 'А';
-
-      // Auto-create or update class
-      if (normalizedGrade && normalizedSection) {
-        let classObj = classes.find(c => c.grade === normalizedGrade);
-
-        if (!classObj) {
-          // Create new class
-          classObj = {
-            _id: Date.now().toString(),
-            grade: normalizedGrade,
-            sections: [normalizedSection],
-            studentCount: 1,
-            createdAt: new Date().toISOString()
-          };
-          if (classTeacherId) {
-            classObj.teacherId = classTeacherId;
-          }
-          classes.push(classObj);
-          console.log(`✅ Auto-created class: ${normalizedGrade}-${normalizedSection}`);
-        } else {
-          if (!Array.isArray(classObj.sections)) {
-            classObj.sections = [];
-          }
-          // Update existing class
-          if (!classObj.sections.includes(normalizedSection)) {
-            classObj.sections.push(normalizedSection);
-          }
-          // Recalculate student count
-          classObj.studentCount = users.filter(u => u.role === 'student' && u.grade === normalizedGrade).length + 1;
-          if (classTeacherId) {
-            classObj.teacherId = classTeacherId;
-          }
-          console.log(`✅ Updated class ${normalizedGrade}: added section ${normalizedSection}`);
-        }
-      }
-    } else if (role === 'teacher') {
-      const normalizedSubjects = Array.isArray(subjects)
-        ? subjects
-          .map(s => s?.id || s?._id || s?.subjectId || s)
-          .filter(Boolean)
-        : [];
-      newUser.subjects = normalizedSubjects;
-
-      if (homeroomClassId) {
-        const classItem = findClassById(homeroomClassId);
-        if (classItem) {
-          classItem.teacherId = newUser._id;
-        }
-      }
-    }
-
-    // Store OTP with expiry
-    otpCodes.push({
-      userId: newUser._id,
-      username: newUser.username,
-      otp: otp,
-      hashedOTP: hashedOTP,
-      expiresAt: otpExpiry,
-      used: false
-    });
-
-    users.push(newUser);
-
-    console.log(`🔑 OTP generated for ${username}: ${otp} (expires: ${otpExpiry.toISOString()})`);
-
-    const { password: _, ...userWithoutPassword } = newUser;
+    const result = await pool.query(
+      `INSERT INTO users (username, password, role, first_name, last_name, school, grade, grade_section, is_temporary_password, require_password_change)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, true) RETURNING id, username, role, first_name, last_name, school, grade, grade_section`,
+      [username, hashedOTP, role, firstName, lastName, school || 'School', grade, gradeSection]
+    );
+    const user = result.rows[0];
+    console.log(`[REGISTER] User created: ${username} (${role})`);
     res.status(201).json({
       success: true,
       data: {
-        ...userWithoutPassword,
-        otp: otp, // Return OTP to admin
-        otpExpiresAt: otpExpiry
+        ...user,
+        otp: otp // Return OTP to admin
       }
     });
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('[REGISTER] Error:', error);
     res.status(500).json({ success: false, error: 'Ошибка при создании пользователя' });
   }
 });
@@ -1069,23 +458,24 @@ app.get('/api/health', (req, res) => {
 // MODULES API
 // ========================================
 
+import pool from './db.js';
+
 // Get all modules for a subject
-app.get('/api/subjects/:subjectId/modules', auth, (req, res) => {
+app.get('/api/subjects/:subjectId/modules', auth, async (req, res) => {
   try {
     const { subjectId } = req.params;
-    const user = users.find(u => u._id === req.userId);
-
-    if (user?.role === 'teacher' && !teacherHasSubject(user, subjectId)) {
-      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
-    }
+    // Проверка прав доступа для teacher (оставить после полной миграции users)
+    // const user = ...
+    // if (user?.role === 'teacher' && !teacherHasSubject(user, subjectId)) {
+    //   return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+    // }
     console.log(`📚 Загрузка модулей для предмета: ${subjectId}`);
-    console.log(`📊 Всего модулей в базе: ${modules.length}`);
-    const subjectModules = modules.filter(m => m.subjectId === subjectId);
-    console.log(`✅ Найдено модулей: ${subjectModules.length}`);
-    if (subjectModules.length > 0) {
-      console.log('📝 Модули:', subjectModules.map(m => m.nameRu).join(', '));
+    const { rows } = await pool.query('SELECT * FROM modules WHERE subject_id = $1', [subjectId]);
+    console.log(`✅ Найдено модулей: ${rows.length}`);
+    if (rows.length > 0) {
+      console.log('📝 Модули:', rows.map(m => m.name_ru).join(', '));
     }
-    res.json({ success: true, data: subjectModules });
+    res.json({ success: true, data: rows });
   } catch (error) {
     console.error('❌ Ошибка загрузки модулей:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке модулей' });
@@ -1093,36 +483,25 @@ app.get('/api/subjects/:subjectId/modules', auth, (req, res) => {
 });
 
 // Create module
-app.post('/api/subjects/:subjectId/modules', auth, (req, res) => {
+app.post('/api/subjects/:subjectId/modules', auth, async (req, res) => {
   try {
     if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-
     const { subjectId } = req.params;
     const { nameRu, nameUz, descriptionRu, descriptionUz } = req.body;
-    const user = users.find(u => u._id === req.userId);
-
-    if (user?.role === 'teacher' && !teacherHasSubject(user, subjectId)) {
-      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
-    }
-
+    // const user = ...
+    // if (user?.role === 'teacher' && !teacherHasSubject(user, subjectId)) {
+    //   return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+    // }
     console.log(`➕ Создание нового модуля для предмета: ${subjectId}`);
     console.log(`📝 Название: ${nameRu} / ${nameUz}`);
-
-    const newModule = {
-      _id: (modules.length + 1).toString(),
-      subjectId,
-      nameRu,
-      nameUz,
-      descriptionRu,
-      descriptionUz,
-      createdBy: req.userId,
-      createdAt: new Date().toISOString()
-    };
-
-    modules.push(newModule);
-    console.log(`✅ Модуль создан с ID: ${newModule._id}. Всего модулей: ${modules.length}`);
+    const result = await pool.query(
+      'INSERT INTO modules (subject_id, name_ru, name_uz, description_ru, description_uz, created_by, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING *',
+      [subjectId, nameRu, nameUz, descriptionRu, descriptionUz, req.userId]
+    );
+    const newModule = result.rows[0];
+    console.log(`✅ Модуль создан с ID: ${newModule.id}`);
     res.status(201).json({ success: true, data: newModule });
   } catch (error) {
     console.error('❌ Ошибка создания модуля:', error);
@@ -1131,34 +510,22 @@ app.post('/api/subjects/:subjectId/modules', auth, (req, res) => {
 });
 
 // Update module
-app.put('/api/modules/:moduleId', auth, (req, res) => {
+app.put('/api/modules/:moduleId', auth, async (req, res) => {
   try {
     if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-
     const { moduleId } = req.params;
     const { nameRu, nameUz, descriptionRu, descriptionUz } = req.body;
-
-    const moduleIndex = modules.findIndex(m => m._id === moduleId);
-
-    if (moduleIndex === -1) {
+    const result = await pool.query(
+      'UPDATE modules SET name_ru = COALESCE($1, name_ru), name_uz = COALESCE($2, name_uz), description_ru = COALESCE($3, description_ru), description_uz = COALESCE($4, description_uz) WHERE id = $5 RETURNING *',
+      [nameRu, nameUz, descriptionRu, descriptionUz, moduleId]
+    );
+    if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Модуль не найден' });
     }
-
-    console.log(`✏️ Обновление модуля: ${moduleId}`);
-
-    modules[moduleIndex] = {
-      ...modules[moduleIndex],
-      nameRu: nameRu || modules[moduleIndex].nameRu,
-      nameUz: nameUz || modules[moduleIndex].nameUz,
-      descriptionRu: descriptionRu || modules[moduleIndex].descriptionRu,
-      descriptionUz: descriptionUz || modules[moduleIndex].descriptionUz,
-      updatedAt: new Date().toISOString()
-    };
-
-    console.log(`✅ Модуль обновлен`);
-    res.json({ success: true, data: modules[moduleIndex] });
+    console.log(`✅ Модуль обновлен: ${moduleId}`);
+    res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     console.error('❌ Ошибка обновления модуля:', error);
     res.status(500).json({ success: false, error: 'Ошибка при обновлении модуля' });
@@ -1166,39 +533,21 @@ app.put('/api/modules/:moduleId', auth, (req, res) => {
 });
 
 // Delete module
-app.delete('/api/modules/:moduleId', auth, (req, res) => {
+app.delete('/api/modules/:moduleId', auth, async (req, res) => {
   try {
     if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-
     const { moduleId } = req.params;
-    const moduleIndex = modules.findIndex(m => m._id === moduleId);
-
-    if (moduleIndex === -1) {
+    // Каскадное удаление тестов и результатов реализовать отдельно при необходимости
+    const result = await pool.query('DELETE FROM modules WHERE id = $1 RETURNING *', [moduleId]);
+    if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Модуль не найден' });
     }
-
-    // Delete all tests in this module
-    const moduleTestIds = tests.filter(t => t.moduleId === moduleId).map(t => t._id);
-    moduleTestIds.forEach(testId => {
-      // Delete test results and progress for these tests
-      const resultIndexes = testResults.map((r, i) => r.testId === testId ? i : -1).filter(i => i !== -1).reverse();
-      resultIndexes.forEach(i => testResults.splice(i, 1));
-
-      const progressIndexes = testProgress.map((p, i) => p.testId === testId ? i : -1).filter(i => i !== -1).reverse();
-      progressIndexes.forEach(i => testProgress.splice(i, 1));
-    });
-
-    // Delete tests
-    const testIndexes = tests.map((t, i) => t.moduleId === moduleId ? i : -1).filter(i => i !== -1).reverse();
-    testIndexes.forEach(i => tests.splice(i, 1));
-
-    // Delete module
-    modules.splice(moduleIndex, 1);
-
+    console.log(`🗑️ Модуль удален: ${moduleId}`);
     res.json({ success: true, message: 'Модуль успешно удален' });
   } catch (error) {
+    console.error('❌ Ошибка при удалении модуля:', error);
     res.status(500).json({ success: false, error: 'Ошибка при удалении модуля' });
   }
 });
@@ -1224,87 +573,55 @@ app.get('/api/modules/:moduleId', auth, (req, res) => {
 });
 
 // Get all tests for a module
-app.get('/api/modules/:moduleId/tests', auth, (req, res) => {
+app.get('/api/modules/:moduleId/tests', auth, async (req, res) => {
   try {
     const { moduleId } = req.params;
-    const user = users.find(u => u._id === req.userId);
-    const moduleItem = modules.find(m => m._id === moduleId);
-
-    if (user?.role === 'teacher' && moduleItem && !teacherHasSubject(user, moduleItem.subjectId)) {
-      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
-    }
-
-    console.log(`🔍 Getting tests for module: ${moduleId}`);
-    console.log(`👤 User: ${user?.username} (${user?.role}) - Grade: ${user?.grade}`);
-    console.log(`📚 Total tests in database: ${tests.length}`);
-
-    let moduleTests = tests.filter(t => t.moduleId === moduleId);
-
-    // Filter by grade if student
-    if (user?.role === 'student' && user.grade) {
-      moduleTests = moduleTests.filter(t => {
-        // If no assignedGrades, test is available to all
-        if (!t.assignedGrades || t.assignedGrades.length === 0) {
-          return true;
-        }
-        const isAvailable = t.assignedGrades.includes(user.grade);
-        console.log(`📝 Test "${t.nameRu}" - Assigned to: [${t.assignedGrades}] - Available: ${isAvailable}`);
-        return isAvailable;
-      });
-    }
-
-    console.log(`✅ Found ${moduleTests.length} tests for module ${moduleId}`);
-
-    // Don't send questions to students viewing list
-    const testsForList = moduleTests.map(t => {
-      const { questions, ...testInfo } = t;
-      return {
-        ...testInfo,
-        questionsCount: questions ? questions.length : 0
-      };
-    });
-
-    console.log(`📤 Returning: ${JSON.stringify(testsForList)}`);
+    // const user = ...
+    // const moduleItem = ...
+    // if (user?.role === 'teacher' && moduleItem && !teacherHasSubject(user, moduleItem.subjectId)) {
+    //   return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+    // }
+    console.log(`🔍 Получение тестов для модуля: ${moduleId}`);
+    const { rows } = await pool.query('SELECT *, jsonb_array_length(questions) as questions_count FROM tests WHERE module_id = $1', [moduleId]);
+    // Фильтрация по grade для студентов реализуется после полной миграции users
+    const testsForList = rows.map(t => ({
+      ...t,
+      questionsCount: t.questions_count || 0
+    }));
+    console.log(`✅ Найдено ${testsForList.length} тестов для модуля ${moduleId}`);
     res.json({ success: true, data: testsForList });
   } catch (error) {
-    console.error(`❌ Error loading tests: ${error.message}`);
+    console.error(`❌ Ошибка загрузки тестов: ${error.message}`);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке тестов' });
   }
 });
 
 // Get all tests (for admin dashboard)
-app.get('/api/tests', auth, (req, res) => {
+app.get('/api/tests', auth, async (req, res) => {
   try {
-    console.log(`🔍 Getting all tests for admin`);
-
-    // Return basic test info without questions
-    const testsForList = tests.map(t => {
-      const { questions, ...testInfo } = t;
-      return {
-        ...testInfo,
-        questionsCount: questions ? questions.length : 0
-      };
-    });
-
-    console.log(`✅ Returning ${testsForList.length} tests`);
+    console.log(`🔍 Получение всех тестов (admin)`);
+    const { rows } = await pool.query('SELECT *, jsonb_array_length(questions) as questions_count FROM tests');
+    const testsForList = rows.map(t => ({
+      ...t,
+      questionsCount: t.questions_count || 0
+    }));
+    console.log(`✅ Всего тестов: ${testsForList.length}`);
     res.json({ success: true, data: testsForList });
   } catch (error) {
-    console.error(`❌ Error loading tests: ${error.message}`);
+    console.error(`❌ Ошибка загрузки тестов: ${error.message}`);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке тестов' });
   }
 });
 
 // Get single test with questions (for teacher - original order)
-app.get('/api/tests/:testId', auth, (req, res) => {
+app.get('/api/tests/:testId', auth, async (req, res) => {
   try {
     const { testId } = req.params;
-    const test = tests.find(t => t._id === testId);
-
-    if (!test) {
+    const { rows } = await pool.query('SELECT * FROM tests WHERE id = $1', [testId]);
+    if (rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-
-    res.json({ success: true, data: test });
+    res.json({ success: true, data: rows[0] });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке теста' });
   }
@@ -1348,47 +665,30 @@ app.get('/api/tests/:testId/start', auth, (req, res) => {
 });
 
 // Create test
-app.post('/api/modules/:moduleId/tests', auth, (req, res) => {
+app.post('/api/modules/:moduleId/tests', auth, async (req, res) => {
   try {
     if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-
     const { moduleId } = req.params;
     const { nameRu, nameUz, duration, timeLimit, maxScore, status, questions, assignedGrades } = req.body;
-    const user = users.find(u => u._id === req.userId);
-    const moduleItem = modules.find(m => m._id === moduleId);
-
-    if (user?.role === 'teacher' && moduleItem && !teacherHasSubject(user, moduleItem.subjectId)) {
-      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
-    }
-
-    const existingTest = tests.find(t => t.moduleId === moduleId);
-    if (existingTest) {
+    // const user = ...
+    // const moduleItem = ...
+    // if (user?.role === 'teacher' && moduleItem && !teacherHasSubject(user, moduleItem.subjectId)) {
+    //   return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+    // }
+    // Проверка: в модуле может быть только один тест
+    const { rows: existing } = await pool.query('SELECT id FROM tests WHERE module_id = $1', [moduleId]);
+    if (existing.length > 0) {
       return res.status(400).json({ success: false, error: 'В модуле уже есть тест' });
     }
-
     console.log(`➕ Создание теста в модуле ${moduleId}: ${nameRu}`);
-    console.log(`📋 Assigned grades: ${assignedGrades}`);
-
-    const newTest = {
-      _id: (tests.length + 1).toString(),
-      moduleId,
-      nameRu,
-      nameUz,
-      duration: duration || null,
-      timeLimit: timeLimit || null,
-      maxScore: maxScore || 100,
-      status: status || 'draft', // draft or published
-      questions: questions || [], // Array of { questionRu, questionUz, answers: [{ textRu, textUz, isCorrect }] }
-      assignedGrades: assignedGrades || [], // Empty means available to all
-      createdBy: req.userId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    tests.push(newTest);
-    console.log(`✅ Тест создан с ID: ${newTest._id}`);
+    const result = await pool.query(
+      'INSERT INTO tests (module_id, name_ru, name_uz, duration, time_limit, max_score, status, questions, assigned_grades, created_by, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()) RETURNING *',
+      [moduleId, nameRu, nameUz, duration, timeLimit, maxScore, status || 'draft', JSON.stringify(questions || []), assignedGrades || [], req.userId]
+    );
+    const newTest = result.rows[0];
+    console.log(`✅ Тест создан с ID: ${newTest.id}`);
     res.status(201).json({ success: true, data: newTest });
   } catch (error) {
     console.error('❌ Ошибка создания теста:', error);
@@ -1397,47 +697,63 @@ app.post('/api/modules/:moduleId/tests', auth, (req, res) => {
 });
 
 // Update test
-app.put('/api/tests/:testId', auth, (req, res) => {
+app.put('/api/tests/:testId', auth, async (req, res) => {
   try {
     if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-
     const { testId } = req.params;
-    const testIndex = tests.findIndex(t => t._id === testId);
-
-    if (testIndex === -1) {
+    const updates = req.body;
+    // Обновляем только разрешённые поля
+    const fields = ['nameRu', 'nameUz', 'duration', 'timeLimit', 'maxScore', 'status', 'questions', 'assignedGrades'];
+    const dbFields = {
+      nameRu: 'name_ru',
+      nameUz: 'name_uz',
+      duration: 'duration',
+      timeLimit: 'time_limit',
+      maxScore: 'max_score',
+      status: 'status',
+      questions: 'questions',
+      assignedGrades: 'assigned_grades'
+    };
+    const setParts = [];
+    const values = [];
+    let idx = 1;
+    for (const key of fields) {
+      if (updates[key] !== undefined) {
+        setParts.push(`${dbFields[key]} = $${idx}`);
+        if (key === 'questions') {
+          values.push(JSON.stringify(updates[key]));
+        } else {
+          values.push(updates[key]);
+        }
+        idx++;
+      }
+    }
+    setParts.push(`updated_at = NOW()`);
+    const query = `UPDATE tests SET ${setParts.join(', ')} WHERE id = $${idx} RETURNING *`;
+    values.push(testId);
+    const result = await pool.query(query, values);
+    if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-
-    const updates = req.body;
-    tests[testIndex] = {
-      ...tests[testIndex],
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
-
-    res.json({ success: true, data: tests[testIndex] });
+    res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при обновлении теста' });
   }
 });
 
 // Delete test
-app.delete('/api/tests/:testId', auth, (req, res) => {
+app.delete('/api/tests/:testId', auth, async (req, res) => {
   try {
     if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-
     const { testId } = req.params;
-    const testIndex = tests.findIndex(t => t._id === testId);
-
-    if (testIndex === -1) {
+    const result = await pool.query('DELETE FROM tests WHERE id = $1 RETURNING *', [testId]);
+    if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-
-    const deletedTest = tests.splice(testIndex, 1)[0];
     res.json({ success: true, message: 'Тест удален' });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при удалении теста' });
@@ -1449,12 +765,14 @@ app.delete('/api/tests/:testId', auth, (req, res) => {
 // ========================================
 
 // Get test results for student
-app.get('/api/tests/:testId/results', auth, (req, res) => {
+app.get('/api/tests/:testId/results', auth, async (req, res) => {
   try {
     const { testId } = req.params;
-    const studentResults = testResults.filter(r => r.testId === testId && r.userId === req.userId);
-    res.json({ success: true, data: studentResults });
+    const { rows } = await pool.query('SELECT * FROM test_results WHERE test_id = $1 AND user_id = $2 ORDER BY completed_at DESC', [testId, req.userId]);
+    console.log(`📊 Найдено результатов: ${rows.length} для теста ${testId} пользователя ${req.userId}`);
+    res.json({ success: true, data: rows });
   } catch (error) {
+    console.error('❌ Ошибка при загрузке результатов:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке результатов' });
   }
 });
@@ -1499,116 +817,72 @@ app.get('/api/tests/:testId/progress', auth, (req, res) => {
 });
 
 // Submit test results
-app.post('/api/tests/:testId/submit', auth, (req, res) => {
+app.post('/api/tests/:testId/submit', auth, async (req, res) => {
   try {
     const { testId } = req.params;
     const { answers, timeTaken } = req.body;
-
-    console.log(`📝 Submitting test ${testId} by user ${req.userId}`);
-    console.log(`📥 Received answers:`, answers);
-    console.log(`⏱️ Time taken:`, timeTaken);
-
-    // Find test
-    const test = tests.find(t => t._id === testId);
-    if (!test) {
-      console.error(`❌ Test not found: ${testId}`);
+    console.log(`📝 Сдача теста ${testId} пользователем ${req.userId}`);
+    // Получаем тест и вопросы
+    const { rows: testRows } = await pool.query('SELECT * FROM tests WHERE id = $1', [testId]);
+    if (testRows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-
-    console.log(`✅ Test found with ${test.questions.length} questions`);
-
-    // Calculate score
+    const test = testRows[0];
+    const questions = test.questions || [];
     let correctCount = 0;
-    const questionResults = test.questions.map((question, idx) => {
+    const questionResults = questions.map((question, idx) => {
       const userAnswerIdx = answers[idx];
-      const isCorrect = userAnswerIdx !== undefined && question.answers[userAnswerIdx]?.isCorrect;
+      const isCorrect = userAnswerIdx !== undefined && question.answers && question.answers[userAnswerIdx]?.isCorrect;
       if (isCorrect) correctCount++;
-
-      console.log(`Q${idx}: userAnswer=${userAnswerIdx}, correct=${isCorrect}`);
-
       return {
         questionIndex: idx,
         questionRu: question.questionRu,
         questionUz: question.questionUz,
         userAnswerIndex: userAnswerIdx,
-        userAnswerText: userAnswerIdx !== undefined ? question.answers[userAnswerIdx] : null,
-        correctAnswerIndex: question.answers.findIndex(a => a.isCorrect),
-        correctAnswerText: question.answers.find(a => a.isCorrect),
+        userAnswerText: userAnswerIdx !== undefined && question.answers ? question.answers[userAnswerIdx] : null,
+        correctAnswerIndex: question.answers ? question.answers.findIndex(a => a.isCorrect) : null,
+        correctAnswerText: question.answers ? question.answers.find(a => a.isCorrect) : null,
         isCorrect
       };
     });
-
-    const score = Math.round((correctCount / test.questions.length) * 100);
-
-    // Find module to get subjectId
-    const module = modules.find(m => m._id === test.moduleId);
-    const subjectId = module ? module.subjectId : null;
-
-    console.log('📦 Module found:', module);
-    console.log('📚 SubjectId:', subjectId);
-
-    // Save result
-    const result = {
-      _id: String(testResults.length + 1),
-      userId: req.userId,
-      testId,
-      testName: test.nameRu,
-      moduleId: test.moduleId,
-      subjectId,
-      score,
-      correctCount,
-      totalCount: test.questions.length,
-      timeTaken,
-      questionResults,
-      completedAt: new Date().toISOString()
-    };
-
-    testResults.push(result);
-
-    // Remove progress after submission
-    const progressIdx = testProgress.findIndex(p => p.testId === testId && p.userId === req.userId);
-    if (progressIdx !== -1) {
-      testProgress.splice(progressIdx, 1);
-    }
-
-    console.log(`✅ Test result saved: ${testId} - Score: ${correctCount}/${test.questions.length}`);
-    console.log('📋 Result object:', JSON.stringify({
-      testId: result.testId,
-      score: result.score,
-      correctCount: result.correctCount,
-      totalCount: result.totalCount,
-      hasQuestionResults: !!result.questionResults,
-      questionResultsLength: result.questionResults ? result.questionResults.length : 0
-    }));
+    const score = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
+    // Получаем module и subjectId
+    const { rows: moduleRows } = await pool.query('SELECT * FROM modules WHERE id = $1', [test.module_id]);
+    const module = moduleRows[0];
+    const subjectId = module ? module.subject_id : null;
+    // Сохраняем результат
+    const insertResult = await pool.query(
+      'INSERT INTO test_results (user_id, test_id, score, correct_count, total_count, time_taken, question_results, completed_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING *',
+      [req.userId, testId, score, correctCount, questions.length, timeTaken, JSON.stringify(questionResults)]
+    );
+    const result = insertResult.rows[0];
+    console.log(`✅ Результат теста сохранён: ${result.id} - Score: ${score}`);
     res.json({ success: true, data: result });
   } catch (error) {
-    console.error('❌ Error submitting test:', error);
+    console.error('❌ Ошибка при сохранении результата:', error);
     res.status(500).json({ success: false, error: 'Ошибка при сохранении результата' });
   }
 });
 
 // Get all test results for student
-app.get('/api/test-results', auth, (req, res) => {
+app.get('/api/test-results', auth, async (req, res) => {
   try {
-    const studentResults = testResults.filter(r => r.userId === req.userId);
-    const sorted = studentResults.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
-    res.json({ success: true, data: sorted });
+    const { rows } = await pool.query('SELECT * FROM test_results WHERE user_id = $1 ORDER BY completed_at DESC', [req.userId]);
+    res.json({ success: true, data: rows });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке результатов' });
   }
 });
 
 // Get specific test result details
-app.get('/api/test-results/:resultId', auth, (req, res) => {
+app.get('/api/test-results/:resultId', auth, async (req, res) => {
   try {
     const { resultId } = req.params;
-    const result = testResults.find(r => r._id === resultId && r.userId === req.userId);
-
-    if (!result) {
+    const { rows } = await pool.query('SELECT * FROM test_results WHERE id = $1 AND user_id = $2', [resultId, req.userId]);
+    if (rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Результат не найден' });
     }
-
-    res.json({ success: true, data: result });
+    res.json({ success: true, data: rows[0] });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке результата' });
   }
@@ -2181,14 +1455,13 @@ app.get('/api/teacher/control-tests/results', auth, (req, res) => {
 });
 
 // Get all classes/grades
-app.get('/api/classes', auth, (req, res) => {
+app.get('/api/classes', auth, async (req, res) => {
   try {
-    // Recalculate student count
-    classes.forEach(cls => {
-      cls.studentCount = users.filter(u => u.role === 'student' && u.grade === cls.grade).length;
-    });
-    res.json({ success: true, data: classes });
+    const { rows } = await pool.query('SELECT * FROM classes ORDER BY grade, name');
+    console.log(`📚 Загружено классов: ${rows.length}`);
+    res.json({ success: true, data: rows });
   } catch (error) {
+    console.error('❌ Ошибка при загрузке классов:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке классов' });
   }
 });
@@ -2199,37 +1472,17 @@ function findClassById(classId) {
 }
 
 // Get specific class by ID
-app.get('/api/classes/:classId', auth, (req, res) => {
+app.get('/api/classes/:classId', auth, async (req, res) => {
   try {
     const { classId } = req.params;
-    const classItem = findClassById(classId);
-
-    if (!classItem) {
+    const { rows } = await pool.query('SELECT * FROM classes WHERE id = $1', [classId]);
+    if (rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
-
-    const section = req.query.section || classItem.name || null;
-
-    if (!canAccessClassAnalytics(req.userId, req.userRole, classItem, section)) {
-      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
-    }
-
-    // Get students for this class
-    const students = getClassStudents(classItem, section);
-
-    // Remove sensitive data from students
-    const studentData = students.map(s => ({
-      _id: s._id,
-      username: s.username,
-      firstName: s.firstName,
-      lastName: s.lastName,
-      grade: s.grade,
-      gradeSection: s.gradeSection,
-      school: s.school,
-      email: s.email,
-      averageScore: getStudentAverageScore(s._id)
-    }));
-
+    const classItem = rows[0];
+    // Получаем студентов этого класса (по grade и name)
+    const studentsQuery = await pool.query('SELECT id, username, first_name, last_name, grade, grade_section, school, email FROM users WHERE role = $1 AND grade = $2', ['student', classItem.grade]);
+    const studentData = studentsQuery.rows;
     res.json({
       success: true,
       data: {
@@ -2308,37 +1561,28 @@ app.get('/api/classes/:grade/students', auth, (req, res) => {
 });
 
 // Create new class
-app.post('/api/classes', auth, (req, res) => {
+app.post('/api/classes', auth, async (req, res) => {
   try {
-    const user = users.find(u => u._id === req.userId);
-
-    // Only admin can create classes
-    if (user.role !== 'admin') {
+    // Только admin может создавать классы
+    // const user = ...
+    if (req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Только администратор может создавать классы' });
     }
-
     const { grade, name, teacherId } = req.body;
-
     if (!grade || !name) {
       return res.status(400).json({ success: false, error: 'Укажите номер класса и название' });
     }
-
-    // Check if class already exists
-    const existingClass = classes.find(c => c.grade === grade && c.name === name);
-    if (existingClass) {
+    // Проверка на существование класса
+    const { rows: existing } = await pool.query('SELECT id FROM classes WHERE grade = $1 AND name = $2', [grade, name]);
+    if (existing.length > 0) {
       return res.status(400).json({ success: false, error: 'Класс с таким названием уже существует' });
     }
-
-    const newClass = {
-      _id: (Math.max(...classes.map(c => parseInt(c._id) || 0), 0) + 1).toString(),
-      grade,
-      name,
-      teacherId: teacherId || null,
-      createdAt: new Date().toISOString()
-    };
-
-    classes.push(newClass);
-
+    const result = await pool.query(
+      'INSERT INTO classes (grade, name, teacher_id, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *',
+      [grade, name, teacherId || null]
+    );
+    const newClass = result.rows[0];
+    console.log(`✅ Класс создан: ${newClass.id}`);
     res.status(201).json({ success: true, data: newClass });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при создании класса' });
@@ -2346,24 +1590,17 @@ app.post('/api/classes', auth, (req, res) => {
 });
 
 // Delete class
-app.delete('/api/classes/:classId', auth, (req, res) => {
+app.delete('/api/classes/:classId', auth, async (req, res) => {
   try {
-    const user = users.find(u => u._id === req.userId);
-
-    // Only admin can delete classes
-    if (!user || user.role !== 'admin') {
+    if (req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Только администратор может удалять классы' });
     }
-
     const { classId } = req.params;
-
-    const classIndex = classes.findIndex(c => String(c._id || c.id) === String(classId));
-    if (classIndex === -1) {
+    const result = await pool.query('DELETE FROM classes WHERE id = $1 RETURNING *', [classId]);
+    if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
-
-    classes.splice(classIndex, 1);
-
+    console.log(`🗑️ Класс удалён: ${classId}`);
     res.json({ success: true, message: 'Класс удален успешно' });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при удалении класса' });
@@ -3269,77 +2506,7 @@ app.get('/api/teacher-test-results/teacher/:teacherId', auth, (req, res) => {
 // Start server
 const PORT = process.env.PORT || 5001;
 
-// Populate sample/demo data only when explicitly enabled
-if (ADD_SAMPLE_DATA) {
-  await initUsers();
-
-  // Add sample teacher test
-  teacherTests.push({
-    _id: 'test1',
-    title: 'Тест на знание педагогики',
-    description: 'Оценка базовых знаний педагогики и методики преподавания',
-    duration: 15,
-    passingScore: 70,
-    questions: [
-      {
-        text: 'Какой метод обучения считается наиболее эффективным для развития критического мышления?',
-        options: [
-          'Лекция',
-          'Проблемное обучение',
-          'Заучивание наизусть',
-          'Тестирование'
-        ],
-        correctAnswer: 1
-      },
-      {
-        text: 'Что такое дифференцированный подход в обучении?',
-        options: [
-          'Одинаковые задания для всех учеников',
-          'Учет индивидуальных особенностей учащихся',
-          'Деление класса на группы по возрасту',
-          'Раздельное обучение мальчиков и девочек'
-        ],
-        correctAnswer: 1
-      },
-      {
-        text: 'Какова основная цель формативного оценивания?',
-        options: [
-          'Выставление итоговых оценок',
-          'Сравнение учеников между собой',
-          'Помощь ученику в улучшении результатов',
-          'Наказание за плохие результаты'
-        ],
-        correctAnswer: 2
-      },
-      {
-        text: 'Что означает термин "ЗБР" (зона ближайшего развития)?',
-        options: [
-          'То, что ребенок может сделать самостоятельно',
-          'То, что ребенок не может сделать вообще',
-          'То, что ребенок может сделать с помощью взрослого',
-          'То, что ребенок уже умеет делать'
-        ],
-        correctAnswer: 2
-      },
-      {
-        text: 'Какой стиль педагогического общения наиболее эффективен?',
-        options: [
-          'Авторитарный',
-          'Либеральный (попустительский)',
-          'Демократический',
-          'Непоследовательный'
-        ],
-        correctAnswer: 2
-      }
-    ],
-    createdAt: new Date().toISOString(),
-    assignedTo: ['2'] // Assigned to teacher1
-  });
-
-} else {
-  await ensureAdminUser();
-  initDefaultSubjects();
-}
+// ...demo data init удалён...
 
 // Admin endpoint to reset all data
 app.post('/api/admin/reset-data', auth, (req, res) => {
