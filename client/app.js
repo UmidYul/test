@@ -6,7 +6,7 @@ const DEBUG_LOGS = false;
 if (!DEBUG_LOGS) {
     console.log = () => { };
 }
-
+console.log('🚀 App initialized');
 // ========================================
 // TRANSLATIONS (i18n)
 // ========================================

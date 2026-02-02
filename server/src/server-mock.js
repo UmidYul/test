@@ -112,22 +112,21 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/change-password', auth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-
-    const user = users.find(u => u._id === req.userId);
-
+    // Получаем пользователя из БД
+    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.userId]);
+    const user = rows[0];
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }
-
-    user.password = await bcrypt.hash(newPassword, 10);
-    user.isTemporaryPassword = false;
-    user.requirePasswordChange = false;
-
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      'UPDATE users SET password = $1, is_temporary_password = false, require_password_change = false, updated_at = NOW() WHERE id = $2',
+      [hashed, req.userId]
+    );
     console.log(`✅ Password changed for user: ${user.username}`);
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
@@ -409,38 +408,24 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
     if (req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-
     const { id } = req.params;
-
-    const user = users.find(u => u._id === id);
-
+    // Проверяем, что пользователь существует
+    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+    const user = rows[0];
     if (!user) {
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
     }
-
-    // Generate OTP code
+    // Генерируем OTP
     const otpCode = generateOTP();
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
-
-    // Hash the OTP code
     const hashedPassword = await bcrypt.hash(otpCode, 10);
-
-    // Update user password to OTP
-    user.password = hashedPassword;
-    user.requirePasswordChange = true;
-    user.isTemporaryPassword = true;
-
-    // Store OTP code
-    otpCodes.push({
-      code: otpCode,
-      userId: user._id,
-      username: user.username,
-      expiresAt,
-      used: false
-    });
-
+    // Обновляем пароль и флаги
+    await pool.query(
+      'UPDATE users SET password = $1, is_temporary_password = true, require_password_change = true, updated_at = NOW() WHERE id = $2',
+      [hashedPassword, id]
+    );
+    // Можно добавить запись в отдельную таблицу otp_codes, если потребуется хранить историю
     console.log(`🔑 Password reset for user: ${user.username}, OTP: ${otpCode}`);
-
     res.json({
       success: true,
       message: 'Пароль успешно сброшен',
