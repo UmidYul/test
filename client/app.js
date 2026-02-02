@@ -11415,7 +11415,7 @@ async function editClass(classId) {
                         <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">Классный руководитель</label>
                         <select id="editClassTeacher">
                             <option value="">-- Не выбран --</option>
-                            ${teachers.map(t => `<option value="${t._id}" ${classData.teacherId === t._id ? 'selected' : ''}>${t.firstName} ${t.lastName}</option>`).join('')}
+                            ${teachers.map(t => `<option value="${t.id}" ${classData.teacherId === t.id ? 'selected' : ''}>${t.firstName} ${t.lastName}</option>`).join('')}
                         </select>
                     </div>
 
@@ -11447,7 +11447,7 @@ async function editClass(classId) {
                 const currentClass = student.grade ? `${student.grade}${student.gradeSection || ''}` : '—';
                 return `
                     <label style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0.5rem; border-radius: 8px; cursor: pointer; transition: background 0.2s;">
-                        <input type="checkbox" name="editClassStudent" value="${student._id}" ${isInClass ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--primary); margin-top: 0.15rem;">
+                        <input type="checkbox" name="editClassStudent" value="${student.id}" ${isInClass ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--primary); margin-top: 0.15rem;">
                         <div style="flex: 1;">
                             <div style="font-weight: 600; color: var(--text-primary);">${student.firstName} ${student.lastName}</div>
                             <div style="font-size: 0.8rem; color: var(--text-muted);">@${student.username} • текущий класс: ${currentClass}</div>
@@ -11764,7 +11764,7 @@ async function loadTeachersForModal(token) {
             select.innerHTML = '<option value="">-- Не выбран --</option>';
             teachers.forEach(t => {
                 const option = document.createElement('option');
-                option.value = t._id;
+                option.value = t.id;
                 option.textContent = `${t.firstName} ${t.lastName}`;
                 select.appendChild(option);
             });

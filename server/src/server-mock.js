@@ -318,6 +318,7 @@ app.post('/api/users/register', async (req, res) => {
     }
     // Генерируем временный пароль (OTP)
     const otp = generateOTP();
+    const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     const hashedOTP = await bcrypt.hash(otp, 10);
     const result = await pool.query(
       `INSERT INTO users (username, password, role, first_name, last_name, school, grade, grade_section, is_temporary_password, require_password_change)
@@ -330,7 +331,8 @@ app.post('/api/users/register', async (req, res) => {
       success: true,
       data: {
         ...user,
-        otp: otp // Return OTP to admin
+        otp: otp, // Return OTP to admin
+        otpExpiresAt: otpExpiresAt.toISOString()
       }
     });
   } catch (error) {
@@ -424,7 +426,7 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
     }
     // Генерируем OTP
     const otpCode = generateOTP();
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+    const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     const hashedPassword = await bcrypt.hash(otpCode, 10);
     // Обновляем пароль и флаги
     await pool.query(
@@ -437,7 +439,7 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
       success: true,
       message: 'Пароль успешно сброшен',
       otp: otpCode,
-      expiresAt: expiresAt.toISOString()
+      otpExpiresAt: otpExpiresAt.toISOString()
     });
   } catch (error) {
     console.error('Reset password error:', error);
@@ -1444,7 +1446,7 @@ app.get('/api/teacher/control-tests/results', auth, (req, res) => {
 // Get all classes/grades
 app.get('/api/classes', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM classes ORDER BY grade, name');
+    const { rows } = await pool.query('SELECT id, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at FROM classes ORDER BY grade, name');
     console.log(`📚 Загружено классов: ${rows.length}`);
     res.json({ success: true, data: rows });
   } catch (error) {
@@ -1462,7 +1464,7 @@ function findClassById(classId) {
 app.get('/api/classes/:classId', auth, async (req, res) => {
   try {
     const { classId } = req.params;
-    const { rows } = await pool.query('SELECT * FROM classes WHERE id = $1', [classId]);
+    const { rows } = await pool.query('SELECT id, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at FROM classes WHERE id = $1', [classId]);
     if (rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
@@ -1544,7 +1546,7 @@ app.post('/api/classes', auth, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Класс с таким названием уже существует' });
     }
     const result = await pool.query(
-      'INSERT INTO classes (grade, name, teacher_id, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *',
+      'INSERT INTO classes (grade, name, teacher_id, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at',
       [grade, name, teacherId || null]
     );
     const newClass = result.rows[0];
@@ -1986,83 +1988,63 @@ app.get('/api/analytics/classes/compare', auth, (req, res) => {
 });
 
 // Update class
-app.put('/api/classes/:classId', auth, (req, res) => {
+// Update class (PostgreSQL, admin only)
+app.put('/api/classes/:classId', auth, async (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Только администратор может редактировать классы' });
+  }
+  const { classId } = req.params;
+  const { name, teacherId } = req.body;
   try {
-    const user = users.find(u => u._id === req.userId);
-
-    // Only admin can update classes
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ success: false, error: 'Только администратор может редактировать классы' });
-    }
-
-    const { classId } = req.params;
-    const { name, teacherId, grade } = req.body;
-
-    const classItem = findClassById(classId);
-    if (!classItem) {
+    const result = await pool.query(
+      'UPDATE classes SET name = COALESCE($1, name), teacher_id = $2 WHERE id = $3 RETURNING id, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at',
+      [name, teacherId, classId]
+    );
+    if (result.rowCount === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
-
-    if (name) classItem.name = name;
-    if (teacherId !== undefined) classItem.teacherId = teacherId;
-    if (grade) classItem.grade = grade;
-
-    res.json({ success: true, data: classItem });
+    console.log(`✅ Класс обновлен: ${classId}`);
+    res.json({ success: true, data: result.rows[0] });
   } catch (error) {
+    console.error('❌ Ошибка обновления класса:', error);
     res.status(500).json({ success: false, error: 'Ошибка при обновлении класса' });
   }
 });
 
-// Update class students
-app.put('/api/classes/:classId/students', auth, (req, res) => {
+// Update class students (PostgreSQL, admin only)
+app.put('/api/classes/:classId/students', auth, async (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Только администратор может редактировать классы' });
+  }
+  const { classId } = req.params;
+  const { studentIds, section } = req.body;
+  if (!Array.isArray(studentIds)) {
+    return res.status(400).json({ success: false, error: 'Некорректный список учеников' });
+  }
   try {
-    const user = users.find(u => u._id === req.userId);
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({ success: false, error: 'Только администратор может редактировать классы' });
-    }
-
-    const { classId } = req.params;
-    const { studentIds, section } = req.body;
-
-    if (!Array.isArray(studentIds)) {
-      return res.status(400).json({ success: false, error: 'Некорректный список учеников' });
-    }
-
-    const classItem = findClassById(classId);
-    if (!classItem) {
+    // Get class info
+    const classResult = await pool.query('SELECT grade, name FROM classes WHERE id = $1', [classId]);
+    if (classResult.rowCount === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
-
+    const classItem = classResult.rows[0];
     const classSection = section || classItem.name || null;
-    if (classItem.sections?.length && classSection && !classItem.sections.includes(classSection)) {
-      return res.status(400).json({ success: false, error: 'Секция не найдена в классе' });
+
+    // Update students: set grade and grade_section for selected, clear for others in this grade
+    await pool.query('UPDATE users SET grade = NULL, grade_section = NULL WHERE role = $1 AND grade = $2', ['student', classItem.grade]);
+    if (studentIds.length > 0) {
+      await pool.query('UPDATE users SET grade = $1, grade_section = $2 WHERE role = $3 AND id = ANY($4)', [classItem.grade, classSection, 'student', studentIds]);
     }
 
-    const selectedSet = new Set(studentIds);
-    users.forEach(u => {
-      if (u.role !== 'student') return;
+    // Update student_count in classes
+    const countResult = await pool.query('SELECT COUNT(*) as count FROM users WHERE role = $1 AND grade = $2', ['student', classItem.grade]);
+    await pool.query('UPDATE classes SET student_count = $1 WHERE id = $2', [parseInt(countResult.rows[0].count), classId]);
 
-      const isInClass = u.grade === classItem.grade && (classSection ? u.gradeSection === classSection : true);
-
-      if (selectedSet.has(u._id)) {
-        u.grade = classItem.grade;
-        if (classSection) {
-          u.gradeSection = classSection;
-        } else if (classItem.name) {
-          u.gradeSection = classItem.name;
-        }
-      } else if (isInClass) {
-        u.grade = null;
-        u.gradeSection = null;
-      }
-    });
-
-    classItem.studentCount = users.filter(u => u.role === 'student' && u.grade === classItem.grade).length;
-
-    res.json({ success: true, data: { classId, studentIds } });
+    console.log(`✅ Студенты класса обновлены: ${classId}`);
+    res.json({ success: true, message: 'Студенты класса обновлены' });
   } catch (error) {
-    console.error('Error updating class students:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при обновлении учеников класса' });
+    console.error('❌ Ошибка обновления студентов класса:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при обновлении студентов класса' });
   }
 });
 
