@@ -3,6 +3,27 @@ import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+// Тестовое подключение к PostgreSQL
+import pkg from 'pg';
+const { Client } = pkg;
+
+const client = new Client({
+  host: '127.0.0.200',
+  port: 5432,
+  database: 'zedlyuz_testDB',
+  user: 'zedlyuz',
+  password: 'g@laxyA7', // Замените на ваш реальный пароль
+});
+
+client.connect()
+  .then(() => {
+    console.log('Connected to PostgreSQL!');
+    return client.end();
+  })
+  .catch(err => {
+    console.error('Connection error', err.stack);
+  });
+
 const app = express();
 
 // Middleware
@@ -13,6 +34,11 @@ app.use(express.json());
 app.use((req, res, next) => {
   console.log(`🌐 ${req.method} ${req.url}`);
   next();
+});
+
+// Главная страница
+app.get('/', (req, res) => {
+  res.send('Сервер работает!');
 });
 
 // In-memory database
@@ -476,12 +502,12 @@ async function ensureAdminUser() {
 // Auth middleware
 const auth = (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
-  
+
   console.log('🔐 Auth middleware:', {
     hasToken: !!token,
     token: token ? token.substring(0, 20) + '...' : 'none'
   });
-  
+
   if (!token) {
     console.log('❌ No token provided');
     return res.status(401).json({ message: 'No authentication token' });
@@ -507,7 +533,7 @@ app.post('/api/auth/login', async (req, res) => {
     const { username, password, role } = req.body;
 
     const user = users.find(u => u.username === username && u.role === role);
-    
+
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -515,32 +541,32 @@ app.post('/api/auth/login', async (req, res) => {
     // Check if using OTP
     if (user.isTemporaryPassword && user.requirePasswordChange) {
       const otpRecord = otpCodes.find(o => o.username === username && !o.used);
-      
+
       if (!otpRecord) {
         return res.status(401).json({ message: 'OTP not found or already used' });
       }
-      
+
       // Check OTP expiry
       if (new Date() > new Date(otpRecord.expiresAt)) {
         return res.status(401).json({ message: 'OTP has expired. Please contact administrator.' });
       }
-      
+
       // Validate OTP
       const isOTPValid = await bcrypt.compare(password, user.password);
       if (!isOTPValid) {
         return res.status(401).json({ message: 'Invalid OTP' });
       }
-      
+
       // OTP valid - mark as used and require password change
       otpRecord.used = true;
       otpRecord.usedAt = new Date().toISOString();
-      
+
       const token = jwt.sign(
         { userId: user._id, role: user.role },
         process.env.JWT_SECRET || 'your-super-secret-jwt-key',
         { expiresIn: '1h' } // Short expiry for OTP login
       );
-      
+
       return res.json({
         token,
         requirePasswordChange: true,
@@ -595,9 +621,9 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/change-password', auth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    
+
     const user = users.find(u => u._id === req.userId);
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -718,13 +744,13 @@ app.get('/api/users', auth, (req, res) => {
   }
 
   let usersData = users.map(({ password, ...user }) => user);
-  
+
   // Filter by role if specified
   const { role } = req.query;
   if (role) {
     usersData = usersData.filter(u => u.role === role);
   }
-  
+
   res.json({ success: true, data: usersData });
 });
 
@@ -736,7 +762,7 @@ app.get('/api/users/me', auth, (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
     }
-    
+
     // Don't send password
     const { password, ...userProfile } = user;
     res.json({ success: true, data: userProfile });
@@ -794,17 +820,17 @@ app.post('/api/users/register', async (req, res) => {
     if (!username || !role || !firstName || !lastName) {
       return res.status(400).json({ success: false, error: 'Заполните обязательные поля' });
     }
-    
+
     // Check if user exists
     if (users.find(u => u.username === username)) {
       return res.status(400).json({ success: false, error: 'Пользователь уже существует' });
     }
-    
+
     // Generate OTP for new user
     const otp = generateOTP();
     const otpExpiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     const hashedOTP = await bcrypt.hash(otp, 10);
-    
+
     const newUser = {
       _id: Date.now().toString(),
       username,
@@ -816,7 +842,7 @@ app.post('/api/users/register', async (req, res) => {
       isTemporaryPassword: true,
       requirePasswordChange: true
     };
-    
+
     // Add role-specific fields
     if (role === 'student') {
       const normalizedGrade = (grade || '9').toString().trim();
@@ -824,11 +850,11 @@ app.post('/api/users/register', async (req, res) => {
 
       newUser.grade = normalizedGrade;
       newUser.gradeSection = normalizedSection || 'А';
-      
+
       // Auto-create or update class
       if (normalizedGrade && normalizedSection) {
         let classObj = classes.find(c => c.grade === normalizedGrade);
-        
+
         if (!classObj) {
           // Create new class
           classObj = {
@@ -862,8 +888,8 @@ app.post('/api/users/register', async (req, res) => {
     } else if (role === 'teacher') {
       const normalizedSubjects = Array.isArray(subjects)
         ? subjects
-            .map(s => s?.id || s?._id || s?.subjectId || s)
-            .filter(Boolean)
+          .map(s => s?.id || s?._id || s?.subjectId || s)
+          .filter(Boolean)
         : [];
       newUser.subjects = normalizedSubjects;
 
@@ -874,7 +900,7 @@ app.post('/api/users/register', async (req, res) => {
         }
       }
     }
-    
+
     // Store OTP with expiry
     otpCodes.push({
       userId: newUser._id,
@@ -884,19 +910,19 @@ app.post('/api/users/register', async (req, res) => {
       expiresAt: otpExpiry,
       used: false
     });
-    
+
     users.push(newUser);
-    
+
     console.log(`🔑 OTP generated for ${username}: ${otp} (expires: ${otpExpiry.toISOString()})`);
-    
+
     const { password: _, ...userWithoutPassword } = newUser;
-    res.status(201).json({ 
-      success: true, 
-      data: { 
+    res.status(201).json({
+      success: true,
+      data: {
         ...userWithoutPassword,
         otp: otp, // Return OTP to admin
-        otpExpiresAt: otpExpiry 
-      } 
+        otpExpiresAt: otpExpiry
+      }
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -909,13 +935,13 @@ app.put('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { username, firstName, lastName, role, school, grade, subjects } = req.body;
-    
+
     const userIndex = users.findIndex(u => u._id === id);
-    
+
     if (userIndex === -1) {
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
     }
-    
+
     // Check if new username already exists (if username changed)
     if (users[userIndex].username !== username) {
       const existingUser = users.find(u => u.username === username && u._id !== id);
@@ -923,12 +949,12 @@ app.put('/api/users/:id', async (req, res) => {
         return res.status(400).json({ success: false, error: 'Пользователь с таким логином уже существует' });
       }
     }
-    
+
     users[userIndex].username = username;
     users[userIndex].firstName = firstName;
     users[userIndex].lastName = lastName;
     users[userIndex].role = role;
-    
+
     // Update role-specific fields
     if (school) {
       users[userIndex].school = school;
@@ -946,7 +972,7 @@ app.put('/api/users/:id', async (req, res) => {
       delete users[userIndex].grade;
       delete users[userIndex].subjects;
     }
-    
+
     const { password: _, ...userWithoutPassword } = users[userIndex];
     res.json({ success: true, data: userWithoutPassword });
   } catch (error) {
@@ -958,15 +984,15 @@ app.put('/api/users/:id', async (req, res) => {
 app.delete('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const userIndex = users.findIndex(u => u._id === id);
-    
+
     if (userIndex === -1) {
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
     }
-    
+
     const deletedUser = users.splice(userIndex, 1)[0];
-    
+
     const { password: _, ...userWithoutPassword } = deletedUser;
     res.json({ success: true, data: userWithoutPassword, message: 'Пользователь удален' });
   } catch (error) {
@@ -982,25 +1008,25 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
     }
 
     const { id } = req.params;
-    
+
     const user = users.find(u => u._id === id);
-    
+
     if (!user) {
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
     }
-    
+
     // Generate OTP code
     const otpCode = generateOTP();
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
-    
+
     // Hash the OTP code
     const hashedPassword = await bcrypt.hash(otpCode, 10);
-    
+
     // Update user password to OTP
     user.password = hashedPassword;
     user.requirePasswordChange = true;
     user.isTemporaryPassword = true;
-    
+
     // Store OTP code
     otpCodes.push({
       code: otpCode,
@@ -1009,11 +1035,11 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
       expiresAt,
       used: false
     });
-    
+
     console.log(`🔑 Password reset for user: ${user.username}, OTP: ${otpCode}`);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: 'Пароль успешно сброшен',
       otp: otpCode,
       expiresAt: expiresAt.toISOString()
@@ -1070,10 +1096,10 @@ app.post('/api/subjects/:subjectId/modules', auth, (req, res) => {
     if (user?.role === 'teacher' && !teacherHasSubject(user, subjectId)) {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-    
+
     console.log(`➕ Создание нового модуля для предмета: ${subjectId}`);
     console.log(`📝 Название: ${nameRu} / ${nameUz}`);
-    
+
     const newModule = {
       _id: (modules.length + 1).toString(),
       subjectId,
@@ -1084,7 +1110,7 @@ app.post('/api/subjects/:subjectId/modules', auth, (req, res) => {
       createdBy: req.userId,
       createdAt: new Date().toISOString()
     };
-    
+
     modules.push(newModule);
     console.log(`✅ Модуль создан с ID: ${newModule._id}. Всего модулей: ${modules.length}`);
     res.status(201).json({ success: true, data: newModule });
@@ -1103,15 +1129,15 @@ app.put('/api/modules/:moduleId', auth, (req, res) => {
 
     const { moduleId } = req.params;
     const { nameRu, nameUz, descriptionRu, descriptionUz } = req.body;
-    
+
     const moduleIndex = modules.findIndex(m => m._id === moduleId);
-    
+
     if (moduleIndex === -1) {
       return res.status(404).json({ success: false, error: 'Модуль не найден' });
     }
-    
+
     console.log(`✏️ Обновление модуля: ${moduleId}`);
-    
+
     modules[moduleIndex] = {
       ...modules[moduleIndex],
       nameRu: nameRu || modules[moduleIndex].nameRu,
@@ -1120,7 +1146,7 @@ app.put('/api/modules/:moduleId', auth, (req, res) => {
       descriptionUz: descriptionUz || modules[moduleIndex].descriptionUz,
       updatedAt: new Date().toISOString()
     };
-    
+
     console.log(`✅ Модуль обновлен`);
     res.json({ success: true, data: modules[moduleIndex] });
   } catch (error) {
@@ -1138,29 +1164,29 @@ app.delete('/api/modules/:moduleId', auth, (req, res) => {
 
     const { moduleId } = req.params;
     const moduleIndex = modules.findIndex(m => m._id === moduleId);
-    
+
     if (moduleIndex === -1) {
       return res.status(404).json({ success: false, error: 'Модуль не найден' });
     }
-    
+
     // Delete all tests in this module
     const moduleTestIds = tests.filter(t => t.moduleId === moduleId).map(t => t._id);
     moduleTestIds.forEach(testId => {
       // Delete test results and progress for these tests
       const resultIndexes = testResults.map((r, i) => r.testId === testId ? i : -1).filter(i => i !== -1).reverse();
       resultIndexes.forEach(i => testResults.splice(i, 1));
-      
+
       const progressIndexes = testProgress.map((p, i) => p.testId === testId ? i : -1).filter(i => i !== -1).reverse();
       progressIndexes.forEach(i => testProgress.splice(i, 1));
     });
-    
+
     // Delete tests
     const testIndexes = tests.map((t, i) => t.moduleId === moduleId ? i : -1).filter(i => i !== -1).reverse();
     testIndexes.forEach(i => tests.splice(i, 1));
-    
+
     // Delete module
     modules.splice(moduleIndex, 1);
-    
+
     res.json({ success: true, message: 'Модуль успешно удален' });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при удалении модуля' });
@@ -1176,11 +1202,11 @@ app.get('/api/modules/:moduleId', auth, (req, res) => {
   try {
     const { moduleId } = req.params;
     const module = modules.find(m => m._id === moduleId);
-    
+
     if (!module) {
       return res.status(404).json({ success: false, error: 'Модуль не найден' });
     }
-    
+
     res.json({ success: true, data: module });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке модуля' });
@@ -1197,13 +1223,13 @@ app.get('/api/modules/:moduleId/tests', auth, (req, res) => {
     if (user?.role === 'teacher' && moduleItem && !teacherHasSubject(user, moduleItem.subjectId)) {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-    
+
     console.log(`🔍 Getting tests for module: ${moduleId}`);
     console.log(`👤 User: ${user?.username} (${user?.role}) - Grade: ${user?.grade}`);
     console.log(`📚 Total tests in database: ${tests.length}`);
-    
+
     let moduleTests = tests.filter(t => t.moduleId === moduleId);
-    
+
     // Filter by grade if student
     if (user?.role === 'student' && user.grade) {
       moduleTests = moduleTests.filter(t => {
@@ -1216,9 +1242,9 @@ app.get('/api/modules/:moduleId/tests', auth, (req, res) => {
         return isAvailable;
       });
     }
-    
+
     console.log(`✅ Found ${moduleTests.length} tests for module ${moduleId}`);
-    
+
     // Don't send questions to students viewing list
     const testsForList = moduleTests.map(t => {
       const { questions, ...testInfo } = t;
@@ -1227,7 +1253,7 @@ app.get('/api/modules/:moduleId/tests', auth, (req, res) => {
         questionsCount: questions ? questions.length : 0
       };
     });
-    
+
     console.log(`📤 Returning: ${JSON.stringify(testsForList)}`);
     res.json({ success: true, data: testsForList });
   } catch (error) {
@@ -1240,7 +1266,7 @@ app.get('/api/modules/:moduleId/tests', auth, (req, res) => {
 app.get('/api/tests', auth, (req, res) => {
   try {
     console.log(`🔍 Getting all tests for admin`);
-    
+
     // Return basic test info without questions
     const testsForList = tests.map(t => {
       const { questions, ...testInfo } = t;
@@ -1249,7 +1275,7 @@ app.get('/api/tests', auth, (req, res) => {
         questionsCount: questions ? questions.length : 0
       };
     });
-    
+
     console.log(`✅ Returning ${testsForList.length} tests`);
     res.json({ success: true, data: testsForList });
   } catch (error) {
@@ -1263,11 +1289,11 @@ app.get('/api/tests/:testId', auth, (req, res) => {
   try {
     const { testId } = req.params;
     const test = tests.find(t => t._id === testId);
-    
+
     if (!test) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-    
+
     res.json({ success: true, data: test });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке теста' });
@@ -1279,15 +1305,15 @@ app.get('/api/tests/:testId/start', auth, (req, res) => {
   try {
     const { testId } = req.params;
     const test = tests.find(t => t._id === testId);
-    
+
     if (!test) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-    
+
     if (test.status !== 'published') {
       return res.status(403).json({ success: false, error: 'Тест еще не опубликован' });
     }
-    
+
     // Shuffle questions
     const shuffledQuestions = [...test.questions]
       .map(q => ({
@@ -1298,12 +1324,12 @@ app.get('/api/tests/:testId/start', auth, (req, res) => {
           .sort(() => Math.random() - 0.5)
       }))
       .sort(() => Math.random() - 0.5);
-    
+
     const randomizedTest = {
       ...test,
       questions: shuffledQuestions
     };
-    
+
     res.json({ success: true, data: randomizedTest });
   } catch (error) {
     console.error('Error randomizing test:', error);
@@ -1331,10 +1357,10 @@ app.post('/api/modules/:moduleId/tests', auth, (req, res) => {
     if (existingTest) {
       return res.status(400).json({ success: false, error: 'В модуле уже есть тест' });
     }
-    
+
     console.log(`➕ Создание теста в модуле ${moduleId}: ${nameRu}`);
     console.log(`📋 Assigned grades: ${assignedGrades}`);
-    
+
     const newTest = {
       _id: (tests.length + 1).toString(),
       moduleId,
@@ -1350,7 +1376,7 @@ app.post('/api/modules/:moduleId/tests', auth, (req, res) => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    
+
     tests.push(newTest);
     console.log(`✅ Тест создан с ID: ${newTest._id}`);
     res.status(201).json({ success: true, data: newTest });
@@ -1369,18 +1395,18 @@ app.put('/api/tests/:testId', auth, (req, res) => {
 
     const { testId } = req.params;
     const testIndex = tests.findIndex(t => t._id === testId);
-    
+
     if (testIndex === -1) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-    
+
     const updates = req.body;
     tests[testIndex] = {
       ...tests[testIndex],
       ...updates,
       updatedAt: new Date().toISOString()
     };
-    
+
     res.json({ success: true, data: tests[testIndex] });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при обновлении теста' });
@@ -1396,11 +1422,11 @@ app.delete('/api/tests/:testId', auth, (req, res) => {
 
     const { testId } = req.params;
     const testIndex = tests.findIndex(t => t._id === testId);
-    
+
     if (testIndex === -1) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-    
+
     const deletedTest = tests.splice(testIndex, 1)[0];
     res.json({ success: true, message: 'Тест удален' });
   } catch (error) {
@@ -1428,9 +1454,9 @@ app.post('/api/tests/:testId/progress', auth, (req, res) => {
   try {
     const { testId } = req.params;
     const { currentQuestion, answers } = req.body;
-    
+
     const progressIndex = testProgress.findIndex(p => p.testId === testId && p.userId === req.userId);
-    
+
     const progress = {
       testId,
       userId: req.userId,
@@ -1438,13 +1464,13 @@ app.post('/api/tests/:testId/progress', auth, (req, res) => {
       answers,
       savedAt: new Date().toISOString()
     };
-    
+
     if (progressIndex !== -1) {
       testProgress[progressIndex] = progress;
     } else {
       testProgress.push(progress);
     }
-    
+
     res.json({ success: true, data: progress });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при сохранении прогресса' });
@@ -1487,9 +1513,9 @@ app.post('/api/tests/:testId/submit', auth, (req, res) => {
       const userAnswerIdx = answers[idx];
       const isCorrect = userAnswerIdx !== undefined && question.answers[userAnswerIdx]?.isCorrect;
       if (isCorrect) correctCount++;
-      
+
       console.log(`Q${idx}: userAnswer=${userAnswerIdx}, correct=${isCorrect}`);
-      
+
       return {
         questionIndex: idx,
         questionRu: question.questionRu,
@@ -1507,10 +1533,10 @@ app.post('/api/tests/:testId/submit', auth, (req, res) => {
     // Find module to get subjectId
     const module = modules.find(m => m._id === test.moduleId);
     const subjectId = module ? module.subjectId : null;
-    
+
     console.log('📦 Module found:', module);
     console.log('📚 SubjectId:', subjectId);
-    
+
     // Save result
     const result = {
       _id: String(testResults.length + 1),
@@ -1567,7 +1593,7 @@ app.get('/api/test-results/:resultId', auth, (req, res) => {
   try {
     const { resultId } = req.params;
     const result = testResults.find(r => r._id === resultId && r.userId === req.userId);
-    
+
     if (!result) {
       return res.status(404).json({ success: false, error: 'Результат не найден' });
     }
@@ -1588,7 +1614,7 @@ app.get('/api/teacher/analytics', auth, (req, res) => {
     if (req.userRole !== 'teacher') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-    
+
     const teacher = users.find(u => u._id === req.userId);
     if (!teacher) {
       return res.status(404).json({ success: false, error: 'Учитель не найден' });
@@ -1618,7 +1644,7 @@ app.get('/api/teacher/analytics', auth, (req, res) => {
         grade: cls.grade,
         studentCount: gradeStudents.length,
         completedTests: gradeResults.length,
-        averageScore: gradeResults.length > 0 
+        averageScore: gradeResults.length > 0
           ? Math.round(gradeResults.reduce((sum, r) => sum + r.score, 0) / gradeResults.length)
           : 0
       };
@@ -1871,14 +1897,14 @@ app.get('/api/control-tests', auth, (req, res) => {
   try {
     const { createdBy, assignedTo } = req.query;
     let result = controlTests;
-    
+
     if (createdBy) {
       result = result.filter(t => t.createdBy === createdBy);
     }
     if (assignedTo) {
       result = result.filter(t => t.assignedClasses && t.assignedClasses.includes(assignedTo));
     }
-    
+
     res.json({ success: true, data: result });
   } catch (error) {
     console.error('Error fetching control tests:', error);
@@ -1891,11 +1917,11 @@ app.get('/api/control-tests/:testId', auth, (req, res) => {
   try {
     const { testId } = req.params;
     const test = controlTests.find(t => t._id === testId);
-    
+
     if (!test) {
       return res.status(404).json({ success: false, error: 'Контрольная работа не найдена' });
     }
-    
+
     res.json({ success: true, data: test });
   } catch (error) {
     console.error('Error fetching control test:', error);
@@ -2008,7 +2034,7 @@ app.get('/api/student/control-tests', auth, (req, res) => {
     }
 
     const studentClass = `${user.grade}${user.gradeSection}`;
-    const assignedTests = controlTests.filter(t => 
+    const assignedTests = controlTests.filter(t =>
       t.assignedClasses && t.assignedClasses.some(cls => cls === user.grade || cls === studentClass)
     );
 
@@ -2037,12 +2063,12 @@ app.post('/api/control-tests/:testId/submit', auth, (req, res) => {
     if (test.questions && Array.isArray(answers)) {
       test.questions.forEach((question, index) => {
         const selectedAnswerIndex = answers[index];
-        const isCorrect = selectedAnswerIndex !== undefined && 
-                         question.answers[selectedAnswerIndex] &&
-                         question.answers[selectedAnswerIndex].isCorrect;
-        
+        const isCorrect = selectedAnswerIndex !== undefined &&
+          question.answers[selectedAnswerIndex] &&
+          question.answers[selectedAnswerIndex].isCorrect;
+
         if (isCorrect) correctCount++;
-        
+
         questionResults.push({
           questionIndex: index,
           selectedAnswer: selectedAnswerIndex,
@@ -2069,9 +2095,9 @@ app.post('/api/control-tests/:testId/submit', auth, (req, res) => {
 
     controlTestResults.push(result);
     console.log(`📊 Control test result submitted: ${result._id}`);
-    
-    res.status(201).json({ 
-      success: true, 
+
+    res.status(201).json({
+      success: true,
       data: result,
       message: 'Контрольная работа отправлена'
     });
@@ -2125,7 +2151,7 @@ app.get('/api/teacher/control-tests/results', auth, (req, res) => {
 
     // Get all results for those tests
     const results = controlTestResults.filter(r => testIds.includes(r.testId));
-    
+
     const enrichedResults = results.map(result => {
       const student = users.find(u => u._id === result.userId);
       const test = teacherTests.find(t => t._id === result.testId);
@@ -2167,11 +2193,11 @@ app.get('/api/classes/:classId', auth, (req, res) => {
   try {
     const { classId } = req.params;
     const classItem = findClassById(classId);
-    
+
     if (!classItem) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
-    
+
     const section = req.query.section || classItem.name || null;
 
     if (!canAccessClassAnalytics(req.userId, req.userRole, classItem, section)) {
@@ -2180,7 +2206,7 @@ app.get('/api/classes/:classId', auth, (req, res) => {
 
     // Get students for this class
     const students = getClassStudents(classItem, section);
-    
+
     // Remove sensitive data from students
     const studentData = students.map(s => ({
       _id: s._id,
@@ -2193,9 +2219,9 @@ app.get('/api/classes/:classId', auth, (req, res) => {
       email: s.email,
       averageScore: getStudentAverageScore(s._id)
     }));
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       data: {
         ...classItem,
         students: studentData
@@ -2211,11 +2237,11 @@ app.get('/api/classes/:classId/students', auth, (req, res) => {
   try {
     const { classId } = req.params;
     const classItem = findClassById(classId);
-    
+
     if (!classItem) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
-    
+
     const section = req.query.section || classItem.name || null;
 
     if (!canAccessClassAnalytics(req.userId, req.userRole, classItem, section)) {
@@ -2223,7 +2249,7 @@ app.get('/api/classes/:classId/students', auth, (req, res) => {
     }
 
     const students = getClassStudents(classItem, section);
-    
+
     // Remove sensitive data
     const studentData = students.map(s => ({
       _id: s._id,
@@ -2235,7 +2261,7 @@ app.get('/api/classes/:classId/students', auth, (req, res) => {
       school: s.school,
       averageScore: getStudentAverageScore(s._id)
     }));
-    
+
     res.json({ success: true, data: studentData });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке студентов класса' });
@@ -2247,13 +2273,13 @@ app.get('/api/classes/:grade/students', auth, (req, res) => {
   try {
     const { grade } = req.params;
     const { section } = req.query;
-    
+
     let students = users.filter(u => u.role === 'student' && u.grade === grade);
-    
+
     if (section) {
       students = students.filter(s => s.gradeSection === section);
     }
-    
+
     // Remove sensitive data
     students = students.map(s => ({
       _id: s._id,
@@ -2264,7 +2290,7 @@ app.get('/api/classes/:grade/students', auth, (req, res) => {
       gradeSection: s.gradeSection,
       school: s.school
     }));
-    
+
     res.json({ success: true, data: students });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке учеников' });
@@ -2275,24 +2301,24 @@ app.get('/api/classes/:grade/students', auth, (req, res) => {
 app.post('/api/classes', auth, (req, res) => {
   try {
     const user = users.find(u => u._id === req.userId);
-    
+
     // Only admin can create classes
     if (user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Только администратор может создавать классы' });
     }
-    
+
     const { grade, name, teacherId } = req.body;
-    
+
     if (!grade || !name) {
       return res.status(400).json({ success: false, error: 'Укажите номер класса и название' });
     }
-    
+
     // Check if class already exists
     const existingClass = classes.find(c => c.grade === grade && c.name === name);
     if (existingClass) {
       return res.status(400).json({ success: false, error: 'Класс с таким названием уже существует' });
     }
-    
+
     const newClass = {
       _id: (Math.max(...classes.map(c => parseInt(c._id) || 0), 0) + 1).toString(),
       grade,
@@ -2300,9 +2326,9 @@ app.post('/api/classes', auth, (req, res) => {
       teacherId: teacherId || null,
       createdAt: new Date().toISOString()
     };
-    
+
     classes.push(newClass);
-    
+
     res.status(201).json({ success: true, data: newClass });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при создании класса' });
@@ -2313,21 +2339,21 @@ app.post('/api/classes', auth, (req, res) => {
 app.delete('/api/classes/:classId', auth, (req, res) => {
   try {
     const user = users.find(u => u._id === req.userId);
-    
+
     // Only admin can delete classes
     if (!user || user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Только администратор может удалять классы' });
     }
-    
+
     const { classId } = req.params;
-    
+
     const classIndex = classes.findIndex(c => String(c._id || c.id) === String(classId));
     if (classIndex === -1) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
-    
+
     classes.splice(classIndex, 1);
-    
+
     res.json({ success: true, message: 'Класс удален успешно' });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при удалении класса' });
@@ -2457,38 +2483,38 @@ app.get('/api/analytics/classes/:grade/timeline', auth, (req, res) => {
     if (!canAccessClassAnalytics(req.userId, req.userRole, classItem, section)) {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-    
+
     // Get students of this class
     const resolvedSection = getClassSection(classItem, section);
     let classStudents = getClassStudents(classItem || { grade }, resolvedSection);
-    
+
     const studentIds = classStudents.map(s => s._id);
-    
+
     // Get all test results for these students
     const classResults = testResults.filter(r => studentIds.includes(r.userId));
-    
+
     // Group by subject and date
     const timelineData = {};
-    
+
     classResults.forEach(result => {
       const date = new Date(result.completedAt).toISOString().split('T')[0]; // YYYY-MM-DD
       const subjectId = result.subjectId;
-      
+
       if (!timelineData[subjectId]) {
         timelineData[subjectId] = {};
       }
-      
+
       if (!timelineData[subjectId][date]) {
         timelineData[subjectId][date] = {
           scores: [],
           count: 0
         };
       }
-      
+
       timelineData[subjectId][date].scores.push(result.score);
       timelineData[subjectId][date].count++;
     });
-    
+
     // Calculate averages
     const labels = [...new Set(classResults.map(r => new Date(r.completedAt).toISOString().split('T')[0]))].sort();
     const series = Object.keys(timelineData).map(subjectId => {
@@ -2631,14 +2657,14 @@ app.get('/api/analytics/classes/:grade/stats', auth, (req, res) => {
     if (!canAccessClassAnalytics(req.userId, req.userRole, classItem, section)) {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-    
+
     // Get students of this class
     const resolvedSection = getClassSection(classItem, section);
     let classStudents = getClassStudents(classItem || { grade }, resolvedSection);
-    
+
     const studentIds = classStudents.map(s => s._id);
     const classResults = testResults.filter(r => studentIds.includes(r.userId));
-    
+
     if (classResults.length === 0) {
       return res.json({
         success: true,
@@ -2651,11 +2677,11 @@ app.get('/api/analytics/classes/:grade/stats', auth, (req, res) => {
         }
       });
     }
-    
+
     // Calculate overall average
     const totalScore = classResults.reduce((sum, r) => sum + r.score, 0);
     const averageScore = totalScore / classResults.length;
-    
+
     // Subject-wise statistics
     const subjectStats = {};
     classResults.forEach(result => {
@@ -2671,13 +2697,13 @@ app.get('/api/analytics/classes/:grade/stats', auth, (req, res) => {
       subjectStats[subjectId].scores.push(result.score);
       subjectStats[subjectId].count++;
     });
-    
+
     const subjectStatsList = Object.values(subjectStats).map(stat => ({
       subject: stat.subjectName,
       average: stat.scores.reduce((a, b) => a + b, 0) / stat.count,
       testsCount: stat.count
     }));
-    
+
     // Score distribution
     const distribution = {
       excellent: classResults.filter(r => r.score >= 85).length,
@@ -2685,7 +2711,7 @@ app.get('/api/analytics/classes/:grade/stats', auth, (req, res) => {
       satisfactory: classResults.filter(r => r.score >= 50 && r.score < 70).length,
       poor: classResults.filter(r => r.score < 50).length
     };
-    
+
     res.json({
       success: true,
       data: {
@@ -2710,19 +2736,19 @@ app.get('/api/analytics/classes/compare', auth, (req, res) => {
     }
 
     const classesData = [];
-    
+
     // Get all unique grades
     const grades = [...new Set(users.filter(u => u.role === 'student').map(u => u.grade))];
-    
+
     grades.forEach(grade => {
       const classStudents = users.filter(u => u.role === 'student' && u.grade === grade);
       const studentIds = classStudents.map(s => s._id);
       const classResults = testResults.filter(r => studentIds.includes(r.userId));
-      
+
       if (classResults.length > 0) {
         const totalScore = classResults.reduce((sum, r) => sum + r.score, 0);
         const averageScore = totalScore / classResults.length;
-        
+
         classesData.push({
           grade,
           averageScore: Math.round(averageScore * 10) / 10,
@@ -2738,7 +2764,7 @@ app.get('/api/analytics/classes/compare', auth, (req, res) => {
         });
       }
     });
-    
+
     res.json({ success: true, data: classesData });
   } catch (error) {
     console.error('Error comparing classes:', error);
@@ -2750,24 +2776,24 @@ app.get('/api/analytics/classes/compare', auth, (req, res) => {
 app.put('/api/classes/:classId', auth, (req, res) => {
   try {
     const user = users.find(u => u._id === req.userId);
-    
+
     // Only admin can update classes
     if (!user || user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Только администратор может редактировать классы' });
     }
-    
+
     const { classId } = req.params;
     const { name, teacherId, grade } = req.body;
-    
+
     const classItem = findClassById(classId);
     if (!classItem) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
-    
+
     if (name) classItem.name = name;
     if (teacherId !== undefined) classItem.teacherId = teacherId;
     if (grade) classItem.grade = grade;
-    
+
     res.json({ success: true, data: classItem });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при обновлении класса' });
@@ -2832,13 +2858,13 @@ app.get('/api/modules/:moduleId/tests/available', auth, (req, res) => {
   try {
     const { moduleId } = req.params;
     const user = users.find(u => u._id === req.userId);
-    
+
     if (!user) {
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
     }
-    
+
     let moduleTests = tests.filter(t => t.moduleId === moduleId);
-    
+
     // Filter by grade if student
     if (user.role === 'student' && user.grade) {
       moduleTests = moduleTests.filter(t => {
@@ -2849,13 +2875,13 @@ app.get('/api/modules/:moduleId/tests/available', auth, (req, res) => {
         return t.assignedGrades.includes(user.grade);
       });
     }
-    
+
     // Add questionsCount
     const testsWithCount = moduleTests.map(t => ({
       ...t,
       questionsCount: t.questions?.length || 0
     }));
-    
+
     res.json({ success: true, data: testsWithCount });
   } catch (error) {
     console.error('Error getting tests:', error);
@@ -2872,29 +2898,29 @@ app.post('/api/interest-results', auth, (req, res) => {
   try {
     console.log('📝 POST /api/interest-results - User ID:', req.userId);
     const { results, categories } = req.body;
-    
+
     if (!results || !categories) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Отсутствуют результаты или категории' 
+      return res.status(400).json({
+        success: false,
+        error: 'Отсутствуют результаты или категории'
       });
     }
-    
+
     const user = users.find(u => u._id === req.userId);
     if (!user) {
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
     }
-    
+
     // Save interest test results to user profile
     user.interestTestResults = {
       categories,
       results,
       completedAt: new Date().toISOString()
     };
-    
+
     console.log('✅ Interest test results saved for user:', user.username);
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Результаты теста интересов сохранены',
       data: user.interestTestResults
     });
@@ -2909,27 +2935,27 @@ app.get('/api/interest-results', auth, (req, res) => {
   try {
     console.log('📝 GET /api/interest-results - User ID:', req.userId);
     const user = users.find(u => u._id === req.userId);
-    
+
     if (!user) {
       console.log('❌ User not found');
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
     }
-    
+
     console.log('👤 User found:', user.username);
     console.log('📊 User interest test results:', user.interestTestResults);
-    
+
     if (!user.interestTestResults) {
       console.log('⚠️ No interest test results for user');
-      return res.json({ 
-        success: true, 
+      return res.json({
+        success: true,
         data: null,
         message: 'Тест интересов еще не пройден'
       });
     }
-    
+
     console.log('✅ Returning interest test results');
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       data: user.interestTestResults
     });
   } catch (error) {
@@ -2974,8 +3000,8 @@ app.get('/api/teacher-tests', auth, (req, res) => {
       questionsCount: test.questions?.length || 0
     }));
     console.log('✅ Returning', testsWithCount.length, 'tests');
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       data: testsWithCount
     });
   } catch (error) {
@@ -3003,16 +3029,16 @@ app.get('/api/teacher-tests/:id', auth, (req, res) => {
 app.post('/api/teacher-tests', auth, (req, res) => {
   try {
     const { title, description, duration, passingScore, questions } = req.body;
-    
+
     console.log('🆕 Creating new teacher test');
     console.log('📝 Title:', title);
     console.log('📝 Questions count:', questions?.length);
     console.log('📝 Full data:', { title, description, duration, passingScore, questionsCount: questions?.length });
-    
+
     if (!title || !questions || questions.length === 0) {
       return res.status(400).json({ success: false, error: 'Заполните все обязательные поля' });
     }
-    
+
     const newTest = {
       _id: Date.now().toString(),
       title,
@@ -3024,13 +3050,13 @@ app.post('/api/teacher-tests', auth, (req, res) => {
       createdAt: new Date().toISOString(),
       assignedTo: [] // Array of teacher IDs
     };
-    
+
     teacherTests.push(newTest);
-    
+
     console.log('✅ Teacher test created successfully');
     console.log('📚 Total tests in DB now:', teacherTests.length);
     console.log('🆔 New test ID:', newTest._id);
-    
+
     res.json({ success: true, data: newTest });
   } catch (error) {
     console.error('Error creating teacher test:', error);
@@ -3045,9 +3071,9 @@ app.put('/api/teacher-tests/:id', auth, (req, res) => {
     if (testIndex === -1) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-    
+
     const { title, description, duration, passingScore, questions } = req.body;
-    
+
     teacherTests[testIndex] = {
       ...teacherTests[testIndex],
       title: title || teacherTests[testIndex].title,
@@ -3057,7 +3083,7 @@ app.put('/api/teacher-tests/:id', auth, (req, res) => {
       questions: questions || teacherTests[testIndex].questions,
       updatedAt: new Date().toISOString()
     };
-    
+
     res.json({ success: true, data: teacherTests[testIndex] });
   } catch (error) {
     console.error('Error updating teacher test:', error);
@@ -3072,9 +3098,9 @@ app.delete('/api/teacher-tests/:id', auth, (req, res) => {
     if (testIndex === -1) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-    
+
     teacherTests.splice(testIndex, 1);
-    
+
     res.json({ success: true, message: 'Тест удален' });
   } catch (error) {
     console.error('Error deleting teacher test:', error);
@@ -3088,33 +3114,33 @@ app.post('/api/teacher-tests/:id/assign', auth, (req, res) => {
     console.log('📌 ASSIGN endpoint hit!');
     console.log('📌 Test ID:', req.params.id);
     console.log('📌 Request body:', req.body);
-    
+
     const { teacherIds } = req.body;
     const test = teacherTests.find(t => t._id === req.params.id);
-    
+
     console.log('📌 Test found:', test ? 'YES' : 'NO');
     console.log('📌 Teacher IDs received:', teacherIds);
-    
+
     if (!test) {
       console.log('❌ Test not found with ID:', req.params.id);
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-    
+
     if (!teacherIds || !Array.isArray(teacherIds)) {
       console.log('❌ Invalid teacherIds:', teacherIds);
       return res.status(400).json({ success: false, error: 'Укажите учителей' });
     }
-    
+
     // Initialize assignedTo if undefined
     if (!test.assignedTo) {
       test.assignedTo = [];
     }
-    
+
     // Add teachers to assigned list (without duplicates)
     test.assignedTo = [...new Set([...test.assignedTo, ...teacherIds])];
-    
+
     console.log('✅ Test assigned to teachers:', test.assignedTo);
-    
+
     res.json({ success: true, data: test });
   } catch (error) {
     console.error('Error assigning test:', error);
@@ -3128,15 +3154,15 @@ app.get('/api/teacher-tests/assigned/:teacherId', auth, (req, res) => {
     const { teacherId } = req.params;
     console.log('👥 Getting assigned tests for teacher:', teacherId);
     console.log('📚 Total teacher tests:', teacherTests.length);
-    
+
     const assignedTests = teacherTests.filter(t => {
       // Handle missing assignedTo array
       const assigned = t.assignedTo || [];
       return assigned.includes(teacherId);
     });
-    
+
     console.log('✅ Found', assignedTests.length, 'assigned tests');
-    
+
     res.json({ success: true, data: assignedTests });
   } catch (error) {
     console.error('Error getting assigned tests:', error);
@@ -3148,15 +3174,15 @@ app.get('/api/teacher-tests/assigned/:teacherId', auth, (req, res) => {
 app.post('/api/teacher-test-results', auth, (req, res) => {
   try {
     const { testId, teacherId, answers, score, passed } = req.body;
-    
+
     console.log('📝 Saving teacher test result');
     console.log('📝 Data received:', { testId, teacherId, answersCount: answers?.length, score, passed });
-    
+
     if (!testId || !teacherId || !answers) {
       console.error('❌ Missing required fields:', { hasTestId: !!testId, hasTeacherId: !!teacherId, hasAnswers: !!answers });
       return res.status(400).json({ success: false, error: 'Недостаточно данных' });
     }
-    
+
     const result = {
       _id: Date.now().toString(),
       testId,
@@ -3166,12 +3192,12 @@ app.post('/api/teacher-test-results', auth, (req, res) => {
       passed: passed || false,
       completedAt: new Date().toISOString()
     };
-    
+
     teacherTestResults.push(result);
-    
+
     console.log('✅ Test result saved successfully');
     console.log('📊 Total teacher test results:', teacherTestResults.length);
-    
+
     res.json({ success: true, data: result });
   } catch (error) {
     console.error('Error saving test result:', error);
@@ -3183,7 +3209,7 @@ app.post('/api/teacher-test-results', auth, (req, res) => {
 app.get('/api/teacher-test-results/:testId', auth, (req, res) => {
   try {
     const results = teacherTestResults.filter(r => r.testId === req.params.testId);
-    
+
     // Populate with teacher info
     const resultsWithTeachers = results.map(result => {
       const teacher = users.find(u => u._id === result.teacherId);
@@ -3197,7 +3223,7 @@ app.get('/api/teacher-test-results/:testId', auth, (req, res) => {
         } : null
       };
     });
-    
+
     res.json({ success: true, data: resultsWithTeachers });
   } catch (error) {
     console.error('Error getting test results:', error);
@@ -3209,7 +3235,7 @@ app.get('/api/teacher-test-results/:testId', auth, (req, res) => {
 app.get('/api/teacher-test-results/teacher/:teacherId', auth, (req, res) => {
   try {
     const results = teacherTestResults.filter(r => r.teacherId === req.params.teacherId);
-    
+
     // Populate with test info
     const resultsWithTests = results.map(result => {
       const test = teacherTests.find(t => t._id === result.testId);
@@ -3222,7 +3248,7 @@ app.get('/api/teacher-test-results/teacher/:teacherId', auth, (req, res) => {
         } : null
       };
     });
-    
+
     res.json({ success: true, data: resultsWithTests });
   } catch (error) {
     console.error('Error getting teacher results:', error);
@@ -3239,66 +3265,66 @@ if (ADD_SAMPLE_DATA) {
 
   // Add sample teacher test
   teacherTests.push({
-  _id: 'test1',
-  title: 'Тест на знание педагогики',
-  description: 'Оценка базовых знаний педагогики и методики преподавания',
-  duration: 15,
-  passingScore: 70,
-  questions: [
-    {
-      text: 'Какой метод обучения считается наиболее эффективным для развития критического мышления?',
-      options: [
-        'Лекция',
-        'Проблемное обучение',
-        'Заучивание наизусть',
-        'Тестирование'
-      ],
-      correctAnswer: 1
-    },
-    {
-      text: 'Что такое дифференцированный подход в обучении?',
-      options: [
-        'Одинаковые задания для всех учеников',
-        'Учет индивидуальных особенностей учащихся',
-        'Деление класса на группы по возрасту',
-        'Раздельное обучение мальчиков и девочек'
-      ],
-      correctAnswer: 1
-    },
-    {
-      text: 'Какова основная цель формативного оценивания?',
-      options: [
-        'Выставление итоговых оценок',
-        'Сравнение учеников между собой',
-        'Помощь ученику в улучшении результатов',
-        'Наказание за плохие результаты'
-      ],
-      correctAnswer: 2
-    },
-    {
-      text: 'Что означает термин "ЗБР" (зона ближайшего развития)?',
-      options: [
-        'То, что ребенок может сделать самостоятельно',
-        'То, что ребенок не может сделать вообще',
-        'То, что ребенок может сделать с помощью взрослого',
-        'То, что ребенок уже умеет делать'
-      ],
-      correctAnswer: 2
-    },
-    {
-      text: 'Какой стиль педагогического общения наиболее эффективен?',
-      options: [
-        'Авторитарный',
-        'Либеральный (попустительский)',
-        'Демократический',
-        'Непоследовательный'
-      ],
-      correctAnswer: 2
-    }
-  ],
-  createdAt: new Date().toISOString(),
-  assignedTo: ['2'] // Assigned to teacher1
-});
+    _id: 'test1',
+    title: 'Тест на знание педагогики',
+    description: 'Оценка базовых знаний педагогики и методики преподавания',
+    duration: 15,
+    passingScore: 70,
+    questions: [
+      {
+        text: 'Какой метод обучения считается наиболее эффективным для развития критического мышления?',
+        options: [
+          'Лекция',
+          'Проблемное обучение',
+          'Заучивание наизусть',
+          'Тестирование'
+        ],
+        correctAnswer: 1
+      },
+      {
+        text: 'Что такое дифференцированный подход в обучении?',
+        options: [
+          'Одинаковые задания для всех учеников',
+          'Учет индивидуальных особенностей учащихся',
+          'Деление класса на группы по возрасту',
+          'Раздельное обучение мальчиков и девочек'
+        ],
+        correctAnswer: 1
+      },
+      {
+        text: 'Какова основная цель формативного оценивания?',
+        options: [
+          'Выставление итоговых оценок',
+          'Сравнение учеников между собой',
+          'Помощь ученику в улучшении результатов',
+          'Наказание за плохие результаты'
+        ],
+        correctAnswer: 2
+      },
+      {
+        text: 'Что означает термин "ЗБР" (зона ближайшего развития)?',
+        options: [
+          'То, что ребенок может сделать самостоятельно',
+          'То, что ребенок не может сделать вообще',
+          'То, что ребенок может сделать с помощью взрослого',
+          'То, что ребенок уже умеет делать'
+        ],
+        correctAnswer: 2
+      },
+      {
+        text: 'Какой стиль педагогического общения наиболее эффективен?',
+        options: [
+          'Авторитарный',
+          'Либеральный (попустительский)',
+          'Демократический',
+          'Непоследовательный'
+        ],
+        correctAnswer: 2
+      }
+    ],
+    createdAt: new Date().toISOString(),
+    assignedTo: ['2'] // Assigned to teacher1
+  });
 
 } else {
   await ensureAdminUser();
@@ -3310,15 +3336,15 @@ app.post('/api/admin/reset-data', auth, (req, res) => {
   try {
     // Check if user is admin
     if (req.userRole !== 'admin') {
-      return res.status(403).json({ 
-        success: false, 
-        error: 'Access denied. Only admins can reset data.' 
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. Only admins can reset data.'
       });
     }
 
     // Preserve admin user
     const adminUser = users.find(u => u.role === 'admin');
-    
+
     // Clear all data arrays
     users.length = 0;
     subjects.length = 0;
@@ -3340,15 +3366,15 @@ app.post('/api/admin/reset-data', auth, (req, res) => {
     initDefaultSubjects();
 
     console.log('🗑️  Admin reset all data');
-    res.json({ 
-      success: true, 
-      message: 'All data cleared successfully' 
+    res.json({
+      success: true,
+      message: 'All data cleared successfully'
     });
   } catch (error) {
     console.error('Error resetting data:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message 
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
