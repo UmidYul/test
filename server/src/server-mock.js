@@ -2225,15 +2225,32 @@ app.get('/api/teacher-tests', auth, (req, res) => {
   }
 });
 
+
+// Get all teacher tests
+app.get('/api/teacher-tests', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT *, jsonb_array_length(questions) as questions_count FROM teacher_tests');
+    const testsWithCount = rows.map(test => ({
+      ...test,
+      questionsCount: test.questions_count || 0
+    }));
+    res.json({ success: true, data: testsWithCount });
+  } catch (error) {
+    console.error('Error getting teacher tests:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при загрузке тестов' });
+  }
+});
+
 // Get single teacher test
-app.get('/api/teacher-tests/:id', auth, (req, res) => {
+app.get('/api/teacher-tests/:id', auth, async (req, res) => {
   console.log('🔍 GET /api/teacher-tests/:id called with id:', req.params.id);
   try {
-    const test = teacherTests.find(t => t._id === req.params.id);
-    if (!test) {
+    const { id } = req.params;
+    const result = await pool.query('SELECT * FROM teacher_tests WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-    res.json({ success: true, data: test });
+    res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     console.error('Error getting teacher test:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке теста' });
@@ -2241,65 +2258,53 @@ app.get('/api/teacher-tests/:id', auth, (req, res) => {
 });
 
 // Create teacher test
-app.post('/api/teacher-tests', auth, (req, res) => {
+app.post('/api/teacher-tests', auth, async (req, res) => {
   try {
     const { title, description, duration, passingScore, questions } = req.body;
-
-    console.log('🆕 Creating new teacher test');
-    console.log('📝 Title:', title);
-    console.log('📝 Questions count:', questions?.length);
-    console.log('📝 Full data:', { title, description, duration, passingScore, questionsCount: questions?.length });
-
-    if (!title || !questions || questions.length === 0) {
+    if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({ success: false, error: 'Заполните все обязательные поля' });
     }
-
-    const newTest = {
-      _id: Date.now().toString(),
+    const query = 'INSERT INTO teacher_tests (title, description, duration, passing_score, questions, created_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *';
+    const params = [
       title,
-      description: description || '',
-      duration: duration || 30,
-      passingScore: passingScore || 70,
-      questions,
-      questionsCount: questions.length,
-      createdAt: new Date().toISOString(),
-      assignedTo: [] // Array of teacher IDs
-    };
-
-    teacherTests.push(newTest);
-
-    console.log('✅ Teacher test created successfully');
-    console.log('📚 Total tests in DB now:', teacherTests.length);
-    console.log('🆔 New test ID:', newTest._id);
-
-    res.json({ success: true, data: newTest });
+      description || '',
+      duration || 30,
+      passingScore || 70,
+      JSON.stringify(questions)
+    ];
+    const result = await pool.query(query, params);
+    const newTest = result.rows[0];
+    return res.status(201).json({ success: true, data: newTest });
   } catch (error) {
     console.error('Error creating teacher test:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при создании теста' });
+    return res.status(500).json({ success: false, error: 'Ошибка при создании теста' });
   }
 });
 
 // Update teacher test
-app.put('/api/teacher-tests/:id', auth, (req, res) => {
+app.put('/api/teacher-tests/:id', auth, async (req, res) => {
   try {
-    const testIndex = teacherTests.findIndex(t => t._id === req.params.id);
-    if (testIndex === -1) {
+    const { id } = req.params;
+    const { title, description, duration, passingScore, questions } = req.body;
+    const fields = [];
+    const values = [];
+    let idx = 1;
+    if (title !== undefined) { fields.push(`title = $${idx}`); values.push(title); idx++; }
+    if (description !== undefined) { fields.push(`description = $${idx}`); values.push(description); idx++; }
+    if (duration !== undefined) { fields.push(`duration = $${idx}`); values.push(duration); idx++; }
+    if (passingScore !== undefined) { fields.push(`passing_score = $${idx}`); values.push(passingScore); idx++; }
+    if (questions !== undefined) { fields.push(`questions = $${idx}`); values.push(JSON.stringify(questions)); idx++; }
+    if (fields.length === 0) {
+      return res.status(400).json({ success: false, error: 'Нет данных для обновления' });
+    }
+    fields.push(`updated_at = NOW()`);
+    const query = `UPDATE teacher_tests SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
+    values.push(id);
+    const result = await pool.query(query, values);
+    if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-
-    const { title, description, duration, passingScore, questions } = req.body;
-
-    teacherTests[testIndex] = {
-      ...teacherTests[testIndex],
-      title: title || teacherTests[testIndex].title,
-      description: description !== undefined ? description : teacherTests[testIndex].description,
-      duration: duration || teacherTests[testIndex].duration,
-      passingScore: passingScore || teacherTests[testIndex].passingScore,
-      questions: questions || teacherTests[testIndex].questions,
-      updatedAt: new Date().toISOString()
-    };
-
-    res.json({ success: true, data: teacherTests[testIndex] });
+    return res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     console.error('Error updating teacher test:', error);
     res.status(500).json({ success: false, error: 'Ошибка при обновлении теста' });
@@ -2307,15 +2312,13 @@ app.put('/api/teacher-tests/:id', auth, (req, res) => {
 });
 
 // Delete teacher test
-app.delete('/api/teacher-tests/:id', auth, (req, res) => {
+app.delete('/api/teacher-tests/:id', auth, async (req, res) => {
   try {
-    const testIndex = teacherTests.findIndex(t => t._id === req.params.id);
-    if (testIndex === -1) {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM teacher_tests WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-
-    teacherTests.splice(testIndex, 1);
-
     res.json({ success: true, message: 'Тест удален' });
   } catch (error) {
     console.error('Error deleting teacher test:', error);
@@ -2323,52 +2326,12 @@ app.delete('/api/teacher-tests/:id', auth, (req, res) => {
   }
 });
 
-// Assign test to teachers
-app.post('/api/teacher-tests/:id/assign', auth, (req, res) => {
-  try {
-    console.log('📌 ASSIGN endpoint hit!');
-    console.log('📌 Test ID:', req.params.id);
-    console.log('📌 Request body:', req.body);
-
-    const { teacherIds } = req.body;
-    const test = teacherTests.find(t => t._id === req.params.id);
-
-    console.log('📌 Test found:', test ? 'YES' : 'NO');
-    console.log('📌 Teacher IDs received:', teacherIds);
-
-    if (!test) {
-      console.log('❌ Test not found with ID:', req.params.id);
-      return res.status(404).json({ success: false, error: 'Тест не найден' });
-    }
-
-    if (!teacherIds || !Array.isArray(teacherIds)) {
-      console.log('❌ Invalid teacherIds:', teacherIds);
-      return res.status(400).json({ success: false, error: 'Укажите учителей' });
-    }
-
-    // Initialize assignedTo if undefined
-    if (!test.assignedTo) {
-      test.assignedTo = [];
-    }
-
-    // Add teachers to assigned list (without duplicates)
-    test.assignedTo = [...new Set([...test.assignedTo, ...teacherIds])];
-
-    console.log('✅ Test assigned to teachers:', test.assignedTo);
-
-    res.json({ success: true, data: test });
-  } catch (error) {
-    console.error('Error assigning test:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при назначении теста' });
-  }
-});
-
 // Get teacher's assigned tests
 app.get('/api/teacher-tests/assigned/:teacherId', auth, (req, res) => {
   try {
     const { teacherId } = req.params;
-    console.log('👥 Getting assigned tests for teacher:', teacherId);
-    console.log('📚 Total teacher tests:', teacherTests.length);
+    // TODO: Реализовать через PostgreSQL, например, если есть таблица teacher_test_assignments
+    // ...existing code...
 
     const assignedTests = teacherTests.filter(t => {
       // Handle missing assignedTo array
@@ -2386,34 +2349,17 @@ app.get('/api/teacher-tests/assigned/:teacherId', auth, (req, res) => {
 });
 
 // Submit teacher test result
-app.post('/api/teacher-test-results', auth, (req, res) => {
+app.post('/api/teacher-test-results', auth, async (req, res) => {
   try {
     const { testId, teacherId, answers, score, passed } = req.body;
-
-    console.log('📝 Saving teacher test result');
-    console.log('📝 Data received:', { testId, teacherId, answersCount: answers?.length, score, passed });
-
     if (!testId || !teacherId || !answers) {
-      console.error('❌ Missing required fields:', { hasTestId: !!testId, hasTeacherId: !!teacherId, hasAnswers: !!answers });
       return res.status(400).json({ success: false, error: 'Недостаточно данных' });
     }
-
-    const result = {
-      _id: Date.now().toString(),
-      testId,
-      teacherId,
-      answers,
-      score: score || 0,
-      passed: passed || false,
-      completedAt: new Date().toISOString()
-    };
-
-    teacherTestResults.push(result);
-
-    console.log('✅ Test result saved successfully');
-    console.log('📊 Total teacher test results:', teacherTestResults.length);
-
-    res.json({ success: true, data: result });
+    const result = await pool.query(
+      'INSERT INTO teacher_test_results (test_id, teacher_id, answers, score, passed, completed_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
+      [testId, teacherId, JSON.stringify(answers), score || 0, passed || false]
+    );
+    res.status(201).json({ success: true, data: result.rows[0] });
   } catch (error) {
     console.error('Error saving test result:', error);
     res.status(500).json({ success: false, error: 'Ошибка при сохранении результата' });
@@ -2421,25 +2367,11 @@ app.post('/api/teacher-test-results', auth, (req, res) => {
 });
 
 // Get test results by test ID
-app.get('/api/teacher-test-results/:testId', auth, (req, res) => {
+app.get('/api/teacher-test-results/:testId', auth, async (req, res) => {
   try {
-    const results = teacherTestResults.filter(r => r.testId === req.params.testId);
-
-    // Populate with teacher info
-    const resultsWithTeachers = results.map(result => {
-      const teacher = users.find(u => u._id === result.teacherId);
-      return {
-        ...result,
-        teacher: teacher ? {
-          _id: teacher._id,
-          firstName: teacher.firstName,
-          lastName: teacher.lastName,
-          username: teacher.username
-        } : null
-      };
-    });
-
-    res.json({ success: true, data: resultsWithTeachers });
+    const { testId } = req.params;
+    const result = await pool.query('SELECT * FROM teacher_test_results WHERE test_id = $1', [testId]);
+    res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('Error getting test results:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке результатов' });
@@ -2447,24 +2379,11 @@ app.get('/api/teacher-test-results/:testId', auth, (req, res) => {
 });
 
 // Get teacher's test results
-app.get('/api/teacher-test-results/teacher/:teacherId', auth, (req, res) => {
+app.get('/api/teacher-test-results/teacher/:teacherId', auth, async (req, res) => {
   try {
-    const results = teacherTestResults.filter(r => r.teacherId === req.params.teacherId);
-
-    // Populate with test info
-    const resultsWithTests = results.map(result => {
-      const test = teacherTests.find(t => t._id === result.testId);
-      return {
-        ...result,
-        test: test ? {
-          _id: test._id,
-          title: test.title,
-          description: test.description
-        } : null
-      };
-    });
-
-    res.json({ success: true, data: resultsWithTests });
+    const { teacherId } = req.params;
+    const result = await pool.query('SELECT * FROM teacher_test_results WHERE teacher_id = $1', [teacherId]);
+    res.json({ success: true, data: result.rows });
   } catch (error) {
     console.error('Error getting teacher results:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке результатов' });

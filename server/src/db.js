@@ -2,7 +2,7 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 const pool = new Pool({
-    host: process.env.PGHOST || '127.0.0.200',
+    host: process.env.PGHOST || '127.0.0.1',
     port: process.env.PGPORT ? parseInt(process.env.PGPORT) : 5432,
     database: process.env.PGDATABASE || 'zedlyuz_DB',
     user: process.env.PGUSER || 'zedlyuz_umid',

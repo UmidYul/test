@@ -74,3 +74,26 @@ CREATE TABLE IF NOT EXISTS classes (
     student_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- TEACHER TESTS
+CREATE TABLE IF NOT EXISTS teacher_tests (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    duration INT,
+    passing_score INT,
+    questions JSONB,
+    assigned_to INT[] DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- TEACHER TEST RESULTS
+CREATE TABLE IF NOT EXISTS teacher_test_results (
+    id SERIAL PRIMARY KEY,
+    test_id INT REFERENCES teacher_tests(id),
+    teacher_id INT REFERENCES users(id),
+    answers JSONB,
+    score INT,
+    passed BOOLEAN,
+    completed_at TIMESTAMP DEFAULT NOW()
+);
