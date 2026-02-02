@@ -38,6 +38,13 @@ app.get('*', (req, res, next) => {
 
 // ...in-memory массивы больше не используются...
 
+// Helper function to generate OTP
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// OTP expiry time in minutes
+const OTP_EXPIRY_MINUTES = 15;
 
 // Auth middleware
 const auth = (req, res, next) => {
