@@ -1485,35 +1485,24 @@ app.get('/api/classes/:classId', auth, async (req, res) => {
 });
 
 // Get students for specific class by ID
-app.get('/api/classes/:classId/students', auth, (req, res) => {
+app.get('/api/classes/:classId/students', auth, async (req, res) => {
   try {
     const { classId } = req.params;
-    const classItem = findClassById(classId);
-
-    if (!classItem) {
+    const { rows } = await pool.query('SELECT * FROM classes WHERE id = $1', [classId]);
+    if (rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
-
+    const classItem = rows[0];
     const section = req.query.section || classItem.name || null;
-
-    if (!canAccessClassAnalytics(req.userId, req.userRole, classItem, section)) {
-      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+    // Получаем студентов этого класса
+    let studentsQuery = 'SELECT id, username, first_name, last_name, grade, grade_section, school FROM users WHERE role = $1 AND grade = $2';
+    const params = ['student', classItem.grade];
+    if (section) {
+      studentsQuery += ' AND grade_section = $3';
+      params.push(section);
     }
-
-    const students = getClassStudents(classItem, section);
-
-    // Remove sensitive data
-    const studentData = students.map(s => ({
-      _id: s._id,
-      username: s.username,
-      firstName: s.firstName,
-      lastName: s.lastName,
-      grade: s.grade,
-      gradeSection: s.gradeSection,
-      school: s.school,
-      averageScore: getStudentAverageScore(s._id)
-    }));
-
+    const studentsRes = await pool.query(studentsQuery, params);
+    const studentData = studentsRes.rows;
     res.json({ success: true, data: studentData });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке студентов класса' });
@@ -1521,29 +1510,19 @@ app.get('/api/classes/:classId/students', auth, (req, res) => {
 });
 
 // Get students by grade
-app.get('/api/classes/:grade/students', auth, (req, res) => {
+app.get('/api/classes/:grade/students', auth, async (req, res) => {
   try {
     const { grade } = req.params;
     const { section } = req.query;
-
-    let students = users.filter(u => u.role === 'student' && u.grade === grade);
-
+    let studentsQuery = 'SELECT id, username, first_name, last_name, grade, grade_section, school FROM users WHERE role = $1 AND grade = $2';
+    const params = ['student', grade];
     if (section) {
-      students = students.filter(s => s.gradeSection === section);
+      studentsQuery += ' AND grade_section = $3';
+      params.push(section);
     }
-
-    // Remove sensitive data
-    students = students.map(s => ({
-      _id: s._id,
-      username: s.username,
-      firstName: s.firstName,
-      lastName: s.lastName,
-      grade: s.grade,
-      gradeSection: s.gradeSection,
-      school: s.school
-    }));
-
-    res.json({ success: true, data: students });
+    const studentsRes = await pool.query(studentsQuery, params);
+    const studentData = studentsRes.rows;
+    res.json({ success: true, data: studentData });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке учеников' });
   }
