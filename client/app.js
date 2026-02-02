@@ -11415,7 +11415,7 @@ async function editClass(classId) {
                         <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">Классный руководитель</label>
                         <select id="editClassTeacher">
                             <option value="">-- Не выбран --</option>
-                            ${teachers.map(t => `<option value="${t.id}" ${classData.teacherId === t.id ? 'selected' : ''}>${t.firstName} ${t.lastName}</option>`).join('')}
+                            ${teachers.map(t => `<option value="${t._id || t.id}" ${classData.teacherId === (t._id || t.id) ? 'selected' : ''}>${t.firstName} ${t.lastName}</option>`).join('')}
                         </select>
                     </div>
 
@@ -11769,7 +11769,7 @@ async function loadTeachersForModal(token) {
             select.innerHTML = '<option value="">-- Не выбран --</option>';
             teachers.forEach(t => {
                 const option = document.createElement('option');
-                option.value = t.id;
+                option.value = t._id || t.id;
                 option.textContent = `${t.firstName} ${t.lastName}`;
                 select.appendChild(option);
             });
