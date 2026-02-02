@@ -1447,7 +1447,7 @@ app.get('/api/teacher/control-tests/results', auth, (req, res) => {
 app.get('/api/classes', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT c.id, c.grade, c.name, c.teacher_id as "teacherId", c.student_count as "studentCount", c.created_at,
+      SELECT c.id, c.grade, c.name, c.teacher_id as "teacherId", c.student_count as "studentCount", c.created_at as "createdAt",
              u.first_name as "teacherFirstName", u.last_name as "teacherLastName"
       FROM classes c
       LEFT JOIN users u ON c.teacher_id = u.id
@@ -1470,7 +1470,11 @@ function findClassById(classId) {
 app.get('/api/classes/:classId', auth, async (req, res) => {
   try {
     const { classId } = req.params;
-    const { rows } = await pool.query('SELECT id, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at FROM classes WHERE id = $1', [classId]);
+    const classIdInt = parseInt(classId, 10);
+    if (isNaN(classIdInt)) {
+      return res.status(400).json({ success: false, error: 'Некорректный ID класса' });
+    }
+    const { rows } = await pool.query('SELECT c.id, c.grade, c.name, c.teacher_id as "teacherId", c.student_count as "studentCount", c.created_at as "createdAt", u.first_name as "teacherFirstName", u.last_name as "teacherLastName" FROM classes c LEFT JOIN users u ON c.teacher_id = u.id WHERE c.id = $1', [classIdInt]);
     if (rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
