@@ -1,7 +1,10 @@
+
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Тестовое подключение к PostgreSQL
 import pkg from 'pg';
@@ -24,11 +27,16 @@ client.connect()
     console.error('Connection error', err.stack);
   });
 
+
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Статика фронта
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+app.use(express.static(path.join(__dirname, '../../client/dist')));
 
 // Log all incoming requests
 app.use((req, res, next) => {
@@ -39,6 +47,11 @@ app.use((req, res, next) => {
 // Главная страница
 app.get('/', (req, res) => {
   res.send('Сервер работает!');
+});
+
+// Все остальные маршруты — отдаём index.html фронта
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
 // In-memory database
