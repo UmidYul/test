@@ -325,6 +325,58 @@ app.get('/api/teachers/students/:studentId', auth, (req, res) => {
   }
 });
 
+// Get teacher classes (new schema)
+app.get('/api/teacher/classes', auth, async (req, res) => {
+  try {
+    if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+    }
+    const { rows } = await pool.query(
+      `SELECT c.id, c.name_ru, c.name_uz, c.grade, c.section, c.academic_year
+       FROM classes c
+       JOIN teacher_teaching_assignments tta ON c.id = tta.class_id
+       WHERE tta.teacher_id = $1
+       ORDER BY c.grade, c.section`,
+      [req.userId]
+    );
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('❌ Ошибка получения классов:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при загрузке классов' });
+  }
+});
+
+// Get teacher test results (new schema)
+app.get('/api/teacher/test-results', auth, async (req, res) => {
+  try {
+    if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+    }
+    const { rows } = await pool.query(
+      `SELECT ts.id as session_id, ts.score, ts.passed, ts.completed_at, ts.time_taken_minutes,
+              t.title as test_title, t.target_role,
+              u.first_name, u.last_name, u.grade, u.section,
+              c.name_ru as class_name,
+              COUNT(ta.id) as total_questions,
+              SUM(CASE WHEN ta.is_correct THEN 1 ELSE 0 END) as correct_answers
+       FROM test_sessions ts
+       JOIN tests t ON ts.test_id = t.id
+       JOIN users u ON ts.student_id = u.id
+       LEFT JOIN class_students cs ON u.id = cs.student_id
+       LEFT JOIN classes c ON cs.class_id = c.id
+       LEFT JOIN test_answers ta ON ts.id = ta.session_id
+       WHERE t.created_by = $1 AND ts.status = 'completed'
+       GROUP BY ts.id, t.title, t.target_role, u.first_name, u.last_name, u.grade, u.section, c.name_ru
+       ORDER BY ts.completed_at DESC`,
+      [req.userId]
+    );
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('❌ Ошибка получения результатов:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при загрузке результатов' });
+  }
+});
+
 // Register new user (PostgreSQL, admin only)
 app.post('/api/users/register', async (req, res) => {
   try {
@@ -352,24 +404,34 @@ app.post('/api/users/register', async (req, res) => {
     const userId = crypto.randomUUID();
 
     const result = await pool.query(
-      `INSERT INTO users (id, username, password, role, first_name, last_name, school_id, class_id, is_temporary_password, require_password_change)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, true) RETURNING id::text, username, role, first_name, last_name, school_id, class_id`,
-      [userId, username, hashedOTP, role, firstName, lastName, null, classId || null]
+      `INSERT INTO users (id, username, password, role, first_name, last_name, email, phone, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', NOW(), NOW()) RETURNING id::text, username, role, first_name, last_name, email, phone, status, grade, grade_section`,
+      [userId, username, hashedOTP, role, firstName, lastName, null, null]
     );
 
-    // Получаем информацию о классе, если указан classId
-    let classInfo = null;
-    if (classId) {
+    // Для учеников: добавить в class_students и обновить grade/section
+    if (role === 'student' && classId) {
       const classResult = await pool.query(`
-        SELECT c.id, c.grade, c.name, c.teacher_id as "teacherId",
-               u.first_name as "teacherFirstName", u.last_name as "teacherLastName"
-        FROM classes c
-        LEFT JOIN users u ON c.teacher_id = u.id
-        WHERE c.id = $1
+        SELECT c.grade, c.section FROM classes c WHERE c.id = $1
       `, [classId]);
       if (classResult.rows.length > 0) {
-        classInfo = classResult.rows[0];
+        const { grade, section } = classResult.rows[0];
+        await pool.query(`
+          UPDATE users SET grade = $1, grade_section = $2 WHERE id = $3
+        `, [grade, section, userId]);
+        await pool.query(`
+          INSERT INTO class_students (class_id, student_id, enrolled_at) VALUES ($1, $2, NOW())
+        `, [classId, userId]);
+        console.log(`[REGISTER] Added student ${username} to class ${classId} with grade: ${grade}, section: ${section}`);
       }
+    }
+
+    // Для учителей: создать teacher_profiles (homeroom_class_id NULL пока)
+    if (role === 'teacher') {
+      await pool.query(`
+        INSERT INTO teacher_profiles (user_id, homeroom_class_id) VALUES ($1, NULL)
+      `, [userId]);
+      console.log(`[REGISTER] Created teacher profile for ${username}`);
     }
 
     const user = result.rows[0];
@@ -379,7 +441,6 @@ app.post('/api/users/register', async (req, res) => {
       success: true,
       data: {
         ...user,
-        class: classInfo, // Добавляем информацию о классе
         otp: otp, // Return OTP to admin
         otpExpiresAt: otpExpiresAt.toISOString()
       }
@@ -639,96 +700,172 @@ app.get('/api/modules/:moduleId/tests', auth, async (req, res) => {
   }
 });
 
-// Get all tests (for admin dashboard)
+// Get all tests (new schema)
 app.get('/api/tests', auth, async (req, res) => {
   try {
-    console.log(`🔍 Получение всех тестов (admin)`);
-    const { rows } = await pool.query('SELECT id, module_id as "moduleId", name_ru as "nameRu", name_uz as "nameUz", duration, time_limit as "timeLimit", max_score as "maxScore", status, assigned_grades as "assignedGrades", questions, created_by as "createdBy", jsonb_array_length(questions) as "questionsCount" FROM tests');
-    console.log(`✅ Всего тестов: ${rows.length}`);
+    let query = `SELECT id, title, duration_minutes, pass_percent, created_by, target_role, status, created_at, updated_at FROM tests`;
+    let params = [];
+    if (req.userRole === 'teacher') {
+      query += ' WHERE created_by = $1';
+      params.push(req.userId);
+    } else if (req.userRole === 'student') {
+      // Получить grade ученика
+      const { rows: userRows } = await pool.query('SELECT grade FROM users WHERE id = $1', [req.userId]);
+      if (userRows.length === 0) return res.status(404).json({ success: false, error: 'Пользователь не найден' });
+      const grade = userRows[0].grade;
+      query += ' WHERE target_role = $1 AND status = $2';
+      params.push(grade, 'published');
+    }
+    query += ' ORDER BY created_at DESC';
+    const { rows } = await pool.query(query, params);
     res.json({ success: true, data: rows });
   } catch (error) {
-    console.error(`❌ Ошибка загрузки тестов: ${error.message}`);
-    res.status(500).json({ success: false, error: 'Ошибка при загрузке тестов' });
+    console.error('❌ Ошибка получения тестов:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при получении тестов' });
   }
 });
 
-// Get single test with questions (for teacher - original order)
+// Get single test with questions (new schema)
 app.get('/api/tests/:testId', auth, async (req, res) => {
   try {
     const { testId } = req.params;
-    const { rows } = await pool.query('SELECT id, module_id as "moduleId", name_ru as "nameRu", name_uz as "nameUz", duration, time_limit as "timeLimit", max_score as "maxScore", status, assigned_grades as "assignedGrades", questions, created_by as "createdBy", jsonb_array_length(questions) as "questionsCount" FROM tests WHERE id = $1', [testId]);
-    if (rows.length === 0) {
+    const { rows: testRows } = await pool.query('SELECT id, title, duration_minutes, pass_percent, created_by, target_role, status, created_at, updated_at FROM tests WHERE id = $1', [testId]);
+    if (testRows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-    res.json({ success: true, data: rows[0] });
+    const test = testRows[0];
+
+    // Получить вопросы
+    const { rows: questionRows } = await pool.query(
+      `SELECT id, question_type, text, points, order_no FROM test_questions WHERE test_id = $1 ORDER BY order_no`,
+      [testId]
+    );
+
+    // Для каждого вопроса получить опции
+    for (let q of questionRows) {
+      const { rows: optionRows } = await pool.query(
+        `SELECT id, text, is_correct, order_no FROM question_options WHERE question_id = $1 ORDER BY order_no`,
+        [q.id]
+      );
+      q.options = optionRows;
+    }
+
+    test.questions = questionRows;
+    res.json({ success: true, data: test });
   } catch (error) {
+    console.error('❌ Ошибка получения теста:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке теста' });
   }
 });
 
-// Get randomized test for student
-app.get('/api/tests/:testId/start', auth, (req, res) => {
+// Start test (new schema)
+app.get('/api/tests/:testId/start', auth, async (req, res) => {
   try {
+    if (req.userRole !== 'student') {
+      return res.status(403).json({ success: false, error: 'Только ученики могут проходить тесты' });
+    }
     const { testId } = req.params;
-    const test = tests.find(t => t._id === testId);
 
-    if (!test) {
+    // Проверить, что тест существует и опубликован
+    const { rows: testRows } = await pool.query('SELECT id, title, duration_minutes, pass_percent, target_role, status FROM tests WHERE id = $1', [testId]);
+    if (testRows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
-
+    const test = testRows[0];
     if (test.status !== 'published') {
       return res.status(403).json({ success: false, error: 'Тест еще не опубликован' });
     }
 
-    // Shuffle questions
-    const shuffledQuestions = [...test.questions]
-      .map(q => ({
-        ...q,
-        // Shuffle answers while keeping track of correct ones
-        answers: [...q.answers]
-          .map((a, idx) => ({ ...a, originalIndex: idx }))
-          .sort(() => Math.random() - 0.5)
-      }))
-      .sort(() => Math.random() - 0.5);
+    // Проверить, что ученик подходит по grade
+    const { rows: userRows } = await pool.query('SELECT grade FROM users WHERE id = $1', [req.userId]);
+    if (userRows.length === 0 || userRows[0].grade !== test.target_role) {
+      return res.status(403).json({ success: false, error: 'Тест не доступен для вашего класса' });
+    }
+
+    // Проверить, не проходил ли уже тест
+    const { rows: sessionRows } = await pool.query('SELECT id FROM test_sessions WHERE test_id = $1 AND student_id = $2', [testId, req.userId]);
+    if (sessionRows.length > 0) {
+      return res.status(400).json({ success: false, error: 'Вы уже проходили этот тест' });
+    }
+
+    // Создать сессию
+    const sessionId = crypto.randomUUID();
+    await pool.query(
+      `INSERT INTO test_sessions (id, test_id, student_id, started_at, status)
+       VALUES ($1, $2, $3, NOW(), 'in_progress')`,
+      [sessionId, testId, req.userId]
+    );
+
+    // Получить вопросы в случайном порядке
+    const { rows: questionRows } = await pool.query(
+      `SELECT id, question_type, text, points FROM test_questions WHERE test_id = $1 ORDER BY RANDOM()`,
+      [testId]
+    );
+
+    // Для каждого вопроса получить опции в случайном порядке
+    for (let q of questionRows) {
+      const { rows: optionRows } = await pool.query(
+        `SELECT id, text FROM question_options WHERE question_id = $1 ORDER BY RANDOM()`,
+        [q.id]
+      );
+      q.options = optionRows;
+    }
 
     const randomizedTest = {
-      ...test,
-      questions: shuffledQuestions
+      sessionId,
+      title: test.title,
+      durationMinutes: test.duration_minutes,
+      questions: questionRows
     };
 
     res.json({ success: true, data: randomizedTest });
   } catch (error) {
-    console.error('Error randomizing test:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при загрузке теста' });
+    console.error('❌ Ошибка начала теста:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при начале теста' });
   }
 });
 
-// Create test
-app.post('/api/modules/:moduleId/tests', auth, async (req, res) => {
+// Create test (new schema)
+app.post('/api/tests', auth, async (req, res) => {
   try {
     if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
-    const { moduleId } = req.params;
-    const { nameRu, nameUz, duration, timeLimit, maxScore, status, questions, assignedGrades } = req.body;
-    // const user = ...
-    // const moduleItem = ...
-    // if (user?.role === 'teacher' && moduleItem && !teacherHasSubject(user, moduleItem.subjectId)) {
-    //   return res.status(403).json({ success: false, error: 'Доступ запрещен' });
-    // }
-    // Проверка: в модуле может быть только один тест
-    const { rows: existing } = await pool.query('SELECT id FROM tests WHERE module_id = $1', [moduleId]);
-    if (existing.length > 0) {
-      return res.status(400).json({ success: false, error: 'В модуле уже есть тест' });
+    const { title, durationMinutes, passPercent, targetRole, questions } = req.body;
+    if (!title || !durationMinutes || !passPercent || !targetRole || !questions) {
+      return res.status(400).json({ success: false, error: 'Заполните все поля' });
     }
-    console.log(`➕ Создание теста в модуле ${moduleId}: ${nameRu}`);
     const testId = crypto.randomUUID();
     const result = await pool.query(
-      'INSERT INTO tests (id, module_id, name_ru, name_uz, duration, time_limit, max_score, status, questions, assigned_grades, created_by, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW()) RETURNING id::text, module_id as "moduleId", name_ru as "nameRu", name_uz as "nameUz", duration, time_limit as "timeLimit", max_score as "maxScore", status, assigned_grades as "assignedGrades", questions, created_by as "createdBy", jsonb_array_length(questions) as "questionsCount"',
-      [testId, moduleId, nameRu, nameUz, duration, timeLimit, maxScore, status || 'draft', JSON.stringify(questions || []), assignedGrades || [], req.userId]
+      `INSERT INTO tests (id, title, duration_minutes, pass_percent, created_by, target_role, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'draft', NOW(), NOW()) RETURNING id, title, duration_minutes, pass_percent, created_by, target_role, status, created_at, updated_at`,
+      [testId, title, durationMinutes, passPercent, req.userId, targetRole]
     );
     const newTest = result.rows[0];
-    console.log(`✅ Тест создан с ID: ${newTest.id}`);
+
+    // Создать вопросы
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      const qId = crypto.randomUUID();
+      await pool.query(
+        `INSERT INTO test_questions (id, test_id, question_type, text, points, order_no)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [qId, testId, q.type, q.text, q.points || 1, i + 1]
+      );
+      if (q.options && q.options.length > 0) {
+        for (let j = 0; j < q.options.length; j++) {
+          const opt = q.options[j];
+          const optId = crypto.randomUUID();
+          await pool.query(
+            `INSERT INTO question_options (id, question_id, text, is_correct, order_no)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [optId, qId, opt.text, opt.isCorrect || false, j + 1]
+          );
+        }
+      }
+    }
+
+    console.log(`✅ Тест создан: ${title} (${targetRole})`);
     res.status(201).json({ success: true, data: newTest });
   } catch (error) {
     console.error('❌ Ошибка создания теста:', error);
@@ -736,66 +873,85 @@ app.post('/api/modules/:moduleId/tests', auth, async (req, res) => {
   }
 });
 
-// Update test
+// Update test (new schema)
 app.put('/api/tests/:testId', auth, async (req, res) => {
   try {
     if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
     const { testId } = req.params;
-    const updates = req.body;
-    // Обновляем только разрешённые поля
-    const fields = ['nameRu', 'nameUz', 'duration', 'timeLimit', 'maxScore', 'status', 'questions', 'assignedGrades'];
-    const dbFields = {
-      nameRu: 'name_ru',
-      nameUz: 'name_uz',
-      duration: 'duration',
-      timeLimit: 'time_limit',
-      maxScore: 'max_score',
-      status: 'status',
-      questions: 'questions',
-      assignedGrades: 'assigned_grades'
-    };
-    const setParts = [];
+    const { title, durationMinutes, passPercent, targetRole, status, questions } = req.body;
+
+    // Обновить тест
+    const updateFields = [];
     const values = [];
     let idx = 1;
-    for (const key of fields) {
-      if (updates[key] !== undefined) {
-        setParts.push(`${dbFields[key]} = $${idx}`);
-        if (key === 'questions') {
-          values.push(JSON.stringify(updates[key]));
-        } else {
-          values.push(updates[key]);
+    if (title !== undefined) { updateFields.push(`title = $${idx++}`); values.push(title); }
+    if (durationMinutes !== undefined) { updateFields.push(`duration_minutes = $${idx++}`); values.push(durationMinutes); }
+    if (passPercent !== undefined) { updateFields.push(`pass_percent = $${idx++}`); values.push(passPercent); }
+    if (targetRole !== undefined) { updateFields.push(`target_role = $${idx++}`); values.push(targetRole); }
+    if (status !== undefined) { updateFields.push(`status = $${idx++}`); values.push(status); }
+    updateFields.push(`updated_at = NOW()`);
+    values.push(testId);
+
+    const updateQuery = `UPDATE tests SET ${updateFields.join(', ')} WHERE id = $${idx}`;
+    await pool.query(updateQuery, values);
+
+    // Если переданы вопросы, обновить их
+    if (questions !== undefined) {
+      // Удалить старые вопросы и опции
+      await pool.query('DELETE FROM question_options WHERE question_id IN (SELECT id FROM test_questions WHERE test_id = $1)', [testId]);
+      await pool.query('DELETE FROM test_questions WHERE test_id = $1', [testId]);
+
+      // Добавить новые вопросы
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        const qId = crypto.randomUUID();
+        await pool.query(
+          `INSERT INTO test_questions (id, test_id, question_type, text, points, order_no)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [qId, testId, q.type, q.text, q.points || 1, i + 1]
+        );
+        if (q.options && q.options.length > 0) {
+          for (let j = 0; j < q.options.length; j++) {
+            const opt = q.options[j];
+            const optId = crypto.randomUUID();
+            await pool.query(
+              `INSERT INTO question_options (id, question_id, text, is_correct, order_no)
+               VALUES ($1, $2, $3, $4, $5)`,
+              [optId, qId, opt.text, opt.isCorrect || false, j + 1]
+            );
+          }
         }
-        idx++;
       }
     }
-    setParts.push(`updated_at = NOW()`);
-    const query = `UPDATE tests SET ${setParts.join(', ')} WHERE id = $${idx} RETURNING id::text, module_id as "moduleId", name_ru as "nameRu", name_uz as "nameUz", duration, time_limit as "timeLimit", max_score as "maxScore", status, assigned_grades as "assignedGrades", questions, created_by as "createdBy", jsonb_array_length(questions) as "questionsCount"`;
-    values.push(testId);
-    const result = await pool.query(query, values);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Тест не найден' });
-    }
-    res.json({ success: true, data: result.rows[0] });
+
+    // Получить обновленный тест
+    const { rows } = await pool.query('SELECT id, title, duration_minutes, pass_percent, created_by, target_role, status, created_at, updated_at FROM tests WHERE id = $1', [testId]);
+    res.json({ success: true, data: rows[0] });
   } catch (error) {
+    console.error('❌ Ошибка обновления теста:', error);
     res.status(500).json({ success: false, error: 'Ошибка при обновлении теста' });
   }
 });
 
-// Delete test
+// Delete test (new schema)
 app.delete('/api/tests/:testId', auth, async (req, res) => {
   try {
     if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
     const { testId } = req.params;
+    // Удалить опции, вопросы, затем тест (если нет каскадного удаления)
+    await pool.query('DELETE FROM question_options WHERE question_id IN (SELECT id FROM test_questions WHERE test_id = $1)', [testId]);
+    await pool.query('DELETE FROM test_questions WHERE test_id = $1', [testId]);
     const result = await pool.query('DELETE FROM tests WHERE id = $1 RETURNING *', [testId]);
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
     res.json({ success: true, message: 'Тест удален' });
   } catch (error) {
+    console.error('❌ Ошибка удаления теста:', error);
     res.status(500).json({ success: false, error: 'Ошибка при удалении теста' });
   }
 });
@@ -804,15 +960,24 @@ app.delete('/api/tests/:testId', auth, async (req, res) => {
 // TEST RESULTS API
 // ========================================
 
-// Get test results for student
+// Get test results for student (new schema)
 app.get('/api/tests/:testId/results', auth, async (req, res) => {
   try {
     const { testId } = req.params;
-    const { rows } = await pool.query('SELECT * FROM test_results WHERE test_id = $1 AND user_id = $2 ORDER BY completed_at DESC', [testId, req.userId]);
-    console.log(`📊 Найдено результатов: ${rows.length} для теста ${testId} пользователя ${req.userId}`);
+    const { rows } = await pool.query(
+      `SELECT ts.id, ts.score, ts.passed, ts.completed_at, ts.time_taken_minutes,
+              COUNT(ta.id) as total_questions,
+              SUM(CASE WHEN ta.is_correct THEN 1 ELSE 0 END) as correct_answers
+       FROM test_sessions ts
+       LEFT JOIN test_answers ta ON ts.id = ta.session_id
+       WHERE ts.test_id = $1 AND ts.student_id = $2 AND ts.status = 'completed'
+       GROUP BY ts.id
+       ORDER BY ts.completed_at DESC`,
+      [testId, req.userId]
+    );
     res.json({ success: true, data: rows });
   } catch (error) {
-    console.error('❌ Ошибка при загрузке результатов:', error);
+    console.error('❌ Ошибка получения результатов:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке результатов' });
   }
 });
@@ -857,51 +1022,75 @@ app.get('/api/tests/:testId/progress', auth, (req, res) => {
 });
 
 // Submit test results
+// Submit test (new schema)
 app.post('/api/tests/:testId/submit', auth, async (req, res) => {
   try {
+    if (req.userRole !== 'student') {
+      return res.status(403).json({ success: false, error: 'Только ученики могут сдавать тесты' });
+    }
     const { testId } = req.params;
-    const { answers, timeTaken } = req.body;
-    console.log(`📝 Сдача теста ${testId} пользователем ${req.userId}`);
-    // Получаем тест и вопросы
-    const { rows: testRows } = await pool.query('SELECT * FROM tests WHERE id = $1', [testId]);
+    const { sessionId, answers, timeTaken } = req.body; // answers: { questionId: selectedOptionId }
+
+    // Получить сессию
+    const { rows: sessionRows } = await pool.query('SELECT id, status FROM test_sessions WHERE id = $1 AND student_id = $2', [sessionId, req.userId]);
+    if (sessionRows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Сессия не найдена' });
+    }
+    if (sessionRows[0].status !== 'in_progress') {
+      return res.status(400).json({ success: false, error: 'Тест уже завершен' });
+    }
+
+    // Получить тест
+    const { rows: testRows } = await pool.query('SELECT id, pass_percent FROM tests WHERE id = $1', [testId]);
     if (testRows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
     }
     const test = testRows[0];
-    const questions = test.questions || [];
-    let correctCount = 0;
-    const questionResults = questions.map((question, idx) => {
-      const userAnswerIdx = answers[idx];
-      const isCorrect = userAnswerIdx !== undefined && question.answers && question.answers[userAnswerIdx]?.isCorrect;
-      if (isCorrect) correctCount++;
-      return {
-        questionIndex: idx,
-        questionRu: question.questionRu,
-        questionUz: question.questionUz,
-        userAnswerIndex: userAnswerIdx,
-        userAnswerText: userAnswerIdx !== undefined && question.answers ? question.answers[userAnswerIdx] : null,
-        correctAnswerIndex: question.answers ? question.answers.findIndex(a => a.isCorrect) : null,
-        correctAnswerText: question.answers ? question.answers.find(a => a.isCorrect) : null,
-        isCorrect
-      };
-    });
-    const score = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
-    // Получаем module и subjectId
-    const { rows: moduleRows } = await pool.query('SELECT * FROM modules WHERE id = $1', [test.module_id]);
-    const module = moduleRows[0];
-    const subjectId = module ? module.subject_id : null;
-    // Сохраняем результат
-    const resultId = crypto.randomUUID();
-    const insertResult = await pool.query(
-      'INSERT INTO test_results (id, user_id, test_id, score, correct_count, total_count, time_taken, question_results, completed_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING id::text, user_id, test_id, score, correct_count, total_count, time_taken, question_results, completed_at',
-      [resultId, req.userId, testId, score, correctCount, questions.length, timeTaken, JSON.stringify(questionResults)]
+
+    // Сохранить ответы и рассчитать score
+    let totalPoints = 0;
+    let earnedPoints = 0;
+    const answerInserts = [];
+
+    for (const [questionId, selectedOptionId] of Object.entries(answers)) {
+      // Получить вопрос
+      const { rows: qRows } = await pool.query('SELECT id, points FROM test_questions WHERE id = $1', [questionId]);
+      if (qRows.length === 0) continue;
+      const question = qRows[0];
+      totalPoints += question.points;
+
+      // Проверить правильность
+      const { rows: optRows } = await pool.query('SELECT is_correct FROM question_options WHERE id = $1', [selectedOptionId]);
+      const isCorrect = optRows.length > 0 && optRows[0].is_correct;
+      if (isCorrect) earnedPoints += question.points;
+
+      // Сохранить ответ
+      answerInserts.push(
+        pool.query(
+          `INSERT INTO test_answers (id, session_id, question_id, selected_option_id, is_correct)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [crypto.randomUUID(), sessionId, questionId, selectedOptionId, isCorrect]
+        )
+      );
+    }
+
+    await Promise.all(answerInserts);
+
+    const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+    const passed = score >= test.pass_percent;
+
+    // Обновить сессию
+    await pool.query(
+      `UPDATE test_sessions SET status = 'completed', completed_at = NOW(), score = $1, passed = $2, time_taken_minutes = $3
+       WHERE id = $4`,
+      [score, passed, timeTaken, sessionId]
     );
-    const result = insertResult.rows[0];
-    console.log(`✅ Результат теста сохранён: ${result.id} - Score: ${score}`);
-    res.json({ success: true, data: result });
+
+    console.log(`✅ Тест сдан: ${testId}, score: ${score}%, passed: ${passed}`);
+    res.json({ success: true, data: { score, passed, earnedPoints, totalPoints } });
   } catch (error) {
-    console.error('❌ Ошибка при сохранении результата:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при сохранении результата' });
+    console.error('❌ Ошибка сдачи теста:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при сдаче теста' });
   }
 });
 
@@ -1499,11 +1688,12 @@ app.get('/api/teacher/control-tests/results', auth, (req, res) => {
 app.get('/api/classes', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT c.id, c.grade, c.name, c.teacher_id as "teacherId", c.student_count as "studentCount", c.created_at as "createdAt",
-             u.first_name as "teacherFirstName", u.last_name as "teacherLastName"
+      SELECT c.id, c.grade, c.section as name, c.created_at as "createdAt",
+             COUNT(cs.student_id) as "studentCount"
       FROM classes c
-      LEFT JOIN users u ON c.teacher_id = u.id
-      ORDER BY c.grade, c.name
+      LEFT JOIN class_students cs ON c.id = cs.class_id AND cs.left_at IS NULL
+      GROUP BY c.id, c.grade, c.section, c.created_at
+      ORDER BY c.grade, c.section
     `);
     console.log(`📚 Загружено классов: ${rows.length}`);
     res.json({ success: true, data: rows });
@@ -1522,21 +1712,22 @@ function findClassById(classId) {
 app.get('/api/classes/:classId', auth, async (req, res) => {
   try {
     const { classId } = req.params;
-    const classIdInt = parseInt(classId, 10);
-    if (isNaN(classIdInt)) {
-      return res.status(400).json({ success: false, error: 'Некорректный ID класса' });
-    }
-    const { rows } = await pool.query('SELECT c.id, c.grade, c.name, c.teacher_id as "teacherId", c.student_count as "studentCount", c.created_at as "createdAt", u.first_name as "teacherFirstName", u.last_name as "teacherLastName" FROM classes c LEFT JOIN users u ON c.teacher_id = u.id WHERE c.id = $1', [classIdInt]);
+    const { rows } = await pool.query(`
+      SELECT c.id, c.grade, c.section as name, c.created_at as "createdAt"
+      FROM classes c
+      WHERE c.id = $1
+    `, [classId]);
     if (rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
     const classItem = rows[0];
-    // Получаем студентов этого класса (по grade и name)
-    const studentsQuery = await pool.query(`SELECT u.id, u.username, u.first_name as "firstName", u.last_name as "lastName", 
-                                                     u.grade, u.grade_section as "gradeSection", s.name as "schoolName"
-                                              FROM users u
-                                              LEFT JOIN schools s ON u.school_id = s.id
-                                              WHERE u.role = $1 AND u.grade = $2`, ['student', classItem.grade]);
+    // Получаем студентов этого класса из class_students
+    const studentsQuery = await pool.query(`
+      SELECT u.id, u.username, u.first_name as "firstName", u.last_name as "lastName"
+      FROM class_students cs
+      JOIN users u ON cs.student_id = u.id
+      WHERE cs.class_id = $1 AND cs.left_at IS NULL
+    `, [classId]);
     const studentData = studentsQuery.rows;
     res.json({
       success: true,
@@ -1554,25 +1745,15 @@ app.get('/api/classes/:classId', auth, async (req, res) => {
 app.get('/api/classes/:classId/students', auth, async (req, res) => {
   try {
     const { classId } = req.params;
-    const { rows } = await pool.query('SELECT * FROM classes WHERE id = $1', [classId]);
-    if (rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Класс не найден' });
-    }
-    const classItem = rows[0];
-    const section = req.query.section || classItem.name || null;
-    // Получаем студентов этого класса
-    let studentsQuery = `SELECT u.id, u.username, u.first_name, u.last_name, u.grade, u.grade_section, s.name as "schoolName"
-                         FROM users u
-                         LEFT JOIN schools s ON u.school_id = s.id
-                         WHERE u.role = $1 AND u.grade = $2`;
-    const params = ['student', classItem.grade];
-    if (section) {
-      studentsQuery += ' AND u.grade_section = $3';
-      params.push(section);
-    }
-    const studentsRes = await pool.query(studentsQuery, params);
-    const studentData = studentsRes.rows;
-    res.json({ success: true, data: studentData });
+    // Получаем студентов этого класса из class_students
+    const studentsQuery = await pool.query(`
+      SELECT u.id, u.username, u.first_name as "firstName", u.last_name as "lastName"
+      FROM class_students cs
+      JOIN users u ON cs.student_id = u.id
+      WHERE cs.class_id = $1 AND cs.left_at IS NULL
+      ORDER BY u.last_name, u.first_name
+    `, [classId]);
+    res.json({ success: true, data: studentsQuery.rows });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке студентов класса' });
   }
@@ -1583,18 +1764,27 @@ app.get('/api/classes/:grade/students', auth, async (req, res) => {
   try {
     const { grade } = req.params;
     const { section } = req.query;
-    let studentsQuery = `SELECT u.id, u.username, u.first_name, u.last_name, u.grade, u.grade_section, s.name as "schoolName"
-                         FROM users u
-                         LEFT JOIN schools s ON u.school_id = s.id
-                         WHERE u.role = $1 AND u.grade = $2`;
-    const params = ['student', grade];
+    // Найти класс по grade и section
+    let classQuery = 'SELECT id FROM classes WHERE grade = $1';
+    const params = [grade];
     if (section) {
-      studentsQuery += ' AND u.grade_section = $3';
+      classQuery += ' AND section = $2';
       params.push(section);
     }
-    const studentsRes = await pool.query(studentsQuery, params);
-    const studentData = studentsRes.rows;
-    res.json({ success: true, data: studentData });
+    const classRes = await pool.query(classQuery, params);
+    if (classRes.rows.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+    const classId = classRes.rows[0].id;
+    // Получить студентов из class_students
+    const studentsQuery = await pool.query(`
+      SELECT u.id, u.username, u.first_name as "firstName", u.last_name as "lastName"
+      FROM class_students cs
+      JOIN users u ON cs.student_id = u.id
+      WHERE cs.class_id = $1 AND cs.left_at IS NULL
+      ORDER BY u.last_name, u.first_name
+    `, [classId]);
+    res.json({ success: true, data: studentsQuery.rows });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке учеников' });
   }

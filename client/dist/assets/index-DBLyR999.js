@@ -1596,7 +1596,7 @@ const API_BASE_URL = window.location.origin; function Ne(e) { return e + .5 | 0 
                                         opt.value = c.id || c._id || '';
                                         const grade = c.grade || '';
                                         const name = c.name || '';
-                                        opt.textContent = `${grade}${name} ${e === 'uz' ? 'sinf' : 'класс'}`;
+                                        opt.textContent = `${grade}-${name} ${e === 'uz' ? 'sinf' : 'класс'}`;
                                         select.appendChild(opt);
                                     });
                                 } else {
@@ -1624,7 +1624,7 @@ const API_BASE_URL = window.location.origin; function Ne(e) { return e + .5 | 0 
                 opt.value = c.id || c._id || '';
                 const grade = c.grade || '';
                 const name = c.name || '';
-                opt.textContent = `${grade}${name} ${e === 'uz' ? 'sinf' : 'класс'}`;
+                opt.textContent = `${grade}-${name} ${e === 'uz' ? 'sinf' : 'класс'}`;
                 sel.appendChild(opt);
             });
         } catch (err) {
