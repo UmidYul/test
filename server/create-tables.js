@@ -24,22 +24,7 @@ async function createTables() {
 
         // Создаем таблицы в правильной последовательности (сначала без внешних ключей, потом с ключами)
 
-        // 1. Schools
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS schools (
-                id UUID PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                address TEXT,
-                phone VARCHAR(32),
-                email VARCHAR(128),
-                director_name VARCHAR(128),
-                created_at TIMESTAMP DEFAULT NOW(),
-                updated_at TIMESTAMP DEFAULT NOW()
-            )
-        `);
-        console.log('✅ Таблица schools создана');
-
-        // 2. Users (без внешнего ключа к schools)
+        // 1. Users
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id UUID PRIMARY KEY,
@@ -48,7 +33,6 @@ async function createTables() {
                 role VARCHAR(32) NOT NULL,
                 first_name VARCHAR(64),
                 last_name VARCHAR(64),
-                school_id UUID,
                 class_id UUID,
                 grade VARCHAR(8),
                 grade_section VARCHAR(8),
@@ -163,18 +147,6 @@ async function createTables() {
             )
         `);
         console.log('✅ Таблица teacher_test_results создана');
-
-        // Добавляем внешний ключ для users.school_id
-        try {
-            await pool.query(`
-                ALTER TABLE users
-                ADD CONSTRAINT fk_users_school_id
-                FOREIGN KEY (school_id) REFERENCES schools(id)
-            `);
-            console.log('✅ Внешний ключ users.school_id добавлен');
-        } catch (error) {
-            console.log('ℹ️ Внешний ключ users.school_id уже существует или не может быть добавлен');
-        }
 
         // Добавляем внешний ключ для users.class_id
         try {

@@ -1,14 +1,3 @@
--- SCHOOLS
-CREATE TABLE IF NOT EXISTS schools (
-    id UUID PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    address TEXT,
-    phone VARCHAR(32),
-    email VARCHAR(128),
-    director_name VARCHAR(128),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
 -- USERS
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
@@ -17,7 +6,6 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(32) NOT NULL,
     first_name VARCHAR(64),
     last_name VARCHAR(64),
-    school_id UUID REFERENCES schools(id),
     grade VARCHAR(8),
     grade_section VARCHAR(8),
     is_temporary_password BOOLEAN DEFAULT FALSE,

@@ -78,9 +78,7 @@ const auth = (req, res, next) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password, role } = req.body;
-    const { rows } = await pool.query(`SELECT u.*, s.name as school_name, s.id as school_id 
-                                       FROM users u 
-                                       LEFT JOIN schools s ON u.school_id = s.id 
+    const { rows } = await pool.query(`SELECT u.* FROM users u 
                                        WHERE u.username = $1 AND u.role = $2`, [username, role]);
     const user = rows[0];
     if (!user) {
@@ -107,8 +105,6 @@ app.post('/api/auth/login', async (req, res) => {
         role: user.role,
         firstName: user.first_name,
         lastName: user.last_name,
-        schoolId: user.school_id,
-        schoolName: user.school_name,
         grade: user.grade,
         isTemporaryPassword: user.is_temporary_password || false
       }
@@ -241,11 +237,9 @@ app.get('/api/users', auth, async (req, res) => {
     let query = `SELECT u.id, u.username, u.role, u.first_name as "firstName", u.last_name as "lastName",
                          u.is_temporary_password as "isTemporaryPassword",
                          u.require_password_change as "requirePasswordChange", u.created_at, u.updated_at,
-                         s.name as "schoolName", s.id as "schoolId",
                          c.id as "classId", c.grade, c.name as "className",
                          t.first_name as "teacherFirstName", t.last_name as "teacherLastName"
                   FROM users u
-                  LEFT JOIN schools s ON u.school_id = s.id
                   LEFT JOIN classes c ON u.class_id = c.id
                   LEFT JOIN users t ON c.teacher_id = t.id`;
     const params = [];
@@ -266,11 +260,9 @@ app.get('/api/users/me', auth, async (req, res) => {
   try {
     console.log(`[PROFILE] GET /api/users/me - User ID: ${req.userId}`);
     const { rows } = await pool.query(`SELECT u.id, u.username, u.role, u.first_name, u.last_name,
-                                           s.name as "schoolName", s.id as "schoolId",
                                            c.id as "classId", c.grade, c.name as "className",
                                            t.first_name as "teacherFirstName", t.last_name as "teacherLastName"
                                     FROM users u
-                                    LEFT JOIN schools s ON u.school_id = s.id
                                     LEFT JOIN classes c ON u.class_id = c.id
                                     LEFT JOIN users t ON c.teacher_id = t.id
                                     WHERE u.id = $1`, [req.userId]);
@@ -381,7 +373,7 @@ app.get('/api/teacher/test-results', auth, async (req, res) => {
 app.post('/api/users/register', async (req, res) => {
   try {
     const body = req.body || {};
-    const { username, role, firstName, lastName, school, classId } = body;
+    const { username, role, firstName, lastName, classId } = body;
     if (!username || !role || !firstName || !lastName) {
       return res.status(400).json({ success: false, error: 'Заполните обязательные поля' });
     }
@@ -455,7 +447,7 @@ app.post('/api/users/register', async (req, res) => {
 app.put('/api/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { username, firstName, lastName, role, school, grade, subjects } = req.body;
+    const { username, firstName, lastName, role, grade, subjects } = req.body;
 
     const userIndex = users.findIndex(u => u._id === id);
 
@@ -477,9 +469,6 @@ app.put('/api/users/:id', async (req, res) => {
     users[userIndex].role = role;
 
     // Update role-specific fields
-    if (school) {
-      users[userIndex].school = school;
-    }
     if (role === 'student' && grade) {
       users[userIndex].grade = grade;
       // Remove subjects if changing to student
@@ -2710,117 +2699,6 @@ app.post('/api/admin/reset-data', auth, (req, res) => {
       success: false,
       error: error.message
     });
-  }
-});
-
-// ========================================
-// SCHOOLS API
-// ========================================
-
-// Get all schools
-app.get('/api/schools', auth, async (req, res) => {
-  try {
-    const { rows } = await pool.query('SELECT id::text, name, address, phone, email, director_name as "directorName", created_at as "createdAt", updated_at as "updatedAt" FROM schools ORDER BY name');
-    res.json({ success: true, data: rows });
-  } catch (error) {
-    console.error('Error fetching schools:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при загрузке школ' });
-  }
-});
-
-// Get single school
-app.get('/api/schools/:schoolId', auth, async (req, res) => {
-  try {
-    const { schoolId } = req.params;
-    const { rows } = await pool.query('SELECT id::text, name, address, phone, email, director_name as "directorName", created_at as "createdAt", updated_at as "updatedAt" FROM schools WHERE id = $1', [schoolId]);
-    if (rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Школа не найдена' });
-    }
-    res.json({ success: true, data: rows[0] });
-  } catch (error) {
-    console.error('Error fetching school:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при загрузке школы' });
-  }
-});
-
-// Create school (admin only)
-app.post('/api/schools', auth, async (req, res) => {
-  if (req.userRole !== 'admin') {
-    return res.status(403).json({ success: false, error: 'Только администратор может создавать школы' });
-  }
-  try {
-    const { name, address, phone, email, directorName } = req.body;
-    if (!name) {
-      return res.status(400).json({ success: false, error: 'Название школы обязательно' });
-    }
-    const schoolId = crypto.randomUUID();
-    const result = await pool.query(
-      'INSERT INTO schools (id, name, address, phone, email, director_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id::text, name, address, phone, email, director_name as "directorName", created_at as "createdAt"',
-      [schoolId, name, address, phone, email, directorName]
-    );
-    console.log(`✅ Школа создана: ${name}`);
-    res.status(201).json({ success: true, data: result.rows[0] });
-  } catch (error) {
-    console.error('Error creating school:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при создании школы' });
-  }
-});
-
-// Update school (admin only)
-app.put('/api/schools/:schoolId', auth, async (req, res) => {
-  if (req.userRole !== 'admin') {
-    return res.status(403).json({ success: false, error: 'Только администратор может редактировать школы' });
-  }
-  try {
-    const { schoolId } = req.params;
-    const { name, address, phone, email, directorName } = req.body;
-    const fields = [];
-    const values = [];
-    let idx = 1;
-    if (name !== undefined) { fields.push(`name = $${idx}`); values.push(name); idx++; }
-    if (address !== undefined) { fields.push(`address = $${idx}`); values.push(address); idx++; }
-    if (phone !== undefined) { fields.push(`phone = $${idx}`); values.push(phone); idx++; }
-    if (email !== undefined) { fields.push(`email = $${idx}`); values.push(email); idx++; }
-    if (directorName !== undefined) { fields.push(`director_name = $${idx}`); values.push(directorName); idx++; }
-    if (fields.length === 0) {
-      return res.status(400).json({ success: false, error: 'Нет данных для обновления' });
-    }
-    fields.push(`updated_at = NOW()`);
-    const query = `UPDATE schools SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id::text, name, address, phone, email, director_name as "directorName", updated_at as "updatedAt"`;
-    values.push(schoolId);
-    const result = await pool.query(query, values);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Школа не найдена' });
-    }
-    console.log(`✅ Школа обновлена: ${schoolId}`);
-    res.json({ success: true, data: result.rows[0] });
-  } catch (error) {
-    console.error('Error updating school:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при обновлении школы' });
-  }
-});
-
-// Delete school (admin only)
-app.delete('/api/schools/:schoolId', auth, async (req, res) => {
-  if (req.userRole !== 'admin') {
-    return res.status(403).json({ success: false, error: 'Только администратор может удалять школы' });
-  }
-  try {
-    const { schoolId } = req.params;
-    // Check if school has users
-    const userCount = await pool.query('SELECT COUNT(*) as count FROM users WHERE school_id = $1', [schoolId]);
-    if (parseInt(userCount.rows[0].count) > 0) {
-      return res.status(400).json({ success: false, error: 'Нельзя удалить школу, в которой есть пользователи' });
-    }
-    const result = await pool.query('DELETE FROM schools WHERE id = $1 RETURNING *', [schoolId]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, error: 'Школа не найдена' });
-    }
-    console.log(`🗑️ Школа удалена: ${schoolId}`);
-    res.json({ success: true, message: 'Школа удалена успешно' });
-  } catch (error) {
-    console.error('Error deleting school:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при удалении школы' });
   }
 });
 

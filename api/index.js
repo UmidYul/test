@@ -78,7 +78,6 @@ async function initUsers() {
         role: 'admin',
         firstName: 'Администратор',
         lastName: 'Системы',
-        school: 'Школа №1',
         isTemporaryPassword: false
     });
 
@@ -89,7 +88,6 @@ async function initUsers() {
         role: 'teacher',
         firstName: 'Мария',
         lastName: 'Иванова',
-        school: 'Школа №1',
         subjects: ['1', '3'],
         isTemporaryPassword: false
     });
@@ -101,7 +99,6 @@ async function initUsers() {
         role: 'student',
         firstName: 'Алексей',
         lastName: 'Петров',
-        school: 'Школа №1',
         grade: '8',
         gradeSection: 'А',
         isTemporaryPassword: false,
@@ -127,7 +124,6 @@ async function initUsers() {
         role: 'student',
         firstName: 'Мария',
         lastName: 'Сидорова',
-        school: 'Школа №1',
         grade: '8',
         gradeSection: 'А',
         isTemporaryPassword: false
@@ -140,7 +136,6 @@ async function initUsers() {
         role: 'student',
         firstName: 'Иван',
         lastName: 'Кузнецов',
-        school: 'Школа №1',
         grade: '9',
         gradeSection: 'Б',
         isTemporaryPassword: false
@@ -153,7 +148,6 @@ async function initUsers() {
         role: 'student',
         firstName: 'Анна',
         lastName: 'Васильева',
-        school: 'Школа №1',
         grade: '7',
         gradeSection: 'В',
         isTemporaryPassword: false
@@ -465,7 +459,6 @@ async function ensureAdminUser() {
         role: 'admin',
         firstName: 'Администратор',
         lastName: 'Системы',
-        school: '',
         isTemporaryPassword: false
     });
 
@@ -555,7 +548,6 @@ app.post('/api/auth/login', async (req, res) => {
                     role: user.role,
                     firstName: user.firstName,
                     lastName: user.lastName,
-                    school: user.school,
                     grade: user.grade,
                     subjects: user.subjects || [],
                     isTemporaryPassword: true
@@ -584,7 +576,6 @@ app.post('/api/auth/login', async (req, res) => {
                 role: user.role,
                 firstName: user.firstName,
                 lastName: user.lastName,
-                school: user.school,
                 grade: user.grade,
                 subjects: user.subjects || [],
                 isTemporaryPassword: user.isTemporaryPassword || false
@@ -794,7 +785,7 @@ app.get('/api/teachers/students/:studentId', auth, (req, res) => {
 app.post('/api/users/register', async (req, res) => {
     try {
         const body = req.body || {};
-        const { username, role, firstName, lastName, school, grade, gradeSection, subjects, homeroomClassId, classTeacherId } = body;
+        const { username, role, firstName, lastName, grade, gradeSection, subjects, homeroomClassId, classTeacherId } = body;
 
         if (!username || !role || !firstName || !lastName) {
             return res.status(400).json({ success: false, error: 'Заполните обязательные поля' });
@@ -817,7 +808,6 @@ app.post('/api/users/register', async (req, res) => {
             role,
             firstName,
             lastName,
-            school: school || 'School',
             isTemporaryPassword: true,
             requirePasswordChange: true
         };
@@ -913,7 +903,7 @@ app.post('/api/users/register', async (req, res) => {
 app.put('/api/users/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { username, firstName, lastName, role, school, grade, subjects } = req.body;
+        const { username, firstName, lastName, role, grade, subjects } = req.body;
 
         const userIndex = users.findIndex(u => u._id === id);
 
@@ -935,9 +925,6 @@ app.put('/api/users/:id', async (req, res) => {
         users[userIndex].role = role;
 
         // Update role-specific fields
-        if (school) {
-            users[userIndex].school = school;
-        }
         if (role === 'student' && grade) {
             users[userIndex].grade = grade;
             // Remove subjects if changing to student
@@ -2194,7 +2181,6 @@ app.get('/api/classes/:classId', auth, (req, res) => {
             lastName: s.lastName,
             grade: s.grade,
             gradeSection: s.gradeSection,
-            school: s.school,
             email: s.email,
             averageScore: getStudentAverageScore(s._id)
         }));
@@ -2237,7 +2223,6 @@ app.get('/api/classes/:classId/students', auth, (req, res) => {
             lastName: s.lastName,
             grade: s.grade,
             gradeSection: s.gradeSection,
-            school: s.school,
             averageScore: getStudentAverageScore(s._id)
         }));
 
@@ -2266,8 +2251,7 @@ app.get('/api/classes/:grade/students', auth, (req, res) => {
             firstName: s.firstName,
             lastName: s.lastName,
             grade: s.grade,
-            gradeSection: s.gradeSection,
-            school: s.school
+            gradeSection: s.gradeSection
         }));
 
         res.json({ success: true, data: students });

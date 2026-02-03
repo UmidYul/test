@@ -49,7 +49,6 @@ const translations = {
         myProfile: 'Мой профиль',
         firstName: 'Имя',
         lastName: 'Фамилия',
-        school: 'Школа',
         grade: 'Класс',
         interests: 'Интересы',
         welcome: 'Добро пожаловать',
@@ -176,7 +175,6 @@ const translations = {
         myProfile: 'Mening profilim',
         firstName: 'Ism',
         lastName: 'Familiya',
-        school: 'Maktab',
         grade: 'Sinf',
         interests: 'Qiziqishlar',
         welcome: 'Xush kelibsiz',
@@ -2184,7 +2182,6 @@ async function renderStudentProfile() {
                         <div style="flex: 1;">
                             <h2 style="margin: 0 0 0.5rem 0; color: white;">${profile.firstName} ${profile.lastName}</h2>
                             <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; opacity: 0.95;">
-                                <span>🏫 ${profile.schoolName || 'N/A'}</span>
                                 <span>📚 ${profile.grade ? `${profile.grade}${profile.className || ''}` : 'N/A'} ${lang === 'uz' ? 'sinf' : 'класс'}</span>
                                 <span>👨‍🎓 ${profile.username}</span>
                             </div>
@@ -2548,7 +2545,7 @@ function renderStudentDashboard() {
         <div class="student-dashboard">
             <header class="page-header">
                 <h1>${t('dashboard')}</h1>
-                <p>${user.firstName} ${user.lastName} • ${user.school || ''} ${user.grade ? '• ' + user.grade + ' ' + t('grade') : ''}</p>
+                <p>${user.firstName} ${user.lastName} ${user.grade ? '• ' + user.grade + ' ' + t('grade') : ''}</p>
             </header>
 
             <div class="info-section" style="margin-bottom: 3rem;">
@@ -2562,10 +2559,6 @@ function renderStudentDashboard() {
                         <div class="info-item">
                             <span class="info-label">${t('lastName')}</span>
                             <span class="info-value">${user.lastName}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">${t('school')}</span>
-                            <span class="info-value">${user.school || 'N/A'}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">${t('grade')}</span>
@@ -4393,13 +4386,6 @@ async function showAddUserModal() {
             : 'Пароль создаётся как одноразовый OTP, пользователю выдаётся временный пароль.'}
                 </div>
                 
-                <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                        ${lang === 'uz' ? 'Maktab' : 'Школа'}
-                    </label>
-                    <input id="userSchool" type="text" placeholder="${lang === 'uz' ? 'Maktab nomi' : 'Название школы'}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
-                </div>
-                
                 <!-- STUDENT FIELDS -->
                 <div id="studentFields" style="display: none; border: 2px solid rgba(16, 185, 129, 0.3); padding: 1rem; border-radius: 8px;">
                     <div>
@@ -4505,7 +4491,6 @@ async function showAddUserModal() {
         const firstName = document.getElementById('userFirstName').value.trim();
         const lastName = document.getElementById('userLastName').value.trim();
         const username = document.getElementById('userUsername').value.trim();
-        const school = document.getElementById('userSchool').value.trim() || 'School';
 
         if (!firstName || !lastName || !username) {
             showAddUserAlert(lang === 'uz' ? 'Barcha maydonlarni to\'ldiring' : 'Заполните все обязательные поля', 'warning');
@@ -4516,8 +4501,7 @@ async function showAddUserModal() {
             username,
             role,
             firstName,
-            lastName,
-            school
+            lastName
         };
 
         if (role === 'student') {
@@ -4883,10 +4867,6 @@ async function loadStudentDetail(studentId) {
                     <div style="font-size: 1.5rem; font-weight: bold; margin-top: 0.25rem;">${student.grade ? `${student.grade}${student.className || ''}` : '—'}</div>
                 </div>
                 <div>
-                    <div style="font-size: 0.85rem; opacity: 0.9;">${lang === 'uz' ? 'Maktab' : 'Школа'}</div>
-                    <div style="font-size: 1.2rem; font-weight: 600; margin-top: 0.25rem;">${student.school}</div>
-                </div>
-                <div>
                     <div style="font-size: 0.85rem; opacity: 0.9;">ID</div>
                     <div style="font-size: 1rem; font-weight: 600; margin-top: 0.25rem; font-family: monospace;">${student.username}</div>
                 </div>
@@ -5155,10 +5135,6 @@ async function loadTeacherDetail(teacherId) {
             </div>
             <h1 style="margin: 0 0 0.5rem 0; font-size: 1.8rem; font-weight: 800;">${fullName}</h1>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2);">
-                <div>
-                    <div style="font-size: 0.85rem; opacity: 0.9;">${lang === 'uz' ? 'Maktab' : 'Школа'}</div>
-                    <div style="font-size: 1.2rem; font-weight: 600; margin-top: 0.25rem;">${teacher.school}</div>
-                </div>
                 <div>
                     <div style="font-size: 0.85rem; opacity: 0.9;">ID</div>
                     <div style="font-size: 1rem; font-weight: 600; margin-top: 0.25rem; font-family: monospace;">${teacher.username}</div>
@@ -9915,7 +9891,6 @@ async function renderTeacherStudentProfile({ studentId }) {
                         <div>
                             <h2 style="margin: 0 0 0.4rem 0; color: white;">${student.firstName} ${student.lastName}</h2>
                             <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem; opacity: 0.9;">
-                                <span>🏫 ${student.schoolName || '—'}</span>
                                 <span>📚 ${student.grade ? `${student.grade}${student.className || ''}` : '—'} ${lang === 'uz' ? 'sinf' : 'класс'}</span>
                                 <span>👨‍🎓 @${student.username}</span>
                             </div>
@@ -10008,7 +9983,7 @@ async function renderTeacherProfile() {
                     </div>
                     <div>
                         <h1 style="margin: 0; font-size: 1.8rem;">${user.firstName} ${user.lastName}</h1>
-                        <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">${user.school || ''} • ${lang === 'uz' ? 'O\'qituvchi' : 'Учитель'}</p>
+                        <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">${lang === 'uz' ? 'O\'qituvchi' : 'Учитель'}</p>
                     </div>
                 </div>
             </div>
