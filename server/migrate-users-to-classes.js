@@ -4,7 +4,35 @@ async function migrateUsersToClasses() {
     try {
         console.log('🔄 Начинаем миграцию пользователей к системе классов...');
 
-        // 1. Создаем классы на основе существующих данных пользователей
+        // 1. Проверяем и добавляем поле class_id, если его нет
+        console.log('🔧 Проверяем структуру таблицы users...');
+
+        const checkColumn = await pool.query(`
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'users' AND column_name = 'class_id'
+        `);
+
+        if (checkColumn.rows.length === 0) {
+            console.log('📝 Добавляем поле class_id...');
+            await pool.query(`ALTER TABLE users ADD COLUMN class_id UUID`);
+
+            // Добавляем внешний ключ
+            try {
+                await pool.query(`
+                    ALTER TABLE users
+                    ADD CONSTRAINT fk_users_class_id
+                    FOREIGN KEY (class_id) REFERENCES classes(id)
+                `);
+                console.log('✅ Внешний ключ fk_users_class_id добавлен');
+            } catch (error) {
+                console.log('ℹ️ Внешний ключ fk_users_class_id уже существует');
+            }
+        } else {
+            console.log('✅ Поле class_id уже существует');
+        }
+
+        // 2. Создаем классы на основе существующих данных пользователей
         console.log('📚 Создаем классы на основе существующих данных...');
 
         const existingClasses = await pool.query(`
@@ -39,7 +67,7 @@ async function migrateUsersToClasses() {
             }
         }
 
-        // 2. Обновляем пользователей, присваивая им class_id
+        // 3. Обновляем пользователей, присваивая им class_id
         console.log('👥 Обновляем пользователей...');
 
         const usersToUpdate = await pool.query(`
