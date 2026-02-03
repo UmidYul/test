@@ -38,11 +38,21 @@ Table users {
   Note: 'Rule: email OR phone must be provided (CHECK in DB).'
 }
 
-Table teacher_profiles {
-  user_id uuid [pk, ref: > users.id]
-  homeroom_class_id uuid [ref: > classes.id]
+Table homeroom_assignments {
+  id uuid [pk]
+  teacher_id uuid [not null, ref: > users.id]
+  class_id uuid [not null, ref: > classes.id]
+  start_at timestamp [not null]
+  end_at timestamp
 
-  Note: 'Exists only if users.role=teacher (enforce via app/trigger).'
+  Indexes {
+    (teacher_id, class_id, start_at) [unique]
+    (teacher_id)
+    (class_id)
+    (end_at)
+  }
+
+  Note: 'Rule: only one active homeroom per class (end_at IS NULL). Enforce via app/trigger.'
 }
 
 Table subjects {

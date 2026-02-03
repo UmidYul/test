@@ -80,10 +80,19 @@ CREATE INDEX IF NOT EXISTS idx_classes_grade_section ON classes(grade, section);
 -- =========================
 -- 3) PROFILES & RELATIONS
 -- =========================
-CREATE TABLE IF NOT EXISTS teacher_profiles (
-  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  homeroom_class_id uuid REFERENCES classes(id) ON DELETE SET NULL
+CREATE TABLE IF NOT EXISTS homeroom_assignments (
+  id uuid PRIMARY KEY,
+  teacher_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  class_id uuid NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  start_at timestamp NOT NULL DEFAULT now(),
+  end_at timestamp,
+
+  CONSTRAINT ha_unique_active UNIQUE (class_id, end_at) DEFERRABLE INITIALLY DEFERRED
 );
+
+CREATE INDEX IF NOT EXISTS idx_ha_teacher ON homeroom_assignments(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_ha_class ON homeroom_assignments(class_id);
+CREATE INDEX IF NOT EXISTS idx_ha_end_at ON homeroom_assignments(end_at);
 
 CREATE TABLE IF NOT EXISTS teacher_teaching_assignments (
   teacher_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -238,7 +238,7 @@ app.get('/api/users', auth, async (req, res) => {
                          u.created_at, u.updated_at,
                          CASE
                            WHEN u.role = 'student' THEN cs.class_id
-                           WHEN u.role = 'teacher' THEN tp.homeroom_class_id
+                           WHEN u.role = 'teacher' THEN ha.class_id
                            ELSE NULL
                          END as "classId",
                          CASE
@@ -266,8 +266,8 @@ app.get('/api/users', auth, async (req, res) => {
                   LEFT JOIN classes c ON cs.class_id = c.id
                   LEFT JOIN teacher_teaching_assignments tta_student ON c.id = tta_student.class_id AND tta_student.is_active = true
                   LEFT JOIN users tta_teacher ON tta_student.teacher_id = tta_teacher.id
-                  LEFT JOIN teacher_profiles tp ON u.id = tp.user_id
-                  LEFT JOIN classes hc ON tp.homeroom_class_id = hc.id
+                  LEFT JOIN homeroom_assignments ha ON u.id = ha.teacher_id AND ha.end_at IS NULL
+                  LEFT JOIN classes hc ON ha.class_id = hc.id
                   LEFT JOIN teacher_teaching_assignments tta_homeroom ON hc.id = tta_homeroom.class_id AND tta_homeroom.is_active = true
                   LEFT JOIN users ht ON tta_homeroom.teacher_id = ht.id`;
     const params = [];
@@ -290,7 +290,7 @@ app.get('/api/users/me', auth, async (req, res) => {
     const { rows } = await pool.query(`SELECT u.id, u.username, u.role, u.first_name, u.last_name,
                                            CASE
                                              WHEN u.role = 'student' THEN cs.class_id
-                                             WHEN u.role = 'teacher' THEN tp.homeroom_class_id
+                                             WHEN u.role = 'teacher' THEN ha.class_id
                                              ELSE NULL
                                            END as "classId",
                                            CASE
@@ -318,8 +318,8 @@ app.get('/api/users/me', auth, async (req, res) => {
                                     LEFT JOIN classes c ON cs.class_id = c.id
                                     LEFT JOIN teacher_teaching_assignments tta_student ON c.id = tta_student.class_id AND tta_student.is_active = true
                                     LEFT JOIN users tta_teacher ON tta_student.teacher_id = tta_teacher.id
-                                    LEFT JOIN teacher_profiles tp ON u.id = tp.user_id
-                                    LEFT JOIN classes hc ON tp.homeroom_class_id = hc.id
+                                    LEFT JOIN homeroom_assignments ha ON u.id = ha.teacher_id AND ha.end_at IS NULL
+                                    LEFT JOIN classes hc ON ha.class_id = hc.id
                                     LEFT JOIN teacher_teaching_assignments tta_homeroom ON hc.id = tta_homeroom.class_id AND tta_homeroom.is_active = true
                                     LEFT JOIN users ht ON tta_homeroom.teacher_id = ht.id
                                     WHERE u.id = $1`, [req.userId]);
@@ -382,12 +382,14 @@ app.get('/api/teacher/classes', auth, async (req, res) => {
     }
     const { rows } = await pool.query(
       `SELECT c.id, c.grade, c.section as name, c.created_at,
-              COUNT(cs.student_id) as "studentCount"
+              COUNT(cs.student_id) as "studentCount",
+              CASE WHEN ha.class_id IS NOT NULL THEN true ELSE false END as "isHomeroom"
        FROM classes c
        LEFT JOIN class_students cs ON c.id = cs.class_id AND cs.left_at IS NULL
        JOIN teacher_teaching_assignments tta ON c.id = tta.class_id
-       WHERE tta.teacher_id = $1
-       GROUP BY c.id, c.grade, c.section, c.created_at
+       LEFT JOIN homeroom_assignments ha ON c.id = ha.class_id AND ha.teacher_id = $1 AND ha.end_at IS NULL
+       WHERE tta.teacher_id = $1 AND tta.is_active = true
+       GROUP BY c.id, c.grade, c.section, c.created_at, ha.class_id
        ORDER BY c.grade, c.section`,
       [req.userId]
     );
@@ -474,13 +476,7 @@ app.post('/api/users/register', async (req, res) => {
       console.log(`[REGISTER] Added student ${username} to class ${classId}`);
     }
 
-    // Для учителей: создать teacher_profiles (homeroom_class_id NULL пока)
-    if (role === 'teacher') {
-      await pool.query(`
-        INSERT INTO teacher_profiles (user_id, homeroom_class_id) VALUES ($1, NULL)
-      `, [userId]);
-      console.log(`[REGISTER] Created teacher profile for ${username}`);
-    }
+    // Для учителей: больше не создаём teacher_profiles
 
     const user = result.rows[0];
     console.log(`[REGISTER] User created: ${username} (${role})`);
@@ -1761,6 +1757,16 @@ app.get('/api/classes/:classId', auth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
     const classItem = rows[0];
+
+    // Получить текущего классного руководителя
+    const homeroomQuery = await pool.query(`
+      SELECT ha.id as assignmentId, u.id, u.first_name, u.last_name
+      FROM homeroom_assignments ha
+      JOIN users u ON ha.teacher_id = u.id
+      WHERE ha.class_id = $1 AND ha.end_at IS NULL
+    `, [classId]);
+    const homeroomTeacher = homeroomQuery.rows[0] || null;
+
     // Получаем студентов этого класса из class_students
     const studentsQuery = await pool.query(`
       SELECT u.id, u.username, u.first_name as "firstName", u.last_name as "lastName"
@@ -1769,10 +1775,12 @@ app.get('/api/classes/:classId', auth, async (req, res) => {
       WHERE cs.class_id = $1 AND cs.left_at IS NULL
     `, [classId]);
     const studentData = studentsQuery.rows;
+
     res.json({
       success: true,
       data: {
         ...classItem,
+        homeroomTeacher,
         students: studentData
       }
     });
@@ -1838,23 +1846,42 @@ app.post('/api/classes', auth, async (req, res) => {
     if (req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Только администратор может создавать классы' });
     }
-    const { grade, name, teacherId } = req.body;
-    console.log('🔍 Parsed data:', { grade, name, teacherId });
+    const { grade, section, homeroomTeacherId } = req.body;
+    console.log('🔍 Parsed data:', { grade, section, homeroomTeacherId });
 
-    if (!grade || !name) {
+    if (!grade || !section) {
       return res.status(400).json({ success: false, error: 'Укажите номер класса и название' });
     }
 
+    // Валидировать homeroomTeacherId, если указан
+    if (homeroomTeacherId) {
+      const { rows: teacherCheck } = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [homeroomTeacherId, 'teacher']);
+      if (teacherCheck.length === 0) {
+        return res.status(400).json({ success: false, error: 'Указанный классный руководитель не найден или не является учителем' });
+      }
+    }
+
     const classId = crypto.randomUUID();
-    console.log('🔧 Creating class:', { classId, grade, name });
+    console.log('🔧 Creating class:', { classId, grade, section });
 
     const result = await pool.query(
       'INSERT INTO classes (id, grade, section, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id::text, grade, section as name, created_at',
-      [classId, grade, name]
+      [classId, grade, section]
     );
 
     const newClass = result.rows[0];
     newClass.studentCount = 0;
+
+    // Создать homeroom assignment, если указан учитель
+    if (homeroomTeacherId) {
+      const assignmentId = crypto.randomUUID();
+      await pool.query(
+        'INSERT INTO homeroom_assignments (id, teacher_id, class_id, start_at, end_at) VALUES ($1, $2, $3, NOW(), NULL)',
+        [assignmentId, homeroomTeacherId, classId]
+      );
+      console.log(`🏫 Homeroom assignment created for teacher ${homeroomTeacherId} in class ${classId}`);
+    }
+
     console.log('✅ Class created successfully:', newClass);
 
     res.status(201).json({ success: true, data: newClass });
@@ -2301,20 +2328,17 @@ app.put('/api/classes/:classId', auth, async (req, res) => {
     return res.status(403).json({ success: false, error: 'Только администратор может редактировать классы' });
   }
   const { classId } = req.params;
-  const { name, teacherId } = req.body;
+  const { name, homeroomTeacherId } = req.body;
   try {
-    // Проверка teacherId, если указан
-    let teacherIdInt = null;
-    if (teacherId && teacherId !== 'undefined') {
-      teacherIdInt = parseInt(teacherId, 10);
-      if (isNaN(teacherIdInt) || teacherIdInt <= 0) {
-        return res.status(400).json({ success: false, error: 'Некорректный ID учителя' });
-      }
-      const { rows: teacherExists } = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [teacherIdInt, 'teacher']);
-      if (teacherExists.length === 0) {
-        return res.status(400).json({ success: false, error: 'Учитель не найден' });
+    // Валидировать homeroomTeacherId, если указан
+    if (homeroomTeacherId) {
+      const { rows: teacherCheck } = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [homeroomTeacherId, 'teacher']);
+      if (teacherCheck.length === 0) {
+        return res.status(400).json({ success: false, error: 'Указанный классный руководитель не найден или не является учителем' });
       }
     }
+
+    // Обновить класс
     const result = await pool.query(
       'UPDATE classes SET section = COALESCE($1, section) WHERE id = $2 RETURNING id::text, grade, section as name, created_at',
       [name, classId]
@@ -2322,6 +2346,26 @@ app.put('/api/classes/:classId', auth, async (req, res) => {
     if (result.rowCount === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
+
+    // Обработать смену классного руководителя
+    if (homeroomTeacherId !== undefined) {
+      // Закрыть текущую активную запись
+      await pool.query(
+        'UPDATE homeroom_assignments SET end_at = NOW() WHERE class_id = $1 AND end_at IS NULL',
+        [classId]
+      );
+
+      // Создать новую запись, если указан новый учитель
+      if (homeroomTeacherId) {
+        const assignmentId = crypto.randomUUID();
+        await pool.query(
+          'INSERT INTO homeroom_assignments (id, teacher_id, class_id, start_at, end_at) VALUES ($1, $2, $3, NOW(), NULL)',
+          [assignmentId, homeroomTeacherId, classId]
+        );
+        console.log(`🏫 Homeroom assignment updated for class ${classId}, new teacher ${homeroomTeacherId}`);
+      }
+    }
+
     console.log(`✅ Класс обновлен: ${classId}`);
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
@@ -2494,25 +2538,7 @@ app.delete('/api/interest-results', auth, (req, res) => {
 // TEACHER TESTS ENDPOINTS (Admin creates tests for teachers)
 // ============================================
 
-// Get all teacher tests
-app.get('/api/teacher-tests', auth, (req, res) => {
-  try {
-    console.log('🔍 Getting all tests for admin');
-    console.log('📚 Total teacher tests in DB:', teacherTests.length);
-    const testsWithCount = teacherTests.map(test => ({
-      ...test,
-      questionsCount: test.questions?.length || 0
-    }));
-    console.log('✅ Returning', testsWithCount.length, 'tests');
-    res.json({
-      success: true,
-      data: testsWithCount
-    });
-  } catch (error) {
-    console.error('Error getting teacher tests:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при загрузке тестов' });
-  }
-});
+// NOTE: In-memory `teacherTests` was removed; DB-backed routes below handle teacher tests.
 
 
 // Get all teacher tests
@@ -2617,21 +2643,20 @@ app.delete('/api/teacher-tests/:id', auth, async (req, res) => {
   }
 });
 
-// Get teacher's assigned tests
-app.get('/api/teacher-tests/assigned/:teacherId', auth, (req, res) => {
+// Get teacher's assigned tests (DB-backed)
+app.get('/api/teacher-tests/assigned/:teacherId', auth, async (req, res) => {
   try {
     const { teacherId } = req.params;
-    // TODO: Реализовать через PostgreSQL, например, если есть таблица teacher_test_assignments
-    // ...existing code...
-
-    const assignedTests = teacherTests.filter(t => {
-      // Handle missing assignedTo array
-      const assigned = t.assignedTo || [];
-      return assigned.includes(teacherId);
-    });
+    // Fetch teacher tests from DB and filter by assigned_to field
+    const { rows } = await pool.query('SELECT *, jsonb_array_length(questions) as questions_count, assigned_to FROM teacher_tests');
+    const assignedTests = rows.filter(t => {
+      const assigned = t.assigned_to || t.assignedTo || [];
+      if (Array.isArray(assigned)) return assigned.includes(teacherId);
+      if (typeof assigned === 'string') return assigned.includes(teacherId);
+      return false;
+    }).map(test => ({ ...test, questionsCount: test.questions_count || 0 }));
 
     console.log('✅ Found', assignedTests.length, 'assigned tests');
-
     res.json({ success: true, data: assignedTests });
   } catch (error) {
     console.error('Error getting assigned tests:', error);
@@ -2709,7 +2734,6 @@ app.post('/api/admin/reset-data', auth, (req, res) => {
     testResults.length = 0;
     testProgress.length = 0;
     classes.length = 0;
-    teacherTests.length = 0;
     teacherTestResults.length = 0;
     controlTests.length = 0;
     controlTestResults.length = 0;

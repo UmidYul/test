@@ -127,14 +127,17 @@ async function createTables() {
         `);
         console.log('✅ Таблица class_students создана');
 
-        // 9. Teacher Profiles
+        // 9. Homeroom Assignments
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS teacher_profiles (
-                user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-                homeroom_class_id UUID REFERENCES classes(id)
+            CREATE TABLE IF NOT EXISTS homeroom_assignments (
+                id UUID PRIMARY KEY,
+                teacher_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+                start_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                end_at TIMESTAMP
             )
         `);
-        console.log('✅ Таблица teacher_profiles создана');
+        console.log('✅ Таблица homeroom_assignments создана');
 
         // 10. Teacher Tests
         await pool.query(`
