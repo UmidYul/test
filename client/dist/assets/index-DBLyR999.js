@@ -1541,9 +1541,8 @@ var _r = Object.defineProperty; var $r = (e, t, i) => t in e ? _r(e, t, { enumer
     `, document.body.appendChild(s), setTimeout(() => s.classList.add("show"), 10);
 
     // Ensure #studentClass select is populated after modal opens
-    // Use MutationObserver to always fill select when it appears
     (function () {
-        function fillStudentClassSelect() {
+        try {
             const sel = document.getElementById('studentClass');
             if (!sel) return;
             sel.innerHTML = '';
@@ -1551,15 +1550,41 @@ var _r = Object.defineProperty; var $r = (e, t, i) => t in e ? _r(e, t, { enumer
             placeholder.value = '';
             placeholder.textContent = (e === 'uz' ? 'Sinfni tanlang' : 'Выберите класс');
             sel.appendChild(placeholder);
+            // DEBUG: log window.classesList
+            console.log('[DEBUG] window.classesList at modal open:', window.classesList);
+            if (!Array.isArray(window.classesList) || window.classesList.length === 0) {
+                // DEBUG: try to set window.classesList from last API response if available
+                if (window.lastClassesApiResponse && Array.isArray(window.lastClassesApiResponse)) {
+                    window.classesList = window.lastClassesApiResponse;
+                    console.log('[DEBUG] Set window.classesList from window.lastClassesApiResponse:', window.classesList);
+                }
+            }
             let source = Array.isArray(window.classesList) && window.classesList.length > 0 ? window.classesList : null;
             if (!source) {
+                // fallback: fetch from API, save to window.classesList, then fill select
                 if (typeof API_BASE_URL !== 'undefined') {
                     fetch(API_BASE_URL + '/api/classes', { headers: { 'Authorization': localStorage.getItem('auth-storage') ? ('Bearer ' + JSON.parse(localStorage.getItem('auth-storage')).token) : '' } })
                         .then(r => r.json()).then(j => {
                             if (j && j.data && Array.isArray(j.data)) {
                                 window.classesList = j.data;
                                 window.lastClassesApiResponse = j.data;
-                                fillStudentClassSelect();
+                                // try to find select again (in case modal was reopened)
+                                let select = document.getElementById('studentClass');
+                                if (select) {
+                                    select.innerHTML = '';
+                                    const ph = document.createElement('option');
+                                    ph.value = '';
+                                    ph.textContent = (e === 'uz' ? 'Sinfni tanlang' : 'Выберите класс');
+                                    select.appendChild(ph);
+                                    j.data.forEach(function (c) {
+                                        const opt = document.createElement('option');
+                                        opt.value = c.id || c._id || '';
+                                        const grade = c.grade || '';
+                                        const name = c.name || '';
+                                        opt.textContent = (grade + (name ? ' ' + name : '')).trim() || opt.value;
+                                        select.appendChild(opt);
+                                    });
+                                }
                             } else {
                                 const noOpt = document.createElement('option');
                                 noOpt.value = '';
@@ -1579,16 +1604,9 @@ var _r = Object.defineProperty; var $r = (e, t, i) => t in e ? _r(e, t, { enumer
                 opt.textContent = (grade + (name ? ' ' + name : '')).trim() || opt.value;
                 sel.appendChild(opt);
             });
+        } catch (err) {
+            console.warn('Error populating studentClass select', err);
         }
-        // Observe DOM for studentClass select
-        const observer = new MutationObserver(() => {
-            if (document.getElementById('studentClass')) {
-                fillStudentClassSelect();
-            }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-        // Also try to fill immediately in case select is already present
-        fillStudentClassSelect();
     })();
 
     const n = document.getElementById("userRole"), a = document.getElementById("studentFields"), r = document.getElementById("teacherFields"), o = document.getElementById("addUserAlert"), l = (c, u = "info") => {
