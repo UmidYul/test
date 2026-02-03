@@ -1833,43 +1833,34 @@ app.get('/api/classes/:grade/students', auth, async (req, res) => {
 // Create new class
 app.post('/api/classes', auth, async (req, res) => {
   try {
+    console.log('📥 Create class request:', req.body);
     // Только admin может создавать классы
-    // const user = ...
     if (req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Только администратор может создавать классы' });
     }
     const { grade, name, teacherId } = req.body;
+    console.log('🔍 Parsed data:', { grade, name, teacherId });
+
     if (!grade || !name) {
       return res.status(400).json({ success: false, error: 'Укажите номер класса и название' });
     }
-    // Проверка teacherId, если указан
-    let teacherIdInt = null;
-    if (teacherId && teacherId !== 'undefined') {
-      teacherIdInt = parseInt(teacherId, 10);
-      if (isNaN(teacherIdInt) || teacherIdInt <= 0) {
-        return res.status(400).json({ success: false, error: 'Некорректный ID учителя' });
-      }
-      const { rows: teacherExists } = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [teacherIdInt, 'teacher']);
-      if (teacherExists.length === 0) {
-        return res.status(400).json({ success: false, error: 'Учитель не найден' });
-      }
-    }
-    // Проверка на существование класса
-    const { rows: existing } = await pool.query('SELECT id FROM classes WHERE grade = $1 AND name = $2', [grade, name]);
-    if (existing.length > 0) {
-      return res.status(400).json({ success: false, error: 'Класс с таким названием уже существует' });
-    }
+
     const classId = crypto.randomUUID();
+    console.log('🔧 Creating class:', { classId, grade, name });
+
     const result = await pool.query(
       'INSERT INTO classes (id, grade, section, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id::text, grade, section as name, created_at',
       [classId, grade, name]
     );
+
     const newClass = result.rows[0];
-    newClass.studentCount = 0; // New class has no students yet
-    console.log(`✅ Класс создан: ${newClass.id}`);
+    newClass.studentCount = 0;
+    console.log('✅ Class created successfully:', newClass);
+
     res.status(201).json({ success: true, data: newClass });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Ошибка при создании класса' });
+    console.error('❌ Error creating class:', error);
+    res.status(500).json({ success: false, error: `Ошибка при создании класса: ${error.message}` });
   }
 });
 
