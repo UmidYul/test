@@ -145,8 +145,11 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
 // Get all subjects (PostgreSQL)
 app.get('/api/subjects', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, name FROM subjects ORDER BY id');
+    const { rows } = await pool.query('SELECT id::text as id, name FROM subjects WHERE name IS NOT NULL ORDER BY id');
     console.log(`[SUBJECTS] Fetched all subjects (${rows.length})`);
+    console.log('[SUBJECTS] Sample data:', rows.slice(0, 3));
+    console.log('[SUBJECTS] First row keys:', rows.length > 0 ? Object.keys(rows[0]) : 'no rows');
+    console.log('[SUBJECTS] First row values:', rows.length > 0 ? Object.values(rows[0]) : 'no rows');
     res.json(rows);
   } catch (error) {
     console.error('[SUBJECTS] Error fetching:', error);

@@ -4243,9 +4243,12 @@ async function showAddUserModal() {
     let subjectsList = [];
     try {
         const response = await apiRequest('/api/subjects');
+        console.log('📚 Raw API response:', response);
         if (response.success) {
             subjectsList = response.data || [];
             console.log('📚 Загружено предметов:', subjectsList.length);
+            console.log('📚 Данные предметов:', subjectsList.slice(0, 3));
+            console.log('📚 Типы данных:', subjectsList.length > 0 ? typeof subjectsList[0].id + ', ' + typeof subjectsList[0].name : 'no data');
         } else {
             console.error('❌ Ошибка загрузки предметов:', response);
         }
@@ -4373,16 +4376,17 @@ async function showAddUserModal() {
                 
                 <!-- TEACHER FIELDS -->
                 <div id="teacherFields" class="teacher-fields" style="display: none; border: 2px solid rgba(139, 92, 246, 0.3); padding: 1rem; border-radius: 8px; overflow: auto;">
+                    ${console.log('📚 subjectsList перед рендерингом teacher fields:', subjectsList)}
                     <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; font-size: 0.9rem;">
                         ${lang === 'uz' ? 'Predmetlar' : 'Предметы'}
                     </label>
                     <div class="teacher-subjects-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto;">
-                        ${subjectsList.map(subject => `
+                        ${subjectsList && subjectsList.length > 0 ? subjectsList.map((subject, index) => `
                             <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(139, 92, 246, 0.1)'" onmouseout="this.style.background='transparent'">
-                                <input type="checkbox" class="teacherSubject" value="${subject.id}" data-name="${subject.name}" style="width: 18px; height: 18px; cursor: pointer;">
-                                <span style="flex: 1; font-size: 0.95rem;">${subject.name}</span>
+                                <input type="checkbox" class="teacherSubject" value="${subject && subject.id ? subject.id : 'undefined-' + index}" data-name="${subject && subject.name ? subject.name : 'undefined-' + index}" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span style="flex: 1; font-size: 0.95rem;">${subject && subject.name ? subject.name : 'undefined-' + index}</span>
                             </label>
-                        `).join('')}
+                        `).join('') : '<p style="color: var(--text-muted); text-align: center;">Предметы не загружены или пустой список</p>'}
                     </div>
                 </div>
                 
