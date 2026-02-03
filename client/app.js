@@ -4356,15 +4356,11 @@ async function showAddUserModal() {
         }, 1000);
     }
 
-    // Если классы не загрузились, добавим заглушку
-    if (classesList.length === 0) {
-        classesList = [
-            { id: 'temp-9a', grade: '9', name: 'А' },
-            { id: 'temp-9b', grade: '9', name: 'Б' },
-            { id: 'temp-10a', grade: '10', name: 'А' },
-            { id: 'temp-10b', grade: '10', name: 'Б' }
-        ];
-        console.warn('⚠️ Используем тестовые классы');
+    // Expose loaded classes to global scope so the built bundle can access them
+    try {
+        window.classesList = classesList;
+    } catch (err) {
+        console.warn('Unable to set window.classesList:', err);
     }
 
     // No extra teacher-specific class data needed here
