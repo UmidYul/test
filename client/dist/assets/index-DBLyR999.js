@@ -1568,20 +1568,23 @@ var _r = Object.defineProperty; var $r = (e, t, i) => t in e ? _r(e, t, { enumer
                             if (j && j.data && Array.isArray(j.data)) {
                                 window.classesList = j.data;
                                 window.lastClassesApiResponse = j.data;
-                                // fill select
-                                sel.innerHTML = '';
-                                const ph = document.createElement('option');
-                                ph.value = '';
-                                ph.textContent = (e === 'uz' ? 'Sinfni tanlang' : 'Выберите класс');
-                                sel.appendChild(ph);
-                                j.data.forEach(function (c) {
-                                    const opt = document.createElement('option');
-                                    opt.value = c.id || c._id || '';
-                                    const grade = c.grade || '';
-                                    const name = c.name || '';
-                                    opt.textContent = (grade + (name ? ' ' + name : '')).trim() || opt.value;
-                                    sel.appendChild(opt);
-                                });
+                                // try to find select again (in case modal was reopened)
+                                let select = document.getElementById('studentClass');
+                                if (select) {
+                                    select.innerHTML = '';
+                                    const ph = document.createElement('option');
+                                    ph.value = '';
+                                    ph.textContent = (e === 'uz' ? 'Sinfni tanlang' : 'Выберите класс');
+                                    select.appendChild(ph);
+                                    j.data.forEach(function (c) {
+                                        const opt = document.createElement('option');
+                                        opt.value = c.id || c._id || '';
+                                        const grade = c.grade || '';
+                                        const name = c.name || '';
+                                        opt.textContent = (grade + (name ? ' ' + name : '')).trim() || opt.value;
+                                        select.appendChild(opt);
+                                    });
+                                }
                             } else {
                                 const noOpt = document.createElement('option');
                                 noOpt.value = '';
