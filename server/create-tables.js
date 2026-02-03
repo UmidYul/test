@@ -4,6 +4,24 @@ async function createTables() {
     try {
         console.log('🏗️ Создание таблиц в базе данных...');
 
+        // Проверяем текущую схему и права
+        const schemaCheck = await pool.query('SELECT current_schema(), current_user');
+        console.log('📍 Текущая схема:', schemaCheck.rows[0].current_schema);
+        console.log('👤 Текущий пользователь:', schemaCheck.rows[0].current_user);
+
+        // Проверяем права на создание в схеме public
+        try {
+            await pool.query('CREATE TABLE IF NOT EXISTS test_permissions (id SERIAL PRIMARY KEY)');
+            await pool.query('DROP TABLE test_permissions');
+            console.log('✅ Права на создание таблиц есть');
+        } catch (error) {
+            console.log('❌ Нет прав на создание таблиц:', error.message);
+            console.log('🔧 Попробуйте дать права пользователю:');
+            console.log('   GRANT ALL PRIVILEGES ON SCHEMA public TO your_user;');
+            console.log('   GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO your_user;');
+            return;
+        }
+
         // Создаем таблицы в правильной последовательности (сначала без внешних ключей, потом с ключами)
 
         // 1. Schools
