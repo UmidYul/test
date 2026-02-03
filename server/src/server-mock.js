@@ -238,12 +238,16 @@ app.get('/api/users', auth, async (req, res) => {
   }
   try {
     const { role } = req.query;
-    let query = `SELECT u.id, u.username, u.role, u.first_name as "firstName", u.last_name as "lastName", 
-                         u.grade, u.grade_section as "gradeSection", u.is_temporary_password as "isTemporaryPassword", 
+    let query = `SELECT u.id, u.username, u.role, u.first_name as "firstName", u.last_name as "lastName",
+                         u.is_temporary_password as "isTemporaryPassword",
                          u.require_password_change as "requirePasswordChange", u.created_at, u.updated_at,
-                         s.name as "schoolName", s.id as "schoolId"
+                         s.name as "schoolName", s.id as "schoolId",
+                         c.id as "classId", c.grade, c.name as "className",
+                         t.first_name as "teacherFirstName", t.last_name as "teacherLastName"
                   FROM users u
-                  LEFT JOIN schools s ON u.school_id = s.id`;
+                  LEFT JOIN schools s ON u.school_id = s.id
+                  LEFT JOIN classes c ON u.class_id = c.id
+                  LEFT JOIN users t ON c.teacher_id = t.id`;
     const params = [];
     if (role) {
       query += ' WHERE u.role = $1';
@@ -261,10 +265,14 @@ app.get('/api/users', auth, async (req, res) => {
 app.get('/api/users/me', auth, async (req, res) => {
   try {
     console.log(`[PROFILE] GET /api/users/me - User ID: ${req.userId}`);
-    const { rows } = await pool.query(`SELECT u.id, u.username, u.role, u.first_name, u.last_name, u.grade, u.grade_section,
-                                           s.name as "schoolName", s.id as "schoolId"
+    const { rows } = await pool.query(`SELECT u.id, u.username, u.role, u.first_name, u.last_name,
+                                           s.name as "schoolName", s.id as "schoolId",
+                                           c.id as "classId", c.grade, c.name as "className",
+                                           t.first_name as "teacherFirstName", t.last_name as "teacherLastName"
                                     FROM users u
                                     LEFT JOIN schools s ON u.school_id = s.id
+                                    LEFT JOIN classes c ON u.class_id = c.id
+                                    LEFT JOIN users t ON c.teacher_id = t.id
                                     WHERE u.id = $1`, [req.userId]);
     const user = rows[0];
     if (!user) {
@@ -321,31 +329,57 @@ app.get('/api/teachers/students/:studentId', auth, (req, res) => {
 app.post('/api/users/register', async (req, res) => {
   try {
     const body = req.body || {};
-    const { username, role, firstName, lastName, school, grade, gradeSection } = body;
+    const { username, role, firstName, lastName, school, classId } = body;
     if (!username || !role || !firstName || !lastName) {
       return res.status(400).json({ success: false, error: 'Заполните обязательные поля' });
     }
+
+    // Для учеников обязательно указывать класс
+    if (role === 'student' && !classId) {
+      return res.status(400).json({ success: false, error: 'Для ученика необходимо выбрать класс' });
+    }
+
     // Check if user exists
     const exists = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
     if (exists.rowCount > 0) {
       return res.status(400).json({ success: false, error: 'Пользователь уже существует' });
     }
+
     // Генерируем временный пароль (OTP)
     const otp = generateOTP();
     const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     const hashedOTP = await bcrypt.hash(otp, 10);
     const userId = crypto.randomUUID();
+
     const result = await pool.query(
-      `INSERT INTO users (id, username, password, role, first_name, last_name, school_id, grade, grade_section, is_temporary_password, require_password_change)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, true) RETURNING id::text, username, role, first_name, last_name, school_id, grade, grade_section`,
-      [userId, username, hashedOTP, role, firstName, lastName, null, grade, gradeSection]
+      `INSERT INTO users (id, username, password, role, first_name, last_name, school_id, class_id, is_temporary_password, require_password_change)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, true) RETURNING id::text, username, role, first_name, last_name, school_id, class_id`,
+      [userId, username, hashedOTP, role, firstName, lastName, null, classId || null]
     );
+
+    // Получаем информацию о классе, если указан classId
+    let classInfo = null;
+    if (classId) {
+      const classResult = await pool.query(`
+        SELECT c.id, c.grade, c.name, c.teacher_id as "teacherId",
+               u.first_name as "teacherFirstName", u.last_name as "teacherLastName"
+        FROM classes c
+        LEFT JOIN users u ON c.teacher_id = u.id
+        WHERE c.id = $1
+      `, [classId]);
+      if (classResult.rows.length > 0) {
+        classInfo = classResult.rows[0];
+      }
+    }
+
     const user = result.rows[0];
     console.log(`[REGISTER] User created: ${username} (${role})`);
+
     res.status(201).json({
       success: true,
       data: {
         ...user,
+        class: classInfo, // Добавляем информацию о классе
         otp: otp, // Return OTP to admin
         otpExpiresAt: otpExpiresAt.toISOString()
       }

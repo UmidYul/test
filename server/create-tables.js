@@ -49,6 +49,7 @@ async function createTables() {
                 first_name VARCHAR(64),
                 last_name VARCHAR(64),
                 school_id UUID,
+                class_id UUID,
                 grade VARCHAR(8),
                 grade_section VARCHAR(8),
                 is_temporary_password BOOLEAN DEFAULT FALSE,
@@ -173,6 +174,18 @@ async function createTables() {
             console.log('✅ Внешний ключ users.school_id добавлен');
         } catch (error) {
             console.log('ℹ️ Внешний ключ users.school_id уже существует или не может быть добавлен');
+        }
+
+        // Добавляем внешний ключ для users.class_id
+        try {
+            await pool.query(`
+                ALTER TABLE users
+                ADD CONSTRAINT fk_users_class_id
+                FOREIGN KEY (class_id) REFERENCES classes(id)
+            `);
+            console.log('✅ Внешний ключ users.class_id добавлен');
+        } catch (error) {
+            console.log('ℹ️ Внешний ключ users.class_id уже существует или не может быть добавлен');
         }
 
         console.log('🎉 Все таблицы созданы успешно!');

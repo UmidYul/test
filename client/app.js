@@ -2104,25 +2104,16 @@ async function renderStudentProfile() {
         try {
             const classesRes = await apiRequest('/api/classes');
             const classes = classesRes.success ? (classesRes.data || []) : [];
-            const studentGrade = profile.grade;
-            const studentSection = profile.gradeSection || '';
+            const studentClassId = profile.classId;
 
-            if (studentGrade && classes.length) {
-                const matchedClass = classes.find(cls => {
-                    if (cls.grade !== studentGrade) return false;
-                    if (cls.name) return cls.name === studentSection;
-                    if (Array.isArray(cls.sections) && studentSection) return cls.sections.includes(studentSection);
-                    return !studentSection;
-                });
+            if (studentClassId && classes.length) {
+                const matchedClass = classes.find(cls => (cls._id || cls.id) === studentClassId);
 
                 if (matchedClass) {
                     const classId = matchedClass._id || matchedClass.id;
-                    const classSection = matchedClass.name || studentSection || '';
-                    classLabelText = matchedClass.name
-                        ? `${matchedClass.grade || ''}${matchedClass.name}`
-                        : (matchedClass.sections?.length ? `${matchedClass.grade || ''}${studentSection || ''}` : (matchedClass.grade || ''));
+                    classLabelText = `${matchedClass.grade || ''}${matchedClass.name || ''}`;
 
-                    const studentsRes = await apiRequest(`/api/classes/${classId}/students${classSection ? `?section=${encodeURIComponent(classSection)}` : ''}`);
+                    const studentsRes = await apiRequest(`/api/classes/${classId}/students`);
                     const students = studentsRes.success ? (studentsRes.data || []) : [];
 
                     if (students.length) {
@@ -2163,8 +2154,8 @@ async function renderStudentProfile() {
                         <div style="flex: 1;">
                             <h2 style="margin: 0 0 0.5rem 0; color: white;">${profile.firstName} ${profile.lastName}</h2>
                             <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.9rem; opacity: 0.95;">
-                                <span>🏫 ${profile.school || 'N/A'}</span>
-                                <span>📚 ${profile.grade || 'N/A'}${profile.gradeSection ? profile.gradeSection : ''} ${lang === 'uz' ? 'sinf' : 'класс'}</span>
+                                <span>🏫 ${profile.schoolName || 'N/A'}</span>
+                                <span>📚 ${profile.grade ? `${profile.grade}${profile.className || ''}` : 'N/A'} ${lang === 'uz' ? 'sinf' : 'класс'}</span>
                                 <span>👨‍🎓 ${profile.username}</span>
                             </div>
                         </div>
@@ -4232,11 +4223,9 @@ function renderAdminStudentList(students, classes) {
     let html = `<div style="display: grid; gap: 1rem;">`;
     students.forEach(student => {
         const classInfo = classes.find(c => c.id === student.classId || c._id === student.classId);
-        const classLabel = (student.grade || student.gradeSection)
-            ? `${student.grade || ''}${student.gradeSection || ''}`.trim()
-            : (classInfo?.name
-                ? `${classInfo.grade || ''}${classInfo.name}`
-                : (classInfo?.sections?.length ? `${classInfo.grade || ''} (${classInfo.sections.join(', ')})` : '—'));
+        const classLabel = classInfo
+            ? `${classInfo.grade || ''}${classInfo.name || ''}`
+            : (student.grade ? `${student.grade || ''}${student.className || ''}` : '—');
         html += `
             <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%); border: 2px solid #3B82F6; border-radius: 12px; padding: 1.25rem; cursor: pointer; transition: all 0.3s; display: flex; gap: 1rem; align-items: center;" 
                  onclick="window.router.navigate('/admin/student/${student.id || student._id}')"
@@ -4298,9 +4287,12 @@ async function showAddUserModal() {
         const response = await apiRequest('/api/subjects');
         if (response.success) {
             subjectsList = response.data || [];
+            console.log('📚 Загружено предметов:', subjectsList.length);
+        } else {
+            console.error('❌ Ошибка загрузки предметов:', response);
         }
     } catch (error) {
-        console.error('Error loading subjects:', error);
+        console.error('❌ Ошибка при загрузке предметов:', error);
     }
 
     // Load teachers for student class teacher select
@@ -4309,9 +4301,36 @@ async function showAddUserModal() {
         const response = await apiRequest('/api/users');
         if (response.success) {
             teachersList = response.data.filter(u => u.role === 'teacher') || [];
+            console.log('👨‍🏫 Загружено учителей:', teachersList.length);
+        } else {
+            console.error('❌ Ошибка загрузки учителей:', response);
         }
     } catch (error) {
-        console.error('Error loading teachers:', error);
+        console.error('❌ Ошибка при загрузке учителей:', error);
+    }
+
+    // Load classes for student class select
+    let classesList = [];
+    try {
+        const response = await apiRequest('/api/classes');
+        if (response.success) {
+            classesList = response.data || [];
+            console.log('🏫 Загружено классов:', classesList.length);
+        } else {
+            console.error('❌ Ошибка загрузки классов:', response);
+        }
+    } catch (error) {
+        console.error('❌ Ошибка при загрузке классов:', error);
+        // Показать уведомление пользователю
+        setTimeout(() => {
+            alert(lang === 'uz' ? 'Sinf ma\'lumotlari yuklanmadi. Iltimos, sahifani yangilang.' : 'Данные классов не загружены. Пожалуйста, обновите страницу.');
+        }, 1000);
+    }
+
+    // Если классы не загрузились, добавим заглушку
+    if (classesList.length === 0) {
+        classesList = [{ id: 'temp-1', grade: '9', name: 'А' }];
+        console.warn('⚠️ Используем тестовые классы');
     }
 
     // No extra teacher-specific class data needed here
@@ -4376,19 +4395,17 @@ async function showAddUserModal() {
                 
                 <!-- STUDENT FIELDS -->
                 <div id="studentFields" style="display: none; border: 2px solid rgba(16, 185, 129, 0.3); padding: 1rem; border-radius: 8px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div>
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                                ${lang === 'uz' ? 'Sinf raqami' : 'Номер класса'}
-                            </label>
-                            <input id="studentGrade" type="text" placeholder="${lang === 'uz' ? '9' : '9'}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
-                        </div>
-                        <div>
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                                ${lang === 'uz' ? 'Sinf harfi' : 'Буква класса'}
-                            </label>
-                            <input id="studentSection" type="text" placeholder="${lang === 'uz' ? 'А' : 'А'}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" maxlength="1">
-                        </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
+                            ${lang === 'uz' ? 'Sinf' : 'Класс'}
+                        </label>
+                        <select id="studentClass" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
+                            <option value="">${lang === 'uz' ? 'Sinfni tanlang' : 'Выберите класс'}</option>
+                            ${classesList.length > 0
+            ? classesList.map(cls => `<option value="${cls.id}">${cls.grade}${cls.name} ${lang === 'uz' ? 'sinf' : 'класс'}</option>`).join('')
+            : `<option value="" disabled>${lang === 'uz' ? 'Sinf mavjud emas' : 'Классы не найдены'}</option>`
+        }
+                        </select>
                     </div>
                     
                     <div style="margin-top: 1rem;">
@@ -4497,15 +4514,13 @@ async function showAddUserModal() {
         };
 
         if (role === 'student') {
-            const grade = document.getElementById('studentGrade').value.trim();
-            const section = document.getElementById('studentSection').value.trim();
+            const classId = document.getElementById('studentClass').value.trim();
             const classTeacherId = document.getElementById('studentClassTeacher')?.value || '';
-            if (!grade) {
-                showAddUserAlert(lang === 'uz' ? 'Sinf raqamini kiriting' : 'Укажите номер класса', 'warning');
+            if (!classId) {
+                showAddUserAlert(lang === 'uz' ? 'Sinfni tanlang' : 'Выберите класс', 'warning');
                 return;
             }
-            userData.grade = grade;
-            userData.gradeSection = section || 'А';
+            userData.classId = classId;
             if (classTeacherId) {
                 userData.classTeacherId = classTeacherId;
             }
@@ -4857,7 +4872,7 @@ async function loadStudentDetail(studentId) {
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2);">
                 <div>
                     <div style="font-size: 0.85rem; opacity: 0.9;">${lang === 'uz' ? 'Sinf' : 'Класс'}</div>
-                    <div style="font-size: 1.5rem; font-weight: bold; margin-top: 0.25rem;">${student.grade}-${student.gradeSection || 'А'}</div>
+                    <div style="font-size: 1.5rem; font-weight: bold; margin-top: 0.25rem;">${student.grade ? `${student.grade}${student.className || ''}` : '—'}</div>
                 </div>
                 <div>
                     <div style="font-size: 0.85rem; opacity: 0.9;">${lang === 'uz' ? 'Maktab' : 'Школа'}</div>
@@ -9887,8 +9902,8 @@ async function renderTeacherStudentProfile({ studentId }) {
                         <div>
                             <h2 style="margin: 0 0 0.4rem 0; color: white;">${student.firstName} ${student.lastName}</h2>
                             <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem; opacity: 0.9;">
-                                <span>🏫 ${student.school || '—'}</span>
-                                <span>📚 ${student.grade || '—'}${student.gradeSection ? student.gradeSection : ''} ${lang === 'uz' ? 'sinf' : 'класс'}</span>
+                                <span>🏫 ${student.schoolName || '—'}</span>
+                                <span>📚 ${student.grade ? `${student.grade}${student.className || ''}` : '—'} ${lang === 'uz' ? 'sinf' : 'класс'}</span>
                                 <span>👨‍🎓 @${student.username}</span>
                             </div>
                         </div>
@@ -11443,8 +11458,8 @@ async function editClass(classId) {
             const sectionValue = currentSection();
             const classLabel = `${classData.grade || ''}${sectionValue || classData.name || ''}`.trim();
             studentsContainer.innerHTML = students.map(student => {
-                const isInClass = student.grade === classData.grade && (sectionValue ? student.gradeSection === sectionValue : true);
-                const currentClass = student.grade ? `${student.grade}${student.gradeSection || ''}` : '—';
+                const isInClass = student.classId === classData.id;
+                const currentClass = student.grade ? `${student.grade}${student.className || ''}` : '—';
                 return `
                     <label style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0.5rem; border-radius: 8px; cursor: pointer; transition: background 0.2s;">
                         <input type="checkbox" name="editClassStudent" value="${student.id}" ${isInClass ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--primary); margin-top: 0.15rem;">
