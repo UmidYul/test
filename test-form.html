@@ -81,7 +81,6 @@
             <input type="text" id="username" required>
         </div>
 
-        <!-- STUDENT FIELDS -->
         <div id="studentFields" class="student-fields" style="display: none;">
             <h3>Поля ученика</h3>
             <div class="form-group">
@@ -145,7 +144,7 @@
                 const classTeacherId = document.getElementById('studentClassTeacher').value;
 
                 if (!classId) {
-                    showResult('Пожалуйста, выберите класс', 'error');
+                    alert('Пожалуйста, выберите класс');
                     return;
                 }
 

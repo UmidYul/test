@@ -4315,7 +4315,7 @@ async function showAddUserModal() {
         const response = await apiRequest('/api/classes');
         if (response.success) {
             classesList = response.data || [];
-            console.log('🏫 Загружено классов:', classesList.length);
+            console.log('🏫 Загружено классов:', classesList.length, classesList);
         } else {
             console.error('❌ Ошибка загрузки классов:', response);
         }
@@ -4329,7 +4329,12 @@ async function showAddUserModal() {
 
     // Если классы не загрузились, добавим заглушку
     if (classesList.length === 0) {
-        classesList = [{ id: 'temp-1', grade: '9', name: 'А' }];
+        classesList = [
+            { id: 'temp-9a', grade: '9', name: 'А' },
+            { id: 'temp-9b', grade: '9', name: 'Б' },
+            { id: 'temp-10a', grade: '10', name: 'А' },
+            { id: 'temp-10b', grade: '10', name: 'Б' }
+        ];
         console.warn('⚠️ Используем тестовые классы');
     }
 
@@ -4516,6 +4521,7 @@ async function showAddUserModal() {
         if (role === 'student') {
             const classId = document.getElementById('studentClass').value.trim();
             const classTeacherId = document.getElementById('studentClassTeacher')?.value || '';
+            console.log('🎓 Создание ученика:', { classId, classTeacherId });
             if (!classId) {
                 showAddUserAlert(lang === 'uz' ? 'Sinfni tanlang' : 'Выберите класс', 'warning');
                 return;

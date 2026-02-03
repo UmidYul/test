@@ -257,7 +257,7 @@ app.get('/api/users', auth, async (req, res) => {
     res.json({ success: true, data: rows });
   } catch (error) {
     console.error('❌ Ошибка при загрузке пользователей:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при загрузке пользователей' });
+    res.status(500).json({ success: false, error: error && error.message ? error.message : 'Ошибка при загрузке пользователей' });
   }
 });
 
@@ -1509,7 +1509,7 @@ app.get('/api/classes', auth, async (req, res) => {
     res.json({ success: true, data: rows });
   } catch (error) {
     console.error('❌ Ошибка при загрузке классов:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при загрузке классов' });
+    res.status(500).json({ success: false, error: error && error.message ? error.message : 'Ошибка при загрузке классов' });
   }
 });
 
