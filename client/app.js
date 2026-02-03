@@ -4257,20 +4257,6 @@ async function showAddUserModal() {
         console.error('❌ Ошибка при загрузке предметов:', error);
     }
 
-    // Load teachers for student class teacher select
-    let teachersList = [];
-    try {
-        const response = await apiRequest('/api/users');
-        if (response.success) {
-            teachersList = response.data.filter(u => u.role === 'teacher') || [];
-            console.log('👨‍🏫 Загружено учителей:', teachersList.length);
-        } else {
-            console.error('❌ Ошибка загрузки учителей:', response);
-        }
-    } catch (error) {
-        console.error('❌ Ошибка при загрузке учителей:', error);
-    }
-
     // Load classes for student class select
     let classesList = [];
     try {
@@ -4380,16 +4366,6 @@ async function showAddUserModal() {
         }
                         </select>
                     </div>
-                    
-                    <div style="margin-top: 1rem;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                            ${lang === 'uz' ? 'Sinf o\'qituvchisi' : 'Классная руководительница'}
-                        </label>
-                        <select id="studentClassTeacher">
-                            <option value="">${lang === 'uz' ? 'Tanlang' : 'Выберите'}</option>
-                            ${teachersList.map(t => `<option value="${t._id}">${t.firstName} ${t.lastName}</option>`).join('')}
-                        </select>
-                    </div>
                 </div>
                 
                 <!-- TEACHER FIELDS -->
@@ -4497,16 +4473,12 @@ async function showAddUserModal() {
 
         if (role === 'student') {
             const classId = document.getElementById('studentClass').value.trim();
-            const classTeacherId = document.getElementById('studentClassTeacher')?.value || '';
-            console.log('🎓 Создание ученика:', { classId, classTeacherId });
+            console.log('🎓 Создание ученика:', { classId });
             if (!classId) {
                 showAddUserAlert(lang === 'uz' ? 'Sinfni tanlang' : 'Выберите класс', 'warning');
                 return;
             }
             userData.classId = classId;
-            if (classTeacherId) {
-                userData.classTeacherId = classTeacherId;
-            }
         } else if (role === 'teacher') {
             const selectedSubjects = Array.from(document.querySelectorAll('.teacherSubject:checked')).map(checkbox => ({
                 id: checkbox.value,
