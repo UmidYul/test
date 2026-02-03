@@ -103,8 +103,7 @@ app.post('/api/auth/login', async (req, res) => {
         username: user.username,
         role: user.role,
         firstName: user.first_name,
-        lastName: user.last_name,
-        grade: user.grade
+        lastName: user.last_name
       }
     });
   } catch (error) {
@@ -253,22 +252,24 @@ app.get('/api/users', auth, async (req, res) => {
                            ELSE NULL
                          END as "className",
                          CASE
-                           WHEN u.role = 'student' THEN t.first_name
+                           WHEN u.role = 'student' THEN tta_teacher.first_name
                            WHEN u.role = 'teacher' THEN ht.first_name
                            ELSE NULL
                          END as "teacherFirstName",
                          CASE
-                           WHEN u.role = 'student' THEN t.last_name
+                           WHEN u.role = 'student' THEN tta_teacher.last_name
                            WHEN u.role = 'teacher' THEN ht.last_name
                            ELSE NULL
                          END as "teacherLastName"
                   FROM users u
                   LEFT JOIN class_students cs ON u.id = cs.student_id AND cs.left_at IS NULL
                   LEFT JOIN classes c ON cs.class_id = c.id
-                  LEFT JOIN users t ON c.teacher_id = t.id
+                  LEFT JOIN teacher_teaching_assignments tta_student ON c.id = tta_student.class_id AND tta_student.is_active = true
+                  LEFT JOIN users tta_teacher ON tta_student.teacher_id = tta_teacher.id
                   LEFT JOIN teacher_profiles tp ON u.id = tp.user_id
                   LEFT JOIN classes hc ON tp.homeroom_class_id = hc.id
-                  LEFT JOIN users ht ON hc.teacher_id = ht.id`;
+                  LEFT JOIN teacher_teaching_assignments tta_homeroom ON hc.id = tta_homeroom.class_id AND tta_homeroom.is_active = true
+                  LEFT JOIN users ht ON tta_homeroom.teacher_id = ht.id`;
     const params = [];
     if (role) {
       query += ' WHERE u.role = $1';
@@ -303,22 +304,24 @@ app.get('/api/users/me', auth, async (req, res) => {
                                              ELSE NULL
                                            END as "className",
                                            CASE
-                                             WHEN u.role = 'student' THEN t.first_name
+                                             WHEN u.role = 'student' THEN tta_teacher.first_name
                                              WHEN u.role = 'teacher' THEN ht.first_name
                                              ELSE NULL
                                            END as "teacherFirstName",
                                            CASE
-                                             WHEN u.role = 'student' THEN t.last_name
+                                             WHEN u.role = 'student' THEN tta_teacher.last_name
                                              WHEN u.role = 'teacher' THEN ht.last_name
                                              ELSE NULL
                                            END as "teacherLastName"
                                     FROM users u
                                     LEFT JOIN class_students cs ON u.id = cs.student_id AND cs.left_at IS NULL
                                     LEFT JOIN classes c ON cs.class_id = c.id
-                                    LEFT JOIN users t ON c.teacher_id = t.id
+                                    LEFT JOIN teacher_teaching_assignments tta_student ON c.id = tta_student.class_id AND tta_student.is_active = true
+                                    LEFT JOIN users tta_teacher ON tta_student.teacher_id = tta_teacher.id
                                     LEFT JOIN teacher_profiles tp ON u.id = tp.user_id
                                     LEFT JOIN classes hc ON tp.homeroom_class_id = hc.id
-                                    LEFT JOIN users ht ON hc.teacher_id = ht.id
+                                    LEFT JOIN teacher_teaching_assignments tta_homeroom ON hc.id = tta_homeroom.class_id AND tta_homeroom.is_active = true
+                                    LEFT JOIN users ht ON tta_homeroom.teacher_id = ht.id
                                     WHERE u.id = $1`, [req.userId]);
     const user = rows[0];
     if (!user) {
@@ -378,11 +381,14 @@ app.get('/api/teacher/classes', auth, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
     const { rows } = await pool.query(
-      `SELECT c.id, c.name, c.grade, c.student_count as "studentCount", c.created_at
+      `SELECT c.id, c.grade, c.section as name, c.created_at,
+              COUNT(cs.student_id) as "studentCount"
        FROM classes c
+       LEFT JOIN class_students cs ON c.id = cs.class_id AND cs.left_at IS NULL
        JOIN teacher_teaching_assignments tta ON c.id = tta.class_id
        WHERE tta.teacher_id = $1
-       ORDER BY c.grade, c.name`,
+       GROUP BY c.id, c.grade, c.section, c.created_at
+       ORDER BY c.grade, c.section`,
       [req.userId]
     );
     res.json({ success: true, data: rows });
@@ -401,7 +407,7 @@ app.get('/api/teacher/test-results', auth, async (req, res) => {
     const { rows } = await pool.query(
       `SELECT ts.id as session_id, ts.score, ts.passed, ts.completed_at, ts.time_taken_minutes,
               t.title as test_title, t.target_role,
-              u.first_name, u.last_name, u.grade, u.section,
+              u.first_name, u.last_name, c.grade, c.section,
               c.name as class_name,
               COUNT(ta.id) as total_questions,
               SUM(CASE WHEN ta.is_correct THEN 1 ELSE 0 END) as correct_answers
@@ -412,7 +418,7 @@ app.get('/api/teacher/test-results', auth, async (req, res) => {
        LEFT JOIN classes c ON cs.class_id = c.id
        LEFT JOIN test_answers ta ON ts.id = ta.session_id
        WHERE t.created_by = $1 AND ts.status = 'completed'
-       GROUP BY ts.id, t.title, t.target_role, u.first_name, u.last_name, u.grade, u.section, c.name
+       GROUP BY ts.id, t.title, t.target_role, u.first_name, u.last_name, c.grade, c.section, c.name
        ORDER BY ts.completed_at DESC`,
       [req.userId]
     );
@@ -451,25 +457,16 @@ app.post('/api/users/register', async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO users (id, username, password_hash, role, first_name, last_name, email, phone, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', NOW(), NOW()) RETURNING id::text, username, role, first_name, last_name, email, phone, status, grade, grade_section`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', NOW(), NOW()) RETURNING id::text, username, role, first_name, last_name, email, phone, status`,
       [userId, username, hashedOTP, role, firstName, lastName, null, null]
     );
 
-    // Для учеников: добавить в class_students и обновить grade/section
+    // Для учеников: добавить в class_students
     if (role === 'student' && classId) {
-      const classResult = await pool.query(`
-        SELECT c.grade, c.section FROM classes c WHERE c.id = $1
-      `, [classId]);
-      if (classResult.rows.length > 0) {
-        const { grade, section } = classResult.rows[0];
-        await pool.query(`
-          UPDATE users SET grade = $1, grade_section = $2 WHERE id = $3
-        `, [grade, section, userId]);
-        await pool.query(`
-          INSERT INTO class_students (class_id, student_id, enrolled_at) VALUES ($1, $2, NOW())
-        `, [classId, userId]);
-        console.log(`[REGISTER] Added student ${username} to class ${classId} with grade: ${grade}, section: ${section}`);
-      }
+      await pool.query(`
+        INSERT INTO class_students (class_id, student_id, enrolled_at) VALUES ($1, $2, NOW())
+      `, [classId, userId]);
+      console.log(`[REGISTER] Added student ${username} to class ${classId}`);
     }
 
     // Для учителей: создать teacher_profiles (homeroom_class_id NULL пока)
@@ -1859,10 +1856,11 @@ app.post('/api/classes', auth, async (req, res) => {
     }
     const classId = crypto.randomUUID();
     const result = await pool.query(
-      'INSERT INTO classes (id, grade, name, teacher_id, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id::text, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at',
-      [classId, grade, name, teacherIdInt]
+      'INSERT INTO classes (id, grade, section, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id::text, grade, section as name, created_at',
+      [classId, grade, name]
     );
     const newClass = result.rows[0];
+    newClass.studentCount = 0; // New class has no students yet
     console.log(`✅ Класс создан: ${newClass.id}`);
     res.status(201).json({ success: true, data: newClass });
   } catch (error) {
@@ -2322,8 +2320,8 @@ app.put('/api/classes/:classId', auth, async (req, res) => {
       }
     }
     const result = await pool.query(
-      'UPDATE classes SET name = COALESCE($1, name), teacher_id = $2 WHERE id = $3 RETURNING id::text, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at',
-      [name, teacherIdInt, classId]
+      'UPDATE classes SET section = COALESCE($1, section) WHERE id = $2 RETURNING id::text, grade, section as name, created_at',
+      [name, classId]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
@@ -2354,16 +2352,6 @@ app.put('/api/classes/:classId/students', auth, async (req, res) => {
     }
     const classItem = classResult.rows[0];
     const classSection = section || classItem.name || null;
-
-    // Update students: set grade and grade_section for selected, clear for others in this grade
-    await pool.query('UPDATE users SET grade = NULL, grade_section = NULL WHERE role = $1 AND grade = $2', ['student', classItem.grade]);
-    if (studentIds.length > 0) {
-      await pool.query('UPDATE users SET grade = $1, grade_section = $2 WHERE role = $3 AND id = ANY($4)', [classItem.grade, classSection, 'student', studentIds]);
-    }
-
-    // Update student_count in classes
-    const countResult = await pool.query('SELECT COUNT(*) as count FROM users WHERE role = $1 AND grade = $2', ['student', classItem.grade]);
-    await pool.query('UPDATE classes SET student_count = $1 WHERE id = $2', [parseInt(countResult.rows[0].count), classId]);
 
     console.log(`✅ Студенты класса обновлены: ${classId}`);
     res.json({ success: true, message: 'Студенты класса обновлены' });
