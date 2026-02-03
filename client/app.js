@@ -4237,6 +4237,7 @@ function renderAdminTeacherList(teachers) {
 
 // Helper functions for admin modals
 async function showAddUserModal() {
+    console.log('🔧 showAddUserModal called');
     const lang = store.getState().language;
 
     // Load subjects first
@@ -4348,12 +4349,14 @@ async function showAddUserModal() {
                             Email
                         </label>
                         <input id="userEmail" type="email" placeholder="user@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
+                        <script>console.log('EMAIL FIELD RENDERED');</script>
                     </div>
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
                             ${lang === 'uz' ? 'Telefon' : 'Телефон'}
                         </label>
                         <input id="userPhone" type="tel" placeholder="+998901234567" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
+                        <script>console.log('PHONE FIELD RENDERED');</script>
                     </div>
                 </div>
                 
