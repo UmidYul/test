@@ -1846,7 +1846,7 @@ app.post('/api/classes', auth, async (req, res) => {
     if (req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Только администратор может создавать классы' });
     }
-    const { grade, section, homeroomTeacherId } = req.body;
+    const { grade, name: section, homeroomTeacherId } = req.body;
     console.log('🔍 Parsed data:', { grade, section, homeroomTeacherId });
 
     if (!grade || !section) {
@@ -2328,7 +2328,7 @@ app.put('/api/classes/:classId', auth, async (req, res) => {
     return res.status(403).json({ success: false, error: 'Только администратор может редактировать классы' });
   }
   const { classId } = req.params;
-  const { name, homeroomTeacherId } = req.body;
+  const { name: section, homeroomTeacherId } = req.body;
   try {
     // Валидировать homeroomTeacherId, если указан
     if (homeroomTeacherId) {
@@ -2341,7 +2341,7 @@ app.put('/api/classes/:classId', auth, async (req, res) => {
     // Обновить класс
     const result = await pool.query(
       'UPDATE classes SET section = COALESCE($1, section) WHERE id = $2 RETURNING id::text, grade, section as name, created_at',
-      [name, classId]
+      [section, classId]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
