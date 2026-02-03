@@ -75,6 +75,21 @@ CREATE TABLE IF NOT EXISTS classes (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- CLASS STUDENTS
+CREATE TABLE IF NOT EXISTS class_students (
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    enrolled_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    left_at TIMESTAMP,
+    PRIMARY KEY (class_id, student_id)
+);
+
+-- TEACHER PROFILES
+CREATE TABLE IF NOT EXISTS teacher_profiles (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    homeroom_class_id UUID REFERENCES classes(id)
+);
+
 -- TEACHER TESTS
 CREATE TABLE IF NOT EXISTS teacher_tests (
     id UUID PRIMARY KEY,

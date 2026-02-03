@@ -119,7 +119,28 @@ async function createTables() {
         `);
         console.log('✅ Таблица classes создана');
 
-        // 8. Teacher Tests
+        // 8. Class Students
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS class_students (
+                class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+                student_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                enrolled_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                left_at TIMESTAMP,
+                PRIMARY KEY (class_id, student_id)
+            )
+        `);
+        console.log('✅ Таблица class_students создана');
+
+        // 9. Teacher Profiles
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS teacher_profiles (
+                user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                homeroom_class_id UUID REFERENCES classes(id)
+            )
+        `);
+        console.log('✅ Таблица teacher_profiles создана');
+
+        // 10. Teacher Tests
         await pool.query(`
             CREATE TABLE IF NOT EXISTS teacher_tests (
                 id UUID PRIMARY KEY,
@@ -134,7 +155,7 @@ async function createTables() {
         `);
         console.log('✅ Таблица teacher_tests создана');
 
-        // 9. Teacher Test Results
+        // 11. Teacher Test Results
         await pool.query(`
             CREATE TABLE IF NOT EXISTS teacher_test_results (
                 id UUID PRIMARY KEY,
@@ -147,18 +168,6 @@ async function createTables() {
             )
         `);
         console.log('✅ Таблица teacher_test_results создана');
-
-        // Добавляем внешний ключ для users.class_id
-        try {
-            await pool.query(`
-                ALTER TABLE users
-                ADD CONSTRAINT fk_users_class_id
-                FOREIGN KEY (class_id) REFERENCES classes(id)
-            `);
-            console.log('✅ Внешний ключ users.class_id добавлен');
-        } catch (error) {
-            console.log('ℹ️ Внешний ключ users.class_id уже существует или не может быть добавлен');
-        }
 
         console.log('🎉 Все таблицы созданы успешно!');
 

@@ -237,11 +237,38 @@ app.get('/api/users', auth, async (req, res) => {
     let query = `SELECT u.id, u.username, u.role, u.first_name as "firstName", u.last_name as "lastName",
                          u.is_temporary_password as "isTemporaryPassword",
                          u.require_password_change as "requirePasswordChange", u.created_at, u.updated_at,
-                         c.id as "classId", c.grade, c.name as "className",
-                         t.first_name as "teacherFirstName", t.last_name as "teacherLastName"
+                         CASE
+                           WHEN u.role = 'student' THEN cs.class_id
+                           WHEN u.role = 'teacher' THEN tp.homeroom_class_id
+                           ELSE NULL
+                         END as "classId",
+                         CASE
+                           WHEN u.role = 'student' THEN c.grade
+                           WHEN u.role = 'teacher' THEN hc.grade
+                           ELSE NULL
+                         END as grade,
+                         CASE
+                           WHEN u.role = 'student' THEN c.name
+                           WHEN u.role = 'teacher' THEN hc.name
+                           ELSE NULL
+                         END as "className",
+                         CASE
+                           WHEN u.role = 'student' THEN t.first_name
+                           WHEN u.role = 'teacher' THEN ht.first_name
+                           ELSE NULL
+                         END as "teacherFirstName",
+                         CASE
+                           WHEN u.role = 'student' THEN t.last_name
+                           WHEN u.role = 'teacher' THEN ht.last_name
+                           ELSE NULL
+                         END as "teacherLastName"
                   FROM users u
-                  LEFT JOIN classes c ON u.class_id = c.id
-                  LEFT JOIN users t ON c.teacher_id = t.id`;
+                  LEFT JOIN class_students cs ON u.id = cs.student_id AND cs.left_at IS NULL
+                  LEFT JOIN classes c ON cs.class_id = c.id
+                  LEFT JOIN users t ON c.teacher_id = t.id
+                  LEFT JOIN teacher_profiles tp ON u.id = tp.user_id
+                  LEFT JOIN classes hc ON tp.homeroom_class_id = hc.id
+                  LEFT JOIN users ht ON hc.teacher_id = ht.id`;
     const params = [];
     if (role) {
       query += ' WHERE u.role = $1';
@@ -260,11 +287,38 @@ app.get('/api/users/me', auth, async (req, res) => {
   try {
     console.log(`[PROFILE] GET /api/users/me - User ID: ${req.userId}`);
     const { rows } = await pool.query(`SELECT u.id, u.username, u.role, u.first_name, u.last_name,
-                                           c.id as "classId", c.grade, c.name as "className",
-                                           t.first_name as "teacherFirstName", t.last_name as "teacherLastName"
+                                           CASE
+                                             WHEN u.role = 'student' THEN cs.class_id
+                                             WHEN u.role = 'teacher' THEN tp.homeroom_class_id
+                                             ELSE NULL
+                                           END as "classId",
+                                           CASE
+                                             WHEN u.role = 'student' THEN c.grade
+                                             WHEN u.role = 'teacher' THEN hc.grade
+                                             ELSE NULL
+                                           END as grade,
+                                           CASE
+                                             WHEN u.role = 'student' THEN c.name
+                                             WHEN u.role = 'teacher' THEN hc.name
+                                             ELSE NULL
+                                           END as "className",
+                                           CASE
+                                             WHEN u.role = 'student' THEN t.first_name
+                                             WHEN u.role = 'teacher' THEN ht.first_name
+                                             ELSE NULL
+                                           END as "teacherFirstName",
+                                           CASE
+                                             WHEN u.role = 'student' THEN t.last_name
+                                             WHEN u.role = 'teacher' THEN ht.last_name
+                                             ELSE NULL
+                                           END as "teacherLastName"
                                     FROM users u
-                                    LEFT JOIN classes c ON u.class_id = c.id
+                                    LEFT JOIN class_students cs ON u.id = cs.student_id AND cs.left_at IS NULL
+                                    LEFT JOIN classes c ON cs.class_id = c.id
                                     LEFT JOIN users t ON c.teacher_id = t.id
+                                    LEFT JOIN teacher_profiles tp ON u.id = tp.user_id
+                                    LEFT JOIN classes hc ON tp.homeroom_class_id = hc.id
+                                    LEFT JOIN users ht ON hc.teacher_id = ht.id
                                     WHERE u.id = $1`, [req.userId]);
     const user = rows[0];
     if (!user) {
