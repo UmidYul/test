@@ -619,6 +619,35 @@ function showConfirm(message, title = '') {
     document.body.appendChild(modal);
     setTimeout(() => modal.classList.add('show'), 10);
 
+    // Ensure the studentClass select is populated (in case template rendering missed or classes loaded later)
+    (function populateStudentClassSelect() {
+        const sel = document.getElementById('studentClass');
+        if (!sel) return;
+        // Clear existing options and add placeholder
+        sel.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = lang === 'uz' ? 'Sinfni tanlang' : 'Выберите класс';
+        sel.appendChild(placeholder);
+
+        if (Array.isArray(classesList) && classesList.length > 0) {
+            classesList.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id || c._id || '';
+                const grade = c.grade || '';
+                const name = c.name || '';
+                opt.textContent = (grade + (name ? ' ' + name : '')).trim() || opt.value;
+                sel.appendChild(opt);
+            });
+        } else {
+            const noOpt = document.createElement('option');
+            noOpt.value = '';
+            noOpt.disabled = true;
+            noOpt.textContent = lang === 'uz' ? 'Sinf mavjud emas' : 'Классы не найдены';
+            sel.appendChild(noOpt);
+        }
+    })();
+
     return new Promise(resolve => {
         const closeModal = (result) => {
             modal.classList.remove('show');

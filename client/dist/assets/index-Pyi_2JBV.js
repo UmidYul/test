@@ -1538,7 +1538,41 @@ var _r = Object.defineProperty; var $r = (e, t, i) => t in e ? _r(e, t, { enumer
                 </div>
             </form>
         </div>
-    `, document.body.appendChild(s), setTimeout(() => s.classList.add("show"), 10); const n = document.getElementById("userRole"), a = document.getElementById("studentFields"), r = document.getElementById("teacherFields"), o = document.getElementById("addUserAlert"), l = (c, u = "info") => {
+    `, document.body.appendChild(s), setTimeout(() => s.classList.add("show"), 10);
+
+    // Ensure #studentClass select is populated after modal opens
+    (function () {
+        try {
+            const sel = document.getElementById('studentClass');
+            if (!sel) return;
+            // reset
+            sel.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = (e === 'uz' ? 'Sinfni tanlang' : 'Выберите класс');
+            sel.appendChild(placeholder);
+            if (Array.isArray(window.classesList) && window.classesList.length > 0) {
+                window.classesList.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id || c._id || '';
+                    const grade = c.grade || '';
+                    const name = c.name || '';
+                    opt.textContent = (grade + (name ? ' ' + name : '')).trim() || opt.value;
+                    sel.appendChild(opt);
+                });
+            } else if (Array.isArray(window.classesList) && window.classesList.length === 0) {
+                const noOpt = document.createElement('option');
+                noOpt.value = '';
+                noOpt.disabled = true;
+                noOpt.textContent = (e === 'uz' ? 'Sinf mavjud emas' : 'Классы не найдены');
+                sel.appendChild(noOpt);
+            }
+        } catch (err) {
+            console.warn('Error populating studentClass select', err);
+        }
+    })();
+
+    const n = document.getElementById("userRole"), a = document.getElementById("studentFields"), r = document.getElementById("teacherFields"), o = document.getElementById("addUserAlert"), l = (c, u = "info") => {
         if (!o) return; const h = { success: "✅", error: "❌", warning: "⚠️", info: "ℹ️" }; o.className = `inline-alert inline-alert--${u}`, o.innerHTML = `
             <span style="font-size: 1.1rem;">${h[u] || h.info}</span>
             <span>${c}</span>
