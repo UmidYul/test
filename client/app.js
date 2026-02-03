@@ -3347,25 +3347,15 @@ function renderTestResults(result) {
 
     console.log('🎨 renderTestResults called with:', result);
 
-    if (!result || !result.questionResults) {
-        console.error('❌ Missing result data:', result);
-        testContainer.innerHTML = `
-            <div class="card">
-                <p style="text-align: center; color: #ef4444;">
-                    ${lang === 'uz' ? 'Natijada xato' : 'Ошибка в данных результата'}
-                </p>
-                <p style="text-align: center; color: #ef4444; font-size: 0.9rem;">
-                    questionResults is missing
-                </p>
-            </div>
-        `;
-        return;
-    }
+    const resultData = result.data || result;
+    const score = resultData.score || 0;
+    const passed = resultData.passed || false;
+    const earnedPoints = resultData.earnedPoints || 0;
+    const totalPoints = resultData.totalPoints || 0;
 
-    const percentage = Math.round((result.correctCount / result.totalCount) * 100);
-    const status = percentage >= 70 ? 'success' : percentage >= 50 ? 'warning' : 'error';
-    const statusColor = status === 'success' ? '#10b981' : status === 'warning' ? '#f59e0b' : '#ef4444';
-    const statusGradient = status === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' : status === 'warning' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'linear-gradient(135deg, #ef4444, #dc2626)';
+    const status = passed ? 'success' : 'error';
+    const statusColor = passed ? '#10b981' : '#ef4444';
+    const statusGradient = passed ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)';
 
     let resultHTML = `
         <style>
@@ -3413,21 +3403,18 @@ function renderTestResults(result) {
                 📋 ${lang === 'uz' ? 'Batafsil natija' : 'Подробные результаты'}
             </h3>
             <div style="display: grid; gap: 1.2rem;">
-    `;
-
-    // Show each question result
-    result.questionResults.forEach((qr, index) => {
-        const isCorrect = qr.isCorrect;
-        const bgColor = isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
-        const borderColor = isCorrect ? '#10b981' : '#ef4444';
-        const icon = isCorrect ? '✓' : '✗';
-
-        resultHTML += `
-            <div style="padding: 1.5rem; background: ${bgColor}; border-left: 4px solid ${borderColor}; border-radius: 8px;">
-                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                    <span style="font-size: 1.5rem; color: ${borderColor}; font-weight: bold;">${icon}</span>
-                    <div style="flex: 1;">
-                        <p style="margin: 0; color: var(--text-primary); font-weight: 500;">
+                <div style="padding: 1.5rem; background: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <span style="font-size: 1.5rem; color: #10b981; font-weight: bold;">✓</span>
+                        <div style="flex: 1;">
+                            <p style="margin: 0; color: var(--text-primary); font-weight: 500;">
+                                ${lang === 'uz' ? 'To\'plangan ballar' : 'Набранные баллы'}: ${earnedPoints} / ${totalPoints}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
                             ${index + 1}. ${lang === 'uz' ? qr.questionUz : qr.questionRu}
                         </p>
                     </div>
@@ -3440,18 +3427,7 @@ function renderTestResults(result) {
                             ${qr.userAnswerText ? (lang === 'uz' ? qr.userAnswerText.textUz : qr.userAnswerText.textRu) : (lang === 'uz' ? 'Javob yo\'q' : 'Нет ответа')}
                         </span>
                     </p>
-                    ${!isCorrect ? `<p style="margin: 0.5rem 0;">
-                        <strong>${lang === 'uz' ? 'To\'g\'ri javob' : 'Правильный ответ'}:</strong> 
-                        <span style="color: #10b981;">
-                            ${lang === 'uz' ? qr.correctAnswerText.textUz : qr.correctAnswerText.textRu}
-                        </span>
-                    </p>` : ''}
                 </div>
-            </div>
-        `;
-    });
-
-    resultHTML += `
             </div>
         </div>
         
@@ -7283,8 +7259,8 @@ async function renderControlTests() {
     const token = store.getState().token;
 
     try {
-        // Fetch control tests assigned to student's class
-        const response = await fetch(`${API_BASE_URL}/api/student/control-tests`, {
+        // Fetch tests available for student's grade
+        const response = await fetch(`${API_BASE_URL}/api/tests`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -7504,27 +7480,29 @@ async function renderControlTestTaker({ testId }) {
             return;
         }
 
-        // Fetch the control test
-        const response = await fetch(`${API_BASE_URL}/api/control-tests/${testId}`, {
+        // Start the test
+        const response = await fetch(`${API_BASE_URL}/api/tests/${testId}/start`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!response.ok) throw new Error('Failed to fetch control test');
+        if (!response.ok) throw new Error('Failed to start test');
 
         const result = await response.json();
-        const test = result.data || result;
-        const questions = test.questions || [];
+        const testData = result.data || result;
+        const sessionId = testData.sessionId;
+        const questions = testData.questions || [];
 
         if (!questions || questions.length === 0) {
             throw new Error('Test has no questions');
         }
 
-        const duration = test.duration || 60;
+        const duration = testData.durationMinutes || 60;
 
         // Load or initialize progress
-        const progressKey = `control-test-${testId}-progress`;
+        const progressKey = `test-${testId}-progress`;
         let progress = JSON.parse(localStorage.getItem(progressKey)) || {
             testId,
+            sessionId,
             answers: {},
             startTime: Date.now(),
             timeRemaining: duration * 60 * 1000
@@ -7541,10 +7519,10 @@ async function renderControlTestTaker({ testId }) {
                     <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 2rem;">
                         <div style="flex: 1; min-width: 250px;">
                             <h1 style="margin: 0 0 0.5rem 0; font-size: 1.8rem; font-weight: 800; color: var(--text-primary);">
-                                ${lang === 'uz' ? test.nameUz : test.nameRu}
+                                ${testData.title}
                             </h1>
                             <p style="margin: 0; color: var(--text-secondary); font-size: 0.95rem;">
-                                ${lang === 'uz' ? test.descUz : test.descRu}
+                                ${lang === 'uz' ? 'Test savollarini javob bering' : 'Ответьте на вопросы теста'}
                             </p>
                         </div>
                         
@@ -7722,13 +7700,15 @@ async function renderControlTestTaker({ testId }) {
                 lang === 'uz' ? 'Testni yakunlash' : 'Завершить тест'
             );
             if (confirmed) {
-                await submitControlTest(testId, progress.answers);
+                const timeTaken = Math.round((Date.now() - progress.startTime) / 1000 / 60);
+                await submitControlTest(testId, progress.answers, progress.sessionId, timeTaken);
             }
         });
 
         async function autoSubmitTest() {
             console.log('⏰ Time\'s up, auto-submitting...');
-            await submitControlTest(testId, progress.answers);
+            const timeTaken = Math.round((Date.now() - progress.startTime) / 1000 / 60);
+            await submitControlTest(testId, progress.answers, progress.sessionId, timeTaken);
         }
 
     } catch (error) {
@@ -7759,19 +7739,19 @@ async function renderControlTestTaker({ testId }) {
     }
 }
 
-// Submit Control Test
-async function submitControlTest(testId, answers) {
+// Submit Test
+async function submitControlTest(testId, answers, sessionId, timeTaken) {
     const lang = store.getState().language;
     const token = store.getState().token;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/control-tests/${testId}/submit`, {
+        const response = await fetch(`${API_BASE_URL}/api/tests/${testId}/submit`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ answers })
+            body: JSON.stringify({ sessionId, answers, timeTaken })
         });
 
         if (!response.ok) {
@@ -7782,20 +7762,17 @@ async function submitControlTest(testId, answers) {
         const result = await response.json();
 
         // Clear progress
-        localStorage.removeItem(`control-test-${testId}-progress`);
+        localStorage.removeItem(`test-${testId}-progress`);
 
         // Ensure we have the correct data structure
         const resultData = result.data || result;
         const score = resultData.score || 0;
-        const maxScore = resultData.maxScore || 100;
-        const correctCount = resultData.correctCount || 0;
-        const totalQuestions = resultData.totalCount || resultData.totalQuestions || 0;
-
-        // Calculate percentage
-        const percentage = totalQuestions > 0 ? Math.round((score / maxScore) * 100) : 0;
+        const passed = resultData.passed || false;
+        const earnedPoints = resultData.earnedPoints || 0;
+        const totalPoints = resultData.totalPoints || 0;
 
         // Save completion status to localStorage to prevent re-taking
-        const completedKey = `control-test-completed-${testId}`;
+        const completedKey = `test-completed-${testId}`;
         localStorage.setItem(completedKey, JSON.stringify({
             testId,
             score,
@@ -8494,14 +8471,16 @@ async function viewControlTestResults(testId) {
     const token = store.getState().token;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/control-tests/${testId}/results`, {
+        const response = await fetch(`${API_BASE_URL}/api/teacher/test-results`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (!response.ok) throw new Error('Failed to fetch results');
 
         const result = await response.json();
-        const results = result.data || [];
+        const allResults = result.data || [];
+        // Filter results for this specific test
+        const results = allResults.filter(r => r.test_id === testId);
 
         const content = `
             <style>
@@ -8613,7 +8592,7 @@ async function previewControlTest(testId) {
     const token = store.getState().token;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/control-tests/${testId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/tests/${testId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -8654,7 +8633,7 @@ async function previewControlTest(testId) {
                     <!-- Header -->
                     <div id="previewHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
                         <div>
-                            <h1 style="margin: 0; font-size: 2rem;">${lang === 'uz' ? test.nameUz : test.nameRu}</h1>
+                            <h1 style="margin: 0; font-size: 2rem;">${test.title}</h1>
                             <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary);">
                                 ${lang === 'uz' ? test.descriptionUz : test.descriptionRu}
                             </p>
@@ -8669,11 +8648,11 @@ async function previewControlTest(testId) {
                         <div class="test-info-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                             <div class="test-info-box" style="padding: 1rem;">
                                 <div style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 600;">⏱️ ${lang === 'uz' ? 'Vaqt' : 'Время'}</div>
-                                <div class="test-info-box-value" style="font-size: 1.5rem; font-weight: 800;">${test.duration || 60} ${lang === 'uz' ? 'min' : 'мин'}</div>
+                                <div class="test-info-box-value" style="font-size: 1.5rem; font-weight: 800;">${test.duration_minutes || 60} ${lang === 'uz' ? 'min' : 'мин'}</div>
                             </div>
                             <div class="test-info-box" style="padding: 1rem;">
-                                <div style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 600;">⭐ ${lang === 'uz' ? 'Maksimal ball' : 'Макс. баллов'}</div>
-                                <div class="test-info-box-value" style="font-size: 1.5rem; font-weight: 800;">${test.maxScore || 100}</div>
+                                <div style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 600;">⭐ ${lang === 'uz' ? 'O\'tish balli' : 'Проходной балл'}</div>
+                                <div class="test-info-box-value" style="font-size: 1.5rem; font-weight: 800;">${test.pass_percent || 60}%</div>
                             </div>
                             <div class="test-info-box" style="padding: 1rem;">
                                 <div style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 600;">❓ ${lang === 'uz' ? 'Savollar' : 'Вопросы'}</div>
@@ -8690,15 +8669,14 @@ async function previewControlTest(testId) {
                                     <div class="question-badge" style="background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: white; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800;">
                                         ${idx + 1}
                                     </div>
-                                    <h3 class="question-text" style="margin: 0; font-size: 1.1rem;">${lang === 'uz' ? q.questionUz : q.questionRu}</h3>
+                                    <h3 class="question-text" style="margin: 0; font-size: 1.1rem;">${q.text}</h3>
                                 </div>
                                 
                                 <div style="margin-left: 56px; display: flex; flex-direction: column; gap: 0.75rem;">
-                                    ${q.answers.map((ans, ansIdx) => `
-                                        <div class="answer-option" style="padding: 0.75rem 1rem; background: ${ans.isCorrect ? 'rgba(16, 185, 129, 0.15)' : 'var(--bg-tertiary)'}; border: 2px solid ${ans.isCorrect ? '#10B981' : 'var(--border-color)'}; border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
+                                    ${q.options.map((opt, optIdx) => `
+                                        <div class="answer-option" style="padding: 0.75rem 1rem; background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
                                             <input type="radio" disabled style="cursor: not-allowed;">
-                                            <span>${lang === 'uz' ? ans.textUz : ans.textRu}</span>
-                                            ${ans.isCorrect ? `<span style="color: #10B981; font-weight: 700; margin-left: auto;">✅ ${lang === 'uz' ? "To'g'ri" : 'Правильно'}</span>` : ''}
+                                            <span>${opt.text}</span>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -8728,7 +8706,7 @@ async function editControlTest(testId, myTests, allClasses) {
     const token = store.getState().token;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/control-tests/${testId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/tests/${testId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -8845,17 +8823,16 @@ async function editControlTest(testId, myTests, allClasses) {
             }
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/control-tests/${testId}`, {
+                const response = await fetch(`${API_BASE_URL}/api/tests/${testId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        nameRu,
-                        nameUz,
-                        duration,
-                        maxScore
+                        title: nameRu,
+                        durationMinutes: duration,
+                        passPercent: maxScore
                     })
                 });
 
@@ -8891,9 +8868,8 @@ async function renderTeacherControlTests() {
         const classesData = await classesResponse.json();
         const allClasses = classesData.data || [];
 
-        // Fetch control tests created by this teacher
-        const userId = user.id || user._id;
-        const testsResponse = await fetch(`${API_BASE_URL}/api/control-tests?createdBy=` + userId, {
+        // Fetch tests created by this teacher
+        const testsResponse = await fetch(`${API_BASE_URL}/api/tests`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         const testsData = await testsResponse.json();
@@ -8928,34 +8904,34 @@ async function renderTeacherControlTests() {
                 ` : `
                     <div class="tests-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
                         ${myTests.map(test => `
-                            <div class="card" data-test-id="${test._id}">
+                            <div class="card" data-test-id="${test.id}">
                                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                                     <div>
-                                        <h3 style="margin: 0; font-size: 1.1rem;">${lang === 'uz' ? test.nameUz : test.nameRu}</h3>
+                                        <h3 style="margin: 0; font-size: 1.1rem;">${test.title}</h3>
                                         <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">
-                                            ${test.assignedClasses ? test.assignedClasses.join(', ') : 'Назначено'}
+                                            ${lang === 'uz' ? `Sinf: ${test.target_role}` : `Класс: ${test.target_role}`}
                                         </p>
                                     </div>
                                     <div style="display: flex; gap: 0.5rem;">
-                                        <button class="btn-icon btn-edit" data-test-id="${test._id}" style="padding: 0.5rem; background: var(--bg-secondary); border: none; border-radius: 6px; cursor: pointer;">✏️</button>
-                                        <button class="btn-icon btn-delete" data-test-id="${test._id}" style="padding: 0.5rem; background: #fee2e2; border: none; border-radius: 6px; cursor: pointer; color: #dc2626;">🗑️</button>
+                                        <button class="btn-icon btn-edit" data-test-id="${test.id}" style="padding: 0.5rem; background: var(--bg-secondary); border: none; border-radius: 6px; cursor: pointer;">✏️</button>
+                                        <button class="btn-icon btn-delete" data-test-id="${test.id}" style="padding: 0.5rem; background: #fee2e2; border: none; border-radius: 6px; cursor: pointer; color: #dc2626;">🗑️</button>
                                     </div>
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                                     <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 8px;">
                                         <div style="font-size: 0.8rem; color: var(--text-secondary);">⏱️ ${lang === 'uz' ? 'Vaqt' : 'Время'}</div>
-                                        <div style="font-weight: bold; font-size: 1.1rem;">${test.duration || 60} мин</div>
+                                        <div style="font-weight: bold; font-size: 1.1rem;">${test.duration_minutes || 60} мин</div>
                                     </div>
                                     <div style="background: var(--bg-secondary); padding: 0.75rem; border-radius: 8px;">
-                                        <div style="font-size: 0.8rem; color: var(--text-secondary);">⭐ ${lang === 'uz' ? 'Ball' : 'Баллы'}</div>
-                                        <div style="font-weight: bold; font-size: 1.1rem;">${test.maxScore || 100}</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-secondary);">⭐ ${lang === 'uz' ? 'O\'tish balli' : 'Проходной балл'}</div>
+                                        <div style="font-weight: bold; font-size: 1.1rem;">${test.pass_percent || 60}%</div>
                                     </div>
                                 </div>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                                    <button class="btn-secondary btn-view-results" data-test-id="${test._id}" style="padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                                    <button class="btn-secondary btn-view-results" data-test-id="${test.id}" style="padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
                                         ${lang === 'uz' ? '📊 Natijalar' : '📊 Результаты'}
                                     </button>
-                                    <button class="btn-secondary btn-preview" data-test-id="${test._id}" style="padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
+                                    <button class="btn-secondary btn-preview" data-test-id="${test.id}" style="padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer;">
                                         ${lang === 'uz' ? '👁️ Ko\'rish' : '👁️ Просмотр'}
                                     </button>
                                 </div>
@@ -9289,23 +9265,28 @@ function initControlTestForm(allClasses) {
             return;
         }
 
-        // Create control test
+        // Create test
         try {
-            const response = await fetch(`${API_BASE_URL}/api/control-tests`, {
+            const response = await fetch(`${API_BASE_URL}/api/tests`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    nameRu,
-                    nameUz,
-                    descriptionRu: descRu,
-                    descriptionUz: descUz,
-                    duration,
-                    maxScore,
-                    questions,
-                    assignedClasses: assignedClass ? [assignedClass] : []
+                    title: nameRu, // Use Russian name as title
+                    durationMinutes: duration,
+                    passPercent: 60, // Default pass percentage
+                    targetRole: assignedClass || '9', // Use class as grade
+                    questions: questions.map(q => ({
+                        type: q.type || 'multiple_choice',
+                        text: q.questionRu,
+                        points: q.points || 1,
+                        options: q.answers.map(a => ({
+                            text: a.textRu,
+                            isCorrect: a.isCorrect
+                        }))
+                    }))
                 })
             });
 
@@ -9334,7 +9315,7 @@ async function deleteControlTest(testId) {
     const token = store.getState().token;
 
     try {
-        const response = await fetch(`/api/control-tests/${testId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/tests/${testId}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
