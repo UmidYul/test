@@ -4342,10 +4342,25 @@ async function showAddUserModal() {
                     <input id="userUsername" type="text" placeholder="${lang === 'uz' ? 'username' : 'username'}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
                 </div>
                 
-                <div style="background: var(--bg-tertiary); border: 1px dashed var(--border-color); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: var(--text-secondary);">
+                <div class="add-user-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
+                            Email
+                        </label>
+                        <input id="userEmail" type="email" placeholder="user@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
+                            ${lang === 'uz' ? 'Telefon' : 'Телефон'}
+                        </label>
+                        <input id="userPhone" type="tel" placeholder="+998901234567" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
+                    </div>
+                </div>
+                
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: #ef4444;">
                     ${lang === 'uz'
-            ? 'Parol bir martalik OTP orqali yaratiladi va foydalanuvchiga vaqtinchalik parol beriladi.'
-            : 'Пароль создаётся как одноразовый OTP, пользователю выдаётся временный пароль.'}
+            ? '⚠️ Email yoki telefon raqamini kiritish majburiy!'
+            : '⚠️ Обязательно укажите email или телефон!'}
                 </div>
                 
                 <!-- STUDENT FIELDS -->
@@ -4455,9 +4470,16 @@ async function showAddUserModal() {
         const firstName = document.getElementById('userFirstName').value.trim();
         const lastName = document.getElementById('userLastName').value.trim();
         const username = document.getElementById('userUsername').value.trim();
+        const email = document.getElementById('userEmail').value.trim();
+        const phone = document.getElementById('userPhone').value.trim();
 
         if (!firstName || !lastName || !username) {
             showAddUserAlert(lang === 'uz' ? 'Barcha maydonlarni to\'ldiring' : 'Заполните все обязательные поля', 'warning');
+            return;
+        }
+
+        if (!email && !phone) {
+            showAddUserAlert(lang === 'uz' ? 'Email yoki telefon raqamini kiriting' : 'Укажите email или телефон', 'warning');
             return;
         }
 
@@ -4465,7 +4487,9 @@ async function showAddUserModal() {
             username,
             role,
             firstName,
-            lastName
+            lastName,
+            email: email || null,
+            phone: phone || null
         };
 
         if (role === 'student') {

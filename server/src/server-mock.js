@@ -433,9 +433,14 @@ app.get('/api/teacher/test-results', auth, async (req, res) => {
 app.post('/api/users/register', async (req, res) => {
   try {
     const body = req.body || {};
-    const { username, role, firstName, lastName, classId } = body;
+    const { username, role, firstName, lastName, classId, email, phone } = body;
     if (!username || !role || !firstName || !lastName) {
       return res.status(400).json({ success: false, error: 'Заполните обязательные поля' });
+    }
+
+    // Check that at least email or phone is provided
+    if (!email && !phone) {
+      return res.status(400).json({ success: false, error: 'Необходимо указать email или телефон' });
     }
 
     // Для учеников обязательно указывать класс
@@ -458,7 +463,7 @@ app.post('/api/users/register', async (req, res) => {
     const result = await pool.query(
       `INSERT INTO users (id, username, password_hash, role, first_name, last_name, email, phone, status, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', NOW(), NOW()) RETURNING id::text, username, role, first_name, last_name, email, phone, status`,
-      [userId, username, hashedOTP, role, firstName, lastName, null, null]
+      [userId, username, hashedOTP, role, firstName, lastName, email || null, phone || null]
     );
 
     // Для учеников: добавить в class_students
