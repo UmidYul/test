@@ -1543,8 +1543,13 @@ var _r = Object.defineProperty; var $r = (e, t, i) => t in e ? _r(e, t, { enumer
     // Ensure #studentClass select is populated after modal opens
     (function () {
         try {
+            console.log('[DEBUG] Starting populateStudentClassSelect');
             const sel = document.getElementById('studentClass');
-            if (!sel) return;
+            if (!sel) {
+                console.log('[DEBUG] studentClass select not found');
+                return;
+            }
+            console.log('[DEBUG] studentClass select found');
             sel.innerHTML = '';
             const placeholder = document.createElement('option');
             placeholder.value = '';
@@ -1561,16 +1566,25 @@ var _r = Object.defineProperty; var $r = (e, t, i) => t in e ? _r(e, t, { enumer
             }
             let source = Array.isArray(window.classesList) && window.classesList.length > 0 ? window.classesList : null;
             if (!source) {
+                console.log('[DEBUG] No source, attempting fetch');
                 // fallback: fetch from API, save to window.classesList, then fill select
+                console.log('[DEBUG] API_BASE_URL:', API_BASE_URL);
                 if (typeof API_BASE_URL !== 'undefined') {
+                    console.log('[DEBUG] Fetching classes from:', API_BASE_URL + '/api/classes');
                     fetch(API_BASE_URL + '/api/classes', { headers: { 'Authorization': localStorage.getItem('auth-storage') ? ('Bearer ' + JSON.parse(localStorage.getItem('auth-storage')).token) : '' } })
-                        .then(r => r.json()).then(j => {
+                        .then(r => {
+                            console.log('[DEBUG] Fetch response status:', r.status);
+                            return r.json();
+                        }).then(j => {
+                            console.log('[DEBUG] API response:', j);
                             if (j && j.data && Array.isArray(j.data)) {
+                                console.log('[DEBUG] Fetched classes data:', j.data);
                                 window.classesList = j.data;
                                 window.lastClassesApiResponse = j.data;
                                 // try to find select again (in case modal was reopened)
                                 let select = document.getElementById('studentClass');
                                 if (select) {
+                                    console.log('[DEBUG] Filling select with fetched data');
                                     select.innerHTML = '';
                                     const ph = document.createElement('option');
                                     ph.value = '';
@@ -1584,18 +1598,26 @@ var _r = Object.defineProperty; var $r = (e, t, i) => t in e ? _r(e, t, { enumer
                                         opt.textContent = `${grade}${name} ${e === 'uz' ? 'sinf' : 'класс'}`;
                                         select.appendChild(opt);
                                     });
+                                } else {
+                                    console.log('[DEBUG] Select not found after fetch');
                                 }
                             } else {
+                                console.log('[DEBUG] No valid classes data in response');
                                 const noOpt = document.createElement('option');
                                 noOpt.value = '';
                                 noOpt.disabled = true;
                                 noOpt.textContent = (e === 'uz' ? 'Sinf mavjud emas' : 'Классы не найдены');
                                 sel.appendChild(noOpt);
                             }
+                        }).catch(err => {
+                            console.error('[DEBUG] Fetch error:', err);
                         });
+                } else {
+                    console.log('[DEBUG] API_BASE_URL not defined');
                 }
                 return;
             }
+            console.log('[DEBUG] Using existing source, filling select');
             source.forEach(function (c) {
                 const opt = document.createElement('option');
                 opt.value = c.id || c._id || '';
