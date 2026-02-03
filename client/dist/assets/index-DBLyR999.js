@@ -1581,7 +1581,7 @@ var _r = Object.defineProperty; var $r = (e, t, i) => t in e ? _r(e, t, { enumer
                                         opt.value = c.id || c._id || '';
                                         const grade = c.grade || '';
                                         const name = c.name || '';
-                                        opt.textContent = (grade + (name ? ' ' + name : '')).trim() || opt.value;
+                                        opt.textContent = `${grade}${name} ${e === 'uz' ? 'sinf' : 'класс'}`;
                                         select.appendChild(opt);
                                     });
                                 }
@@ -1601,7 +1601,7 @@ var _r = Object.defineProperty; var $r = (e, t, i) => t in e ? _r(e, t, { enumer
                 opt.value = c.id || c._id || '';
                 const grade = c.grade || '';
                 const name = c.name || '';
-                opt.textContent = (grade + (name ? ' ' + name : '')).trim() || opt.value;
+                opt.textContent = `${grade}${name} ${e === 'uz' ? 'sinf' : 'класс'}`;
                 sel.appendChild(opt);
             });
         } catch (err) {

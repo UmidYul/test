@@ -636,7 +636,8 @@ function showConfirm(message, title = '') {
                 opt.value = c.id || c._id || '';
                 const grade = c.grade || '';
                 const name = c.name || '';
-                opt.textContent = (grade + (name ? ' ' + name : '')).trim() || opt.value;
+                const suffix = lang === 'uz' ? 'sinf' : 'класс';
+                opt.textContent = `${grade}${name} ${suffix}`;
                 sel.appendChild(opt);
             });
         } else {
