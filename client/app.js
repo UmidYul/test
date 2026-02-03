@@ -2312,8 +2312,8 @@ async function renderStudentProfile() {
                     </p>
                     <select id="subjectSelector" class="form-input">
                         <option value="" selected disabled>${lang === 'uz' ? 'Fanni tanlang...' : 'Выберите предмет...'}</option>
-                        ${subjects.filter(s => resultsBySubject[s._id]).map(subject => `
-                            <option value="${subject._id}">${subject.name} (${resultsBySubject[subject._id].length} ${lang === 'uz' ? 'ta test' : 'тестов'})</option>
+                        ${subjects.filter(s => resultsBySubject[s._id || s.id]).map(subject => `
+                            <option value="${subject._id || subject.id}">${subject.name} (${resultsBySubject[subject._id || subject.id].length} ${lang === 'uz' ? 'ta test' : 'тестов'})</option>
                         `).join('')}
                     </select>
                 </div>
@@ -2647,7 +2647,7 @@ async function renderSubjectTests() {
         subjectsContainer.innerHTML = `
             <div class="subjects-grid">
                 ${result.data.map(subject => `
-                    <div class="subject-card" data-subject-id="${subject._id}">
+                    <div class="subject-card" data-subject-id="${subject.id}">
                         <div class="subject-header">
                             <div class="subject-icon">${getSubjectIcon(subject.name)}</div>
                             <h3>${subject.name}</h3>
@@ -2656,7 +2656,7 @@ async function renderSubjectTests() {
                             <p>${store.getState().language === 'uz' ? 'Savollar' : 'Вопросов'}: ${subject.questionsCount || 10}</p>
                             <p>${store.getState().language === 'uz' ? 'Vaqt' : 'Время'}: 30 ${store.getState().language === 'uz' ? 'daqiqa' : 'минут'}</p>
                         </div>
-                        <button class="btn-secondary btn-start-test" data-subject-id="${subject._id}">
+                        <button class="btn-secondary btn-start-test" data-subject-id="${subject.id}">
                             ${store.getState().language === 'uz' ? 'Testni boshlash' : 'Начать тест'}
                         </button>
                     </div>
@@ -4379,7 +4379,7 @@ async function showAddUserModal() {
                     <div class="teacher-subjects-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto;">
                         ${subjectsList.map(subject => `
                             <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(139, 92, 246, 0.1)'" onmouseout="this.style.background='transparent'">
-                                <input type="checkbox" class="teacherSubject" value="${subject._id}" data-name="${subject.name}" style="width: 18px; height: 18px; cursor: pointer;">
+                                <input type="checkbox" class="teacherSubject" value="${subject.id}" data-name="${subject.name}" style="width: 18px; height: 18px; cursor: pointer;">
                                 <span style="flex: 1; font-size: 0.95rem;">${subject.name}</span>
                             </label>
                         `).join('')}
@@ -7947,20 +7947,20 @@ async function renderTeacherSubjects() {
                 .filter(Boolean)
         );
         const subjectsToShow = teacherSubjectIds.size
-            ? subjects.filter(s => teacherSubjectIds.has(s._id))
+            ? subjects.filter(s => teacherSubjectIds.has(s._id || s.id))
             : subjects;
         const container = document.getElementById('teacherSubjects');
 
         container.innerHTML = `
             <div class="subjects-grid">
                 ${subjectsToShow.map(subject => `
-                    <div class="subject-card" data-subject-id="${subject._id}" style="background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 1px solid var(--border-color); transition: all 0.3s ease; cursor: pointer;">
+                    <div class="subject-card" data-subject-id="${subject.id}" style="background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 1px solid var(--border-color); transition: all 0.3s ease; cursor: pointer;">
                         <div class="subject-header" style="pointer-events: none;">
                             <div class="subject-icon" style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">${getSubjectIcon(subject.name)}</div>
                             <h3 style="margin: 1rem 0 0.5rem 0; font-size: 1.25rem;">${subject.name}</h3>
                         </div>
                         <div class="subject-info" style="margin: 0.75rem 0; pointer-events: none;">
-                            <p id="subject-${subject._id}-stats" style="color: var(--text-muted); font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <p id="subject-${subject.id}-stats" style="color: var(--text-muted); font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                 <span style="font-size: 1.125rem;">📦</span>
                                 ${lang === 'uz' ? 'Yuklanmoqda...' : 'Загрузка...'}
                             </p>
@@ -7988,16 +7988,16 @@ async function renderTeacherSubjects() {
         // Load module counts for each subject
         console.log('📊 Loading module counts for subjects...');
         subjectsToShow.forEach(async (subject) => {
-            console.log('📦 Loading modules for subject:', subject._id);
-            const modulesResult = await apiRequest(`/api/subjects/${subject._id}/modules`);
-            console.log('📦 Modules result for subject ' + subject._id + ':', modulesResult);
-            const statsEl = document.getElementById(`subject-${subject._id}-stats`);
+            console.log('📦 Loading modules for subject:', subject.id);
+            const modulesResult = await apiRequest(`/api/subjects/${subject.id}/modules`);
+            console.log('📦 Modules result for subject ' + subject.id + ':', modulesResult);
+            const statsEl = document.getElementById(`subject-${subject.id}-stats`);
             if (statsEl && modulesResult.success) {
                 const moduleCount = modulesResult.data.length;
-                console.log('✅ Module count for subject ' + subject._id + ':', moduleCount);
+                console.log('✅ Module count for subject ' + subject.id + ':', moduleCount);
                 statsEl.textContent = `${moduleCount} ${lang === 'uz' ? 'ta modul' : moduleCount === 1 ? 'модуль' : 'модулей'}`;
             } else {
-                console.error('❌ Failed to load modules for subject ' + subject._id + ':', modulesResult);
+                console.error('❌ Failed to load modules for subject ' + subject.id + ':', modulesResult);
             }
         });
     }
@@ -9309,7 +9309,7 @@ async function renderTeacherSubjectModuleAnalytics() {
             subjectSelect.innerHTML = `
                 <option value="">${lang === 'uz' ? 'Tanlang' : 'Выберите'}</option>
                 ${subjects.map(subject => `
-                    <option value="${subject._id}">${lang === 'uz' ? (subject.nameUz || subject.nameRu) : (subject.nameRu || subject.nameUz)}</option>
+                    <option value="${subject.id}">${subject.name}</option>
                 `).join('')}
             `;
         }
@@ -10131,13 +10131,13 @@ async function renderTeacherModulesOld() {
 
         subjects.forEach(subject => {
             const option1 = document.createElement('option');
-            option1.value = subject._id;
-            option1.textContent = store.getState().language === 'uz' ? subject.nameUz : subject.nameRu;
+            option1.value = subject.id;
+            option1.textContent = subject.name;
             moduleSubjectSelect.appendChild(option1);
 
             const option2 = document.createElement('option');
-            option2.value = subject._id;
-            option2.textContent = store.getState().language === 'uz' ? subject.nameUz : subject.nameRu;
+            option2.value = subject.id;
+            option2.textContent = subject.name;
             filterSubjectSelect.appendChild(option2);
         });
 

@@ -145,7 +145,7 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
 // Get all subjects (PostgreSQL)
 app.get('/api/subjects', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id as "_id", name, questions_count as "questionsCount" FROM subjects ORDER BY id');
+    const { rows } = await pool.query('SELECT id, name, questions_count as "questionsCount" FROM subjects ORDER BY id');
     console.log(`[SUBJECTS] Fetched all subjects (${rows.length})`);
     res.json(rows);
   } catch (error) {
