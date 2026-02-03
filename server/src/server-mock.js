@@ -145,7 +145,7 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
 // Get all subjects (PostgreSQL)
 app.get('/api/subjects', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, name, questions_count as "questionsCount" FROM subjects ORDER BY id');
+    const { rows } = await pool.query('SELECT id, name FROM subjects ORDER BY id');
     console.log(`[SUBJECTS] Fetched all subjects (${rows.length})`);
     res.json(rows);
   } catch (error) {
@@ -170,8 +170,8 @@ app.post('/api/subjects', auth, async (req, res) => {
     }
     const subjectId = crypto.randomUUID();
     const result = await pool.query(
-      'INSERT INTO subjects (id, name, questions_count) VALUES ($1, $2, $3) RETURNING id::text, name, questions_count as "questionsCount"',
-      [subjectId, name.trim(), Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0]
+      'INSERT INTO subjects (id, name) VALUES ($1, $2) RETURNING id::text, name',
+      [subjectId, name.trim()]
     );
     console.log(`[SUBJECTS] Created subject: ${name}`);
     res.json({ success: true, data: result.rows[0] });
@@ -193,8 +193,8 @@ app.put('/api/subjects/:subjectId', auth, async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'UPDATE subjects SET name = $1, questions_count = $2 WHERE id = $3 RETURNING id::text, name, questions_count as "questionsCount"',
-      [name.trim(), Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0, subjectId]
+      'UPDATE subjects SET name = $1 WHERE id = $2 RETURNING id::text, name',
+      [name.trim(), subjectId]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Subject not found' });
