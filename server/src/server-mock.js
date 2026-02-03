@@ -247,8 +247,8 @@ app.get('/api/users', auth, async (req, res) => {
                            ELSE NULL
                          END as grade,
                          CASE
-                           WHEN u.role = 'student' THEN c.name
-                           WHEN u.role = 'teacher' THEN hc.name
+                           WHEN u.role = 'student' THEN c.section
+                           WHEN u.role = 'teacher' THEN hc.section
                            ELSE NULL
                          END as "className",
                          CASE
@@ -299,8 +299,8 @@ app.get('/api/users/me', auth, async (req, res) => {
                                              ELSE NULL
                                            END as grade,
                                            CASE
-                                             WHEN u.role = 'student' THEN c.name
-                                             WHEN u.role = 'teacher' THEN hc.name
+                                             WHEN u.role = 'student' THEN c.section
+                                             WHEN u.role = 'teacher' THEN hc.section
                                              ELSE NULL
                                            END as "className",
                                            CASE
@@ -405,21 +405,21 @@ app.get('/api/teacher/test-results', auth, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
     const { rows } = await pool.query(
-      `SELECT ts.id as session_id, ts.score, ts.passed, ts.completed_at, ts.time_taken_minutes,
+      `SELECT ta.id as session_id, ta.score, ta.passed, ta.completed_at, ta.time_spent_seconds,
               t.title as test_title, t.target_role,
               u.first_name, u.last_name, c.grade, c.section,
-              c.name as class_name,
-              COUNT(ta.id) as total_questions,
-              SUM(CASE WHEN ta.is_correct THEN 1 ELSE 0 END) as correct_answers
-       FROM test_sessions ts
-       JOIN tests t ON ts.test_id = t.id
-       JOIN users u ON ts.student_id = u.id
+              c.section as class_name,
+              COUNT(aa.id) as total_questions,
+              SUM(CASE WHEN aa.is_correct THEN 1 ELSE 0 END) as correct_answers
+       FROM test_attempts ta
+       JOIN tests t ON ta.test_id = t.id
+       JOIN users u ON ta.user_id = u.id
        LEFT JOIN class_students cs ON u.id = cs.student_id
        LEFT JOIN classes c ON cs.class_id = c.id
-       LEFT JOIN test_answers ta ON ts.id = ta.session_id
-       WHERE t.created_by = $1 AND ts.status = 'completed'
-       GROUP BY ts.id, t.title, t.target_role, u.first_name, u.last_name, c.grade, c.section, c.name
-       ORDER BY ts.completed_at DESC`,
+       LEFT JOIN attempt_answers aa ON ta.id = aa.attempt_id
+       WHERE t.created_by = $1 AND ta.status = 'completed'
+       GROUP BY ta.id, t.title, t.target_role, u.first_name, u.last_name, c.grade, c.section, c.section
+       ORDER BY ta.completed_at DESC`,
       [req.userId]
     );
     res.json({ success: true, data: rows });
@@ -828,7 +828,7 @@ app.get('/api/tests/:testId/start', auth, async (req, res) => {
     }
 
     // Проверить, не проходил ли уже тест
-    const { rows: sessionRows } = await pool.query('SELECT id FROM test_sessions WHERE test_id = $1 AND student_id = $2', [testId, req.userId]);
+    const { rows: sessionRows } = await pool.query('SELECT id FROM test_attempts WHERE test_id = $1 AND user_id = $2', [testId, req.userId]);
     if (sessionRows.length > 0) {
       return res.status(400).json({ success: false, error: 'Вы уже проходили этот тест' });
     }
@@ -836,7 +836,7 @@ app.get('/api/tests/:testId/start', auth, async (req, res) => {
     // Создать сессию
     const sessionId = crypto.randomUUID();
     await pool.query(
-      `INSERT INTO test_sessions (id, test_id, student_id, started_at, status)
+      `INSERT INTO test_attempts (id, test_id, user_id, started_at, status)
        VALUES ($1, $2, $3, NOW(), 'in_progress')`,
       [sessionId, testId, req.userId]
     );
@@ -1010,14 +1010,14 @@ app.get('/api/tests/:testId/results', auth, async (req, res) => {
   try {
     const { testId } = req.params;
     const { rows } = await pool.query(
-      `SELECT ts.id, ts.score, ts.passed, ts.completed_at, ts.time_taken_minutes,
-              COUNT(ta.id) as total_questions,
-              SUM(CASE WHEN ta.is_correct THEN 1 ELSE 0 END) as correct_answers
-       FROM test_sessions ts
-       LEFT JOIN test_answers ta ON ts.id = ta.session_id
-       WHERE ts.test_id = $1 AND ts.student_id = $2 AND ts.status = 'completed'
-       GROUP BY ts.id
-       ORDER BY ts.completed_at DESC`,
+      `SELECT ta.id, ta.score, ta.passed, ta.completed_at, ta.time_spent_seconds,
+              COUNT(aa.id) as total_questions,
+              SUM(CASE WHEN aa.is_correct THEN 1 ELSE 0 END) as correct_answers
+       FROM test_attempts ta
+       LEFT JOIN attempt_answers aa ON ta.id = aa.attempt_id
+       WHERE ta.test_id = $1 AND ta.user_id = $2 AND ta.status = 'completed'
+       GROUP BY ta.id
+       ORDER BY ta.completed_at DESC`,
       [testId, req.userId]
     );
     res.json({ success: true, data: rows });
@@ -1077,7 +1077,7 @@ app.post('/api/tests/:testId/submit', auth, async (req, res) => {
     const { sessionId, answers, timeTaken } = req.body; // answers: { questionId: selectedOptionId }
 
     // Получить сессию
-    const { rows: sessionRows } = await pool.query('SELECT id, status FROM test_sessions WHERE id = $1 AND student_id = $2', [sessionId, req.userId]);
+    const { rows: sessionRows } = await pool.query('SELECT id, status FROM test_attempts WHERE id = $1 AND user_id = $2', [sessionId, req.userId]);
     if (sessionRows.length === 0) {
       return res.status(404).json({ success: false, error: 'Сессия не найдена' });
     }
@@ -1126,7 +1126,7 @@ app.post('/api/tests/:testId/submit', auth, async (req, res) => {
 
     // Обновить сессию
     await pool.query(
-      `UPDATE test_sessions SET status = 'completed', completed_at = NOW(), score = $1, passed = $2, time_taken_minutes = $3
+      `UPDATE test_attempts SET status = 'completed', completed_at = NOW(), score = $1, passed = $2, time_spent_seconds = $3
        WHERE id = $4`,
       [score, passed, timeTaken, sessionId]
     );
