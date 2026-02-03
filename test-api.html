@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Subjects API</title>
+</head>
+
+<body>
+    <h1>Test Subjects API</h1>
+    <button onclick="testSubjectsAPI()">Test GET /api/subjects</button>
+    <div id="result"></div>
+
+    <script>
+        async function testSubjectsAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Loading...';
+
+            try {
+                const response = await fetch('http://localhost:3000/api/subjects');
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <h2>Success!</h2>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <h2>Error ${response.status}</h2>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h2>Network Error</h2>
+                    <p>${error.message}</p>
+                    <p>Make sure the server is running on http://localhost:3000</p>
+                `;
+            }
+        }
+    </script>
+</body>
+
+</html>

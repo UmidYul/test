@@ -145,7 +145,7 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
 // Get all subjects (PostgreSQL)
 app.get('/api/subjects', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, name, questions_count as "questionsCount" FROM subjects ORDER BY id');
+    const { rows } = await pool.query('SELECT id as "_id", name, questions_count as "questionsCount" FROM subjects ORDER BY id');
     console.log(`[SUBJECTS] Fetched all subjects (${rows.length})`);
     res.json(rows);
   } catch (error) {
@@ -1217,7 +1217,7 @@ app.get('/api/teacher/analytics', auth, (req, res) => {
       const subjectTestIds = subjectTests.map(t => t._id);
       const subjectResults = allResults.filter(r => subjectTestIds.includes(r.testId));
 
-      const subjectName = subject.nameRu;
+      const subjectName = subject.name;
       if (!statsBySubject[subjectName]) {
         statsBySubject[subjectName] = {
           subject: subjectName,
@@ -1255,8 +1255,8 @@ app.get('/api/teacher/analytics', auth, (req, res) => {
         return {
           studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown',
           studentGrade: student ? student.grade : 'N/A',
-          testName: test ? test.nameRu : 'Unknown',
-          subjectName: subject ? subject.nameRu : 'Unknown',
+          testName: test ? test.name : 'Unknown',
+          subjectName: subject ? subject.name : 'Unknown',
           score: result.score,
           submittedAt: result.submittedAt
         };
@@ -1400,8 +1400,7 @@ app.get('/api/teacher/analytics/subject-modules', auth, (req, res) => {
     subjectModules.forEach(module => {
       moduleStats.set(module._id, {
         moduleId: module._id,
-        nameRu: module.nameRu,
-        nameUz: module.nameUz,
+        name: module.name,
         averageScore: null,
         attempts: 0,
         studentsCount: 0
@@ -1493,14 +1492,12 @@ app.post('/api/control-tests', auth, (req, res) => {
       return res.status(403).json({ success: false, error: 'Доступно только учителям' });
     }
 
-    const { nameRu, nameUz, descriptionRu, descriptionUz, duration, maxScore, questions, assignedClasses } = req.body;
+    const { name, description, duration, maxScore, questions, assignedClasses } = req.body;
 
     const newTest = {
       _id: Date.now().toString(),
-      nameRu,
-      nameUz,
-      descriptionRu,
-      descriptionUz,
+      name,
+      description,
       duration: duration || 30,
       maxScore: maxScore || 100,
       questions: questions || [],
@@ -1533,13 +1530,11 @@ app.put('/api/control-tests/:testId', auth, (req, res) => {
       return res.status(403).json({ success: false, error: 'Вы не можете редактировать эту контрольную работу' });
     }
 
-    const { nameRu, nameUz, descriptionRu, descriptionUz, duration, maxScore, questions, assignedClasses } = req.body;
+    const { name, description, duration, maxScore, questions, assignedClasses } = req.body;
 
     Object.assign(test, {
-      nameRu: nameRu || test.nameRu,
-      nameUz: nameUz || test.nameUz,
-      descriptionRu: descriptionRu || test.descriptionRu,
-      descriptionUz: descriptionUz || test.descriptionUz,
+      name: name || test.name,
+      description: description || test.description,
       duration: duration || test.duration,
       maxScore: maxScore || test.maxScore,
       questions: questions || test.questions,
@@ -1640,7 +1635,7 @@ app.post('/api/control-tests/:testId/submit', auth, (req, res) => {
       _id: Date.now().toString(),
       userId: req.userId,
       testId: testId,
-      testName: test.nameRu,
+      testName: test.name,
       score: score,
       correctCount: correctCount,
       totalCount: test.questions?.length || 0,
@@ -1714,7 +1709,7 @@ app.get('/api/teacher/control-tests/results', auth, (req, res) => {
       const test = teacherTests.find(t => t._id === result.testId);
       return {
         ...result,
-        testName: test?.nameRu || result.testName,
+        testName: test?.name || result.testName,
         studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown',
         studentGrade: student ? `${student.grade}${student.gradeSection}` : 'Unknown'
       };
@@ -1968,7 +1963,7 @@ function getTeacherSubjectKeys(user) {
     }
     const id = item.id || item._id || item.subjectId;
     if (id) keys.add(String(id).trim().toLowerCase());
-    const name = item.nameRu || item.nameUz || item.name || item.label;
+    const name = item.name || item.label;
     if (name) keys.add(String(name).trim().toLowerCase());
   });
 
@@ -1983,7 +1978,7 @@ function resolveTeacherSubjects(user) {
   return subjects.filter(subject => {
     const idKey = String(subject._id || '').toLowerCase();
     if (idKey && keys.has(idKey)) return true;
-    const ruKey = (subject.nameRu || '').toLowerCase();
+    const ruKey = (subject.name || '').toLowerCase();
     if (ruKey && keys.has(ruKey)) return true;
     const uzKey = (subject.nameUz || '').toLowerCase();
     if (uzKey && keys.has(uzKey)) return true;
@@ -2001,7 +1996,7 @@ function teacherHasSubject(user, subjectId) {
 
   const subject = subjects.find(s => String(s._id) === String(subjectId));
   if (!subject) return false;
-  if (subject.nameRu && keys.has(subject.nameRu.toLowerCase())) return true;
+  if (subject.name && keys.has(subject.name.toLowerCase())) return true;
   if (subject.nameUz && keys.has(subject.nameUz.toLowerCase())) return true;
   return false;
 }
@@ -2052,7 +2047,7 @@ app.get('/api/analytics/classes/:grade/timeline', auth, (req, res) => {
     const labels = [...new Set(classResults.map(r => new Date(r.completedAt).toISOString().split('T')[0]))].sort();
     const series = Object.keys(timelineData).map(subjectId => {
       const subject = subjects.find(s => s._id === subjectId);
-      const subjectName = subject ? subject.nameRu : `Subject ${subjectId}`;
+      const subjectName = subject ? subject.name : `Subject ${subjectId}`;
       const data = labels.map(date => {
         const bucket = timelineData[subjectId][date];
         return bucket ? Math.round((bucket.scores.reduce((a, b) => a + b, 0) / bucket.count) * 10) / 10 : null;
@@ -2110,7 +2105,7 @@ app.get('/api/analytics/students/:studentId/timeline', auth, (req, res) => {
     const labels = [...new Set(studentResults.map(r => new Date(r.completedAt).toISOString().split('T')[0]))].sort();
     const series = Object.keys(timelineData).map(subjectId => {
       const subject = subjects.find(s => s._id === subjectId);
-      const subjectName = subject ? subject.nameRu : `Subject ${subjectId}`;
+      const subjectName = subject ? subject.name : `Subject ${subjectId}`;
       const data = labels.map(date => {
         const bucket = timelineData[subjectId][date];
         return bucket ? Math.round((bucket.scores.reduce((a, b) => a + b, 0) / bucket.count) * 10) / 10 : null;
@@ -2157,7 +2152,7 @@ app.get('/api/analytics/teachers/:teacherId/subjects', auth, (req, res) => {
         const subject = subjects.find(s => s._id === subjectId);
         statsBySubject[subjectId] = {
           subjectId,
-          subjectName: subject ? subject.nameRu : `Subject ${subjectId}`,
+          subjectName: subject ? subject.name : `Subject ${subjectId}`,
           scores: [],
           count: 0
         };
@@ -2222,7 +2217,7 @@ app.get('/api/analytics/classes/:grade/stats', auth, (req, res) => {
       if (!subjectStats[subjectId]) {
         const subject = subjects.find(s => s._id === subjectId);
         subjectStats[subjectId] = {
-          subjectName: subject ? subject.nameRu : `Subject ${subjectId}`,
+          subjectName: subject ? subject.name : `Subject ${subjectId}`,
           scores: [],
           count: 0
         };
