@@ -1,12 +1,23 @@
+-- SCHOOLS
+CREATE TABLE IF NOT EXISTS schools (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    address TEXT,
+    phone VARCHAR(32),
+    email VARCHAR(128),
+    director_name VARCHAR(128),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 -- USERS
 CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY,
     username VARCHAR(64) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(32) NOT NULL,
     first_name VARCHAR(64),
     last_name VARCHAR(64),
-    school VARCHAR(128),
+    school_id UUID REFERENCES schools(id),
     grade VARCHAR(8),
     grade_section VARCHAR(8),
     is_temporary_password BOOLEAN DEFAULT FALSE,
@@ -15,9 +26,10 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
+
 -- SUBJECTS
 CREATE TABLE IF NOT EXISTS subjects (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY,
     name_ru VARCHAR(128) NOT NULL,
     name_uz VARCHAR(128) NOT NULL,
     questions_count INT DEFAULT 0
@@ -25,20 +37,20 @@ CREATE TABLE IF NOT EXISTS subjects (
 
 -- MODULES
 CREATE TABLE IF NOT EXISTS modules (
-    id SERIAL PRIMARY KEY,
-    subject_id INT REFERENCES subjects(id),
+    id UUID PRIMARY KEY,
+    subject_id UUID REFERENCES subjects(id),
     name_ru VARCHAR(128),
     name_uz VARCHAR(128),
     description_ru TEXT,
     description_uz TEXT,
-    created_by INT REFERENCES users(id),
+    created_by UUID REFERENCES users(id),
     created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- TESTS
 CREATE TABLE IF NOT EXISTS tests (
-    id SERIAL PRIMARY KEY,
-    module_id INT REFERENCES modules(id),
+    id UUID PRIMARY KEY,
+    module_id UUID REFERENCES modules(id),
     name_ru VARCHAR(128),
     name_uz VARCHAR(128),
     duration INT,
@@ -47,16 +59,16 @@ CREATE TABLE IF NOT EXISTS tests (
     status VARCHAR(32),
     assigned_grades VARCHAR(32)[],
     questions JSONB,
-    created_by INT REFERENCES users(id),
+    created_by UUID REFERENCES users(id),
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- TEST RESULTS
 CREATE TABLE IF NOT EXISTS test_results (
-    id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(id),
-    test_id INT REFERENCES tests(id),
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES users(id),
+    test_id UUID REFERENCES tests(id),
     score INT,
     correct_count INT,
     total_count INT,
@@ -67,31 +79,31 @@ CREATE TABLE IF NOT EXISTS test_results (
 
 -- CLASSES
 CREATE TABLE IF NOT EXISTS classes (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY,
     grade VARCHAR(8),
     name VARCHAR(32),
-    teacher_id INT REFERENCES users(id),
+    teacher_id UUID REFERENCES users(id),
     student_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- TEACHER TESTS
 CREATE TABLE IF NOT EXISTS teacher_tests (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     duration INT,
     passing_score INT,
     questions JSONB,
-    assigned_to INT[] DEFAULT '{}',
+    assigned_to UUID[] DEFAULT '{}',
     created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- TEACHER TEST RESULTS
 CREATE TABLE IF NOT EXISTS teacher_test_results (
-    id SERIAL PRIMARY KEY,
-    test_id INT REFERENCES teacher_tests(id),
-    teacher_id INT REFERENCES users(id),
+    id UUID PRIMARY KEY,
+    test_id UUID REFERENCES teacher_tests(id),
+    teacher_id UUID REFERENCES users(id),
     answers JSONB,
     score INT,
     passed BOOLEAN,

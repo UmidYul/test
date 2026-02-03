@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
+import crypto from 'crypto';
 
 import pool from './db.js';
 
@@ -78,7 +78,10 @@ const auth = (req, res, next) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { username, password, role } = req.body;
-    const { rows } = await pool.query('SELECT * FROM users WHERE username = $1 AND role = $2', [username, role]);
+    const { rows } = await pool.query(`SELECT u.*, s.name as school_name, s.id as school_id 
+                                       FROM users u 
+                                       LEFT JOIN schools s ON u.school_id = s.id 
+                                       WHERE u.username = $1 AND u.role = $2`, [username, role]);
     const user = rows[0];
     if (!user) {
       console.log(`[LOGIN] Failed login for ${username} (user not found)`);
@@ -104,7 +107,8 @@ app.post('/api/auth/login', async (req, res) => {
         role: user.role,
         firstName: user.first_name,
         lastName: user.last_name,
-        school: user.school,
+        schoolId: user.school_id,
+        schoolName: user.school_name,
         grade: user.grade,
         isTemporaryPassword: user.is_temporary_password || false
       }
@@ -168,9 +172,10 @@ app.post('/api/subjects', auth, async (req, res) => {
     if (exists.rowCount > 0) {
       return res.status(400).json({ message: 'Предмет уже существует' });
     }
+    const subjectId = crypto.randomUUID();
     const result = await pool.query(
-      'INSERT INTO subjects (name_ru, name_uz, questions_count) VALUES ($1, $2, $3) RETURNING id, name_ru as "nameRu", name_uz as "nameUz", questions_count as "questionsCount"',
-      [nameRu.trim(), nameUz.trim(), Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0]
+      'INSERT INTO subjects (id, name_ru, name_uz, questions_count) VALUES ($1, $2, $3, $4) RETURNING id::text, name_ru as "nameRu", name_uz as "nameUz", questions_count as "questionsCount"',
+      [subjectId, nameRu.trim(), nameUz.trim(), Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0]
     );
     console.log(`[SUBJECTS] Created subject: ${nameRu} / ${nameUz}`);
     res.json({ success: true, data: result.rows[0] });
@@ -192,7 +197,7 @@ app.put('/api/subjects/:subjectId', auth, async (req, res) => {
   }
   try {
     const result = await pool.query(
-      'UPDATE subjects SET name_ru = $1, name_uz = $2, questions_count = $3 WHERE id = $4 RETURNING id, name_ru as "nameRu", name_uz as "nameUz", questions_count as "questionsCount"',
+      'UPDATE subjects SET name_ru = $1, name_uz = $2, questions_count = $3 WHERE id = $4 RETURNING id::text, name_ru as "nameRu", name_uz as "nameUz", questions_count as "questionsCount"',
       [nameRu.trim(), nameUz.trim(), Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0, subjectId]
     );
     if (result.rowCount === 0) {
@@ -233,10 +238,15 @@ app.get('/api/users', auth, async (req, res) => {
   }
   try {
     const { role } = req.query;
-    let query = 'SELECT id, username, role, first_name as "firstName", last_name as "lastName", school, grade, grade_section as "gradeSection", is_temporary_password as "isTemporaryPassword", require_password_change as "requirePasswordChange", created_at, updated_at FROM users';
+    let query = `SELECT u.id, u.username, u.role, u.first_name as "firstName", u.last_name as "lastName", 
+                         u.grade, u.grade_section as "gradeSection", u.is_temporary_password as "isTemporaryPassword", 
+                         u.require_password_change as "requirePasswordChange", u.created_at, u.updated_at,
+                         s.name as "schoolName", s.id as "schoolId"
+                  FROM users u
+                  LEFT JOIN schools s ON u.school_id = s.id`;
     const params = [];
     if (role) {
-      query += ' WHERE role = $1';
+      query += ' WHERE u.role = $1';
       params.push(role);
     }
     const { rows } = await pool.query(query, params);
@@ -251,7 +261,11 @@ app.get('/api/users', auth, async (req, res) => {
 app.get('/api/users/me', auth, async (req, res) => {
   try {
     console.log(`[PROFILE] GET /api/users/me - User ID: ${req.userId}`);
-    const { rows } = await pool.query('SELECT id, username, role, first_name, last_name, school, grade, grade_section FROM users WHERE id = $1', [req.userId]);
+    const { rows } = await pool.query(`SELECT u.id, u.username, u.role, u.first_name, u.last_name, u.grade, u.grade_section,
+                                           s.name as "schoolName", s.id as "schoolId"
+                                    FROM users u
+                                    LEFT JOIN schools s ON u.school_id = s.id
+                                    WHERE u.id = $1`, [req.userId]);
     const user = rows[0];
     if (!user) {
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
@@ -320,10 +334,11 @@ app.post('/api/users/register', async (req, res) => {
     const otp = generateOTP();
     const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     const hashedOTP = await bcrypt.hash(otp, 10);
+    const userId = crypto.randomUUID();
     const result = await pool.query(
-      `INSERT INTO users (username, password, role, first_name, last_name, school, grade, grade_section, is_temporary_password, require_password_change)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, true) RETURNING id, username, role, first_name, last_name, school, grade, grade_section`,
-      [username, hashedOTP, role, firstName, lastName, school || 'School', grade, gradeSection]
+      `INSERT INTO users (id, username, password, role, first_name, last_name, school_id, grade, grade_section, is_temporary_password, require_password_change)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, true) RETURNING id::text, username, role, first_name, last_name, school_id, grade, grade_section`,
+      [userId, username, hashedOTP, role, firstName, lastName, null, grade, gradeSection]
     );
     const user = result.rows[0];
     console.log(`[REGISTER] User created: ${username} (${role})`);
@@ -494,9 +509,10 @@ app.post('/api/subjects/:subjectId/modules', auth, async (req, res) => {
     // }
     console.log(`➕ Создание нового модуля для предмета: ${subjectId}`);
     console.log(`📝 Название: ${nameRu} / ${nameUz}`);
+    const moduleId = crypto.randomUUID();
     const result = await pool.query(
-      'INSERT INTO modules (subject_id, name_ru, name_uz, description_ru, description_uz, created_by, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id, subject_id as "subjectId", name_ru as "nameRu", name_uz as "nameUz", description_ru as "descriptionRu", description_uz as "descriptionUz", created_by as "createdBy", created_at',
-      [subjectId, nameRu, nameUz, descriptionRu, descriptionUz, req.userId]
+      'INSERT INTO modules (id, subject_id, name_ru, name_uz, description_ru, description_uz, created_by, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING id::text, subject_id as "subjectId", name_ru as "nameRu", name_uz as "nameUz", description_ru as "descriptionRu", description_uz as "descriptionUz", created_by as "createdBy", created_at',
+      [moduleId, subjectId, nameRu, nameUz, descriptionRu, descriptionUz, req.userId]
     );
     const newModule = result.rows[0];
     console.log(`✅ Модуль создан с ID: ${newModule.id}`);
@@ -516,7 +532,7 @@ app.put('/api/modules/:moduleId', auth, async (req, res) => {
     const { moduleId } = req.params;
     const { nameRu, nameUz, descriptionRu, descriptionUz } = req.body;
     const result = await pool.query(
-      'UPDATE modules SET name_ru = COALESCE($1, name_ru), name_uz = COALESCE($2, name_uz), description_ru = COALESCE($3, description_ru), description_uz = COALESCE($4, description_uz) WHERE id = $5 RETURNING id, subject_id as "subjectId", name_ru as "nameRu", name_uz as "nameUz", description_ru as "descriptionRu", description_uz as "descriptionUz", created_by as "createdBy", created_at',
+      'UPDATE modules SET name_ru = COALESCE($1, name_ru), name_uz = COALESCE($2, name_uz), description_ru = COALESCE($3, description_ru), description_uz = COALESCE($4, description_uz) WHERE id = $5 RETURNING id::text, subject_id as "subjectId", name_ru as "nameRu", name_uz as "nameUz", description_ru as "descriptionRu", description_uz as "descriptionUz", created_by as "createdBy", created_at',
       [nameRu, nameUz, descriptionRu, descriptionUz, moduleId]
     );
     if (result.rows.length === 0) {
@@ -672,9 +688,10 @@ app.post('/api/modules/:moduleId/tests', auth, async (req, res) => {
       return res.status(400).json({ success: false, error: 'В модуле уже есть тест' });
     }
     console.log(`➕ Создание теста в модуле ${moduleId}: ${nameRu}`);
+    const testId = crypto.randomUUID();
     const result = await pool.query(
-      'INSERT INTO tests (module_id, name_ru, name_uz, duration, time_limit, max_score, status, questions, assigned_grades, created_by, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()) RETURNING id, module_id as "moduleId", name_ru as "nameRu", name_uz as "nameUz", duration, time_limit as "timeLimit", max_score as "maxScore", status, assigned_grades as "assignedGrades", questions, created_by as "createdBy", jsonb_array_length(questions) as "questionsCount"',
-      [moduleId, nameRu, nameUz, duration, timeLimit, maxScore, status || 'draft', JSON.stringify(questions || []), assignedGrades || [], req.userId]
+      'INSERT INTO tests (id, module_id, name_ru, name_uz, duration, time_limit, max_score, status, questions, assigned_grades, created_by, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW()) RETURNING id::text, module_id as "moduleId", name_ru as "nameRu", name_uz as "nameUz", duration, time_limit as "timeLimit", max_score as "maxScore", status, assigned_grades as "assignedGrades", questions, created_by as "createdBy", jsonb_array_length(questions) as "questionsCount"',
+      [testId, moduleId, nameRu, nameUz, duration, timeLimit, maxScore, status || 'draft', JSON.stringify(questions || []), assignedGrades || [], req.userId]
     );
     const newTest = result.rows[0];
     console.log(`✅ Тест создан с ID: ${newTest.id}`);
@@ -720,7 +737,7 @@ app.put('/api/tests/:testId', auth, async (req, res) => {
       }
     }
     setParts.push(`updated_at = NOW()`);
-    const query = `UPDATE tests SET ${setParts.join(', ')} WHERE id = $${idx} RETURNING id, module_id as "moduleId", name_ru as "nameRu", name_uz as "nameUz", duration, time_limit as "timeLimit", max_score as "maxScore", status, assigned_grades as "assignedGrades", questions, created_by as "createdBy", jsonb_array_length(questions) as "questionsCount"`;
+    const query = `UPDATE tests SET ${setParts.join(', ')} WHERE id = $${idx} RETURNING id::text, module_id as "moduleId", name_ru as "nameRu", name_uz as "nameUz", duration, time_limit as "timeLimit", max_score as "maxScore", status, assigned_grades as "assignedGrades", questions, created_by as "createdBy", jsonb_array_length(questions) as "questionsCount"`;
     values.push(testId);
     const result = await pool.query(query, values);
     if (result.rows.length === 0) {
@@ -840,9 +857,10 @@ app.post('/api/tests/:testId/submit', auth, async (req, res) => {
     const module = moduleRows[0];
     const subjectId = module ? module.subject_id : null;
     // Сохраняем результат
+    const resultId = crypto.randomUUID();
     const insertResult = await pool.query(
-      'INSERT INTO test_results (user_id, test_id, score, correct_count, total_count, time_taken, question_results, completed_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING *',
-      [req.userId, testId, score, correctCount, questions.length, timeTaken, JSON.stringify(questionResults)]
+      'INSERT INTO test_results (id, user_id, test_id, score, correct_count, total_count, time_taken, question_results, completed_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING id::text, user_id, test_id, score, correct_count, total_count, time_taken, question_results, completed_at',
+      [resultId, req.userId, testId, score, correctCount, questions.length, timeTaken, JSON.stringify(questionResults)]
     );
     const result = insertResult.rows[0];
     console.log(`✅ Результат теста сохранён: ${result.id} - Score: ${score}`);
@@ -1480,7 +1498,11 @@ app.get('/api/classes/:classId', auth, async (req, res) => {
     }
     const classItem = rows[0];
     // Получаем студентов этого класса (по grade и name)
-    const studentsQuery = await pool.query('SELECT id, username, first_name as "firstName", last_name as "lastName", grade, grade_section as "gradeSection", school, email FROM users WHERE role = $1 AND grade = $2', ['student', classItem.grade]);
+    const studentsQuery = await pool.query(`SELECT u.id, u.username, u.first_name as "firstName", u.last_name as "lastName", 
+                                                     u.grade, u.grade_section as "gradeSection", s.name as "schoolName"
+                                              FROM users u
+                                              LEFT JOIN schools s ON u.school_id = s.id
+                                              WHERE u.role = $1 AND u.grade = $2`, ['student', classItem.grade]);
     const studentData = studentsQuery.rows;
     res.json({
       success: true,
@@ -1505,10 +1527,13 @@ app.get('/api/classes/:classId/students', auth, async (req, res) => {
     const classItem = rows[0];
     const section = req.query.section || classItem.name || null;
     // Получаем студентов этого класса
-    let studentsQuery = 'SELECT id, username, first_name, last_name, grade, grade_section, school FROM users WHERE role = $1 AND grade = $2';
+    let studentsQuery = `SELECT u.id, u.username, u.first_name, u.last_name, u.grade, u.grade_section, s.name as "schoolName"
+                         FROM users u
+                         LEFT JOIN schools s ON u.school_id = s.id
+                         WHERE u.role = $1 AND u.grade = $2`;
     const params = ['student', classItem.grade];
     if (section) {
-      studentsQuery += ' AND grade_section = $3';
+      studentsQuery += ' AND u.grade_section = $3';
       params.push(section);
     }
     const studentsRes = await pool.query(studentsQuery, params);
@@ -1524,10 +1549,13 @@ app.get('/api/classes/:grade/students', auth, async (req, res) => {
   try {
     const { grade } = req.params;
     const { section } = req.query;
-    let studentsQuery = 'SELECT id, username, first_name, last_name, grade, grade_section, school FROM users WHERE role = $1 AND grade = $2';
+    let studentsQuery = `SELECT u.id, u.username, u.first_name, u.last_name, u.grade, u.grade_section, s.name as "schoolName"
+                         FROM users u
+                         LEFT JOIN schools s ON u.school_id = s.id
+                         WHERE u.role = $1 AND u.grade = $2`;
     const params = ['student', grade];
     if (section) {
-      studentsQuery += ' AND grade_section = $3';
+      studentsQuery += ' AND u.grade_section = $3';
       params.push(section);
     }
     const studentsRes = await pool.query(studentsQuery, params);
@@ -1567,9 +1595,10 @@ app.post('/api/classes', auth, async (req, res) => {
     if (existing.length > 0) {
       return res.status(400).json({ success: false, error: 'Класс с таким названием уже существует' });
     }
+    const classId = crypto.randomUUID();
     const result = await pool.query(
-      'INSERT INTO classes (grade, name, teacher_id, created_at) VALUES ($1, $2, $3, NOW()) RETURNING id, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at',
-      [grade, name, teacherIdInt]
+      'INSERT INTO classes (id, grade, name, teacher_id, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id::text, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at',
+      [classId, grade, name, teacherIdInt]
     );
     const newClass = result.rows[0];
     console.log(`✅ Класс создан: ${newClass.id}`);
@@ -2031,7 +2060,7 @@ app.put('/api/classes/:classId', auth, async (req, res) => {
       }
     }
     const result = await pool.query(
-      'UPDATE classes SET name = COALESCE($1, name), teacher_id = $2 WHERE id = $3 RETURNING id, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at',
+      'UPDATE classes SET name = COALESCE($1, name), teacher_id = $2 WHERE id = $3 RETURNING id::text, grade, name, teacher_id as "teacherId", student_count as "studentCount", created_at',
       [name, teacherIdInt, classId]
     );
     if (result.rowCount === 0) {
@@ -2278,8 +2307,10 @@ app.post('/api/teacher-tests', auth, async (req, res) => {
     if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({ success: false, error: 'Заполните все обязательные поля' });
     }
-    const query = 'INSERT INTO teacher_tests (title, description, duration, passing_score, questions, created_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *';
+    const testId = crypto.randomUUID();
+    const query = 'INSERT INTO teacher_tests (id, title, description, duration, passing_score, questions, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id::text, title, description, duration, passing_score, questions, assigned_to, created_at';
     const params = [
+      testId,
       title,
       description || '',
       duration || 30,
@@ -2369,9 +2400,10 @@ app.post('/api/teacher-test-results', auth, async (req, res) => {
     if (!testId || !teacherId || !answers) {
       return res.status(400).json({ success: false, error: 'Недостаточно данных' });
     }
+    const resultId = crypto.randomUUID();
     const result = await pool.query(
-      'INSERT INTO teacher_test_results (test_id, teacher_id, answers, score, passed, completed_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
-      [testId, teacherId, JSON.stringify(answers), score || 0, passed || false]
+      'INSERT INTO teacher_test_results (id, test_id, teacher_id, answers, score, passed, completed_at) VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id::text, test_id, teacher_id, answers, score, passed, completed_at',
+      [resultId, testId, teacherId, JSON.stringify(answers), score || 0, passed || false]
     );
     res.status(201).json({ success: true, data: result.rows[0] });
   } catch (error) {
@@ -2457,10 +2489,118 @@ app.post('/api/admin/reset-data', auth, (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Mock server running on port ${PORT}`);
-  console.log('⚠️  Using in-memory database (no MongoDB required)');
-  console.log('📋 Sample teacher test created and assigned to teacher1');
+// ========================================
+// SCHOOLS API
+// ========================================
+
+// Get all schools
+app.get('/api/schools', auth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT id::text, name, address, phone, email, director_name as "directorName", created_at as "createdAt", updated_at as "updatedAt" FROM schools ORDER BY name');
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Error fetching schools:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при загрузке школ' });
+  }
 });
 
-export default app;
+// Get single school
+app.get('/api/schools/:schoolId', auth, async (req, res) => {
+  try {
+    const { schoolId } = req.params;
+    const { rows } = await pool.query('SELECT id::text, name, address, phone, email, director_name as "directorName", created_at as "createdAt", updated_at as "updatedAt" FROM schools WHERE id = $1', [schoolId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Школа не найдена' });
+    }
+    res.json({ success: true, data: rows[0] });
+  } catch (error) {
+    console.error('Error fetching school:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при загрузке школы' });
+  }
+});
+
+// Create school (admin only)
+app.post('/api/schools', auth, async (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Только администратор может создавать школы' });
+  }
+  try {
+    const { name, address, phone, email, directorName } = req.body;
+    if (!name) {
+      return res.status(400).json({ success: false, error: 'Название школы обязательно' });
+    }
+    const schoolId = crypto.randomUUID();
+    const result = await pool.query(
+      'INSERT INTO schools (id, name, address, phone, email, director_name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id::text, name, address, phone, email, director_name as "directorName", created_at as "createdAt"',
+      [schoolId, name, address, phone, email, directorName]
+    );
+    console.log(`✅ Школа создана: ${name}`);
+    res.status(201).json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Error creating school:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при создании школы' });
+  }
+});
+
+// Update school (admin only)
+app.put('/api/schools/:schoolId', auth, async (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Только администратор может редактировать школы' });
+  }
+  try {
+    const { schoolId } = req.params;
+    const { name, address, phone, email, directorName } = req.body;
+    const fields = [];
+    const values = [];
+    let idx = 1;
+    if (name !== undefined) { fields.push(`name = $${idx}`); values.push(name); idx++; }
+    if (address !== undefined) { fields.push(`address = $${idx}`); values.push(address); idx++; }
+    if (phone !== undefined) { fields.push(`phone = $${idx}`); values.push(phone); idx++; }
+    if (email !== undefined) { fields.push(`email = $${idx}`); values.push(email); idx++; }
+    if (directorName !== undefined) { fields.push(`director_name = $${idx}`); values.push(directorName); idx++; }
+    if (fields.length === 0) {
+      return res.status(400).json({ success: false, error: 'Нет данных для обновления' });
+    }
+    fields.push(`updated_at = NOW()`);
+    const query = `UPDATE schools SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id::text, name, address, phone, email, director_name as "directorName", updated_at as "updatedAt"`;
+    values.push(schoolId);
+    const result = await pool.query(query, values);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Школа не найдена' });
+    }
+    console.log(`✅ Школа обновлена: ${schoolId}`);
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Error updating school:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при обновлении школы' });
+  }
+});
+
+// Delete school (admin only)
+app.delete('/api/schools/:schoolId', auth, async (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Только администратор может удалять школы' });
+  }
+  try {
+    const { schoolId } = req.params;
+    // Check if school has users
+    const userCount = await pool.query('SELECT COUNT(*) as count FROM users WHERE school_id = $1', [schoolId]);
+    if (parseInt(userCount.rows[0].count) > 0) {
+      return res.status(400).json({ success: false, error: 'Нельзя удалить школу, в которой есть пользователи' });
+    }
+    const result = await pool.query('DELETE FROM schools WHERE id = $1 RETURNING *', [schoolId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Школа не найдена' });
+    }
+    console.log(`🗑️ Школа удалена: ${schoolId}`);
+    res.json({ success: true, message: 'Школа удалена успешно' });
+  } catch (error) {
+    console.error('Error deleting school:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при удалении школы' });
+  }
+});
+
+app.listen(PORT, async () => {
+  console.log(`🚀 Mock server running on port ${PORT}`);
+  console.log('⚠️  Using PostgreSQL database');
+});
