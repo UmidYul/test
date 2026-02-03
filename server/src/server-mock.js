@@ -145,7 +145,7 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
 // Get all subjects (PostgreSQL)
 app.get('/api/subjects', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, name FROM subjects ORDER BY id');
+    const { rows } = await pool.query('SELECT id, name, questions_count as "questionsCount" FROM subjects ORDER BY id');
     console.log(`[SUBJECTS] Fetched all subjects (${rows.length})`);
     res.json(rows);
   } catch (error) {
@@ -159,7 +159,7 @@ app.post('/api/subjects', auth, async (req, res) => {
   if (req.userRole !== 'admin') {
     return res.status(403).json({ message: 'Access denied' });
   }
-  const { name } = req.body || {};
+  const { name, questionsCount } = req.body || {};
   if (!name) {
     return res.status(400).json({ message: 'Заполните обязательные поля' });
   }
@@ -170,8 +170,8 @@ app.post('/api/subjects', auth, async (req, res) => {
     }
     const subjectId = crypto.randomUUID();
     const result = await pool.query(
-      'INSERT INTO subjects (id, name) VALUES ($1, $2) RETURNING id::text, name',
-      [subjectId, name.trim()]
+      'INSERT INTO subjects (id, name, questions_count) VALUES ($1, $2, $3) RETURNING id::text, name, questions_count as "questionsCount"',
+      [subjectId, name.trim(), Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0]
     );
     console.log(`[SUBJECTS] Created subject: ${name}`);
     res.json({ success: true, data: result.rows[0] });
@@ -187,14 +187,14 @@ app.put('/api/subjects/:subjectId', auth, async (req, res) => {
     return res.status(403).json({ message: 'Access denied' });
   }
   const { subjectId } = req.params;
-  const { name } = req.body || {};
+  const { name, questionsCount } = req.body || {};
   if (!name) {
     return res.status(400).json({ message: 'Заполните обязательные поля' });
   }
   try {
     const result = await pool.query(
-      'UPDATE subjects SET name = $1 WHERE id = $2 RETURNING id::text, name',
-      [name.trim(), subjectId]
+      'UPDATE subjects SET name = $1, questions_count = $2 WHERE id = $3 RETURNING id::text, name, questions_count as "questionsCount"',
+      [name.trim(), Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0, subjectId]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Subject not found' });
@@ -378,11 +378,11 @@ app.get('/api/teacher/classes', auth, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
     const { rows } = await pool.query(
-      `SELECT c.id, c.name_ru, c.name_uz, c.grade, c.section, c.academic_year
+      `SELECT c.id, c.name, c.grade, c.student_count as "studentCount", c.created_at
        FROM classes c
        JOIN teacher_teaching_assignments tta ON c.id = tta.class_id
        WHERE tta.teacher_id = $1
-       ORDER BY c.grade, c.section`,
+       ORDER BY c.grade, c.name`,
       [req.userId]
     );
     res.json({ success: true, data: rows });
@@ -402,7 +402,7 @@ app.get('/api/teacher/test-results', auth, async (req, res) => {
       `SELECT ts.id as session_id, ts.score, ts.passed, ts.completed_at, ts.time_taken_minutes,
               t.title as test_title, t.target_role,
               u.first_name, u.last_name, u.grade, u.section,
-              c.name_ru as class_name,
+              c.name as class_name,
               COUNT(ta.id) as total_questions,
               SUM(CASE WHEN ta.is_correct THEN 1 ELSE 0 END) as correct_answers
        FROM test_sessions ts
@@ -412,7 +412,7 @@ app.get('/api/teacher/test-results', auth, async (req, res) => {
        LEFT JOIN classes c ON cs.class_id = c.id
        LEFT JOIN test_answers ta ON ts.id = ta.session_id
        WHERE t.created_by = $1 AND ts.status = 'completed'
-       GROUP BY ts.id, t.title, t.target_role, u.first_name, u.last_name, u.grade, u.section, c.name_ru
+       GROUP BY ts.id, t.title, t.target_role, u.first_name, u.last_name, u.grade, u.section, c.name
        ORDER BY ts.completed_at DESC`,
       [req.userId]
     );
@@ -621,10 +621,10 @@ app.get('/api/subjects/:subjectId/modules', auth, async (req, res) => {
     //   return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     // }
     console.log(`📚 Загрузка модулей для предмета: ${subjectId}`);
-    const { rows } = await pool.query('SELECT id, subject_id as "subjectId", name_ru as "nameRu", name_uz as "nameUz", description_ru as "descriptionRu", description_uz as "descriptionUz", created_by as "createdBy", created_at FROM modules WHERE subject_id = $1', [subjectId]);
+    const { rows } = await pool.query('SELECT id, subject_id as "subjectId", name, description, created_by as "createdBy", created_at FROM modules WHERE subject_id = $1', [subjectId]);
     console.log(`✅ Найдено модулей: ${rows.length}`);
     if (rows.length > 0) {
-      console.log('📝 Модули:', rows.map(m => m.name_ru).join(', '));
+      console.log('📝 Модули:', rows.map(m => m.name).join(', '));
     }
     res.json({ success: true, data: rows });
   } catch (error) {
@@ -640,17 +640,17 @@ app.post('/api/subjects/:subjectId/modules', auth, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
     const { subjectId } = req.params;
-    const { nameRu, nameUz, descriptionRu, descriptionUz } = req.body;
+    const { name, description } = req.body;
     // const user = ...
     // if (user?.role === 'teacher' && !teacherHasSubject(user, subjectId)) {
     //   return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     // }
     console.log(`➕ Создание нового модуля для предмета: ${subjectId}`);
-    console.log(`📝 Название: ${nameRu} / ${nameUz}`);
+    console.log(`📝 Название: ${name}`);
     const moduleId = crypto.randomUUID();
     const result = await pool.query(
-      'INSERT INTO modules (id, subject_id, name_ru, name_uz, description_ru, description_uz, created_by, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING id::text, subject_id as "subjectId", name_ru as "nameRu", name_uz as "nameUz", description_ru as "descriptionRu", description_uz as "descriptionUz", created_by as "createdBy", created_at',
-      [moduleId, subjectId, nameRu, nameUz, descriptionRu, descriptionUz, req.userId]
+      'INSERT INTO modules (id, subject_id, name, description, created_by, created_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id::text, subject_id as "subjectId", name, description, created_by as "createdBy", created_at',
+      [moduleId, subjectId, name, description, req.userId]
     );
     const newModule = result.rows[0];
     console.log(`✅ Модуль создан с ID: ${newModule.id}`);
@@ -668,10 +668,10 @@ app.put('/api/modules/:moduleId', auth, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
     const { moduleId } = req.params;
-    const { nameRu, nameUz, descriptionRu, descriptionUz } = req.body;
+    const { name, description } = req.body;
     const result = await pool.query(
-      'UPDATE modules SET name_ru = COALESCE($1, name_ru), name_uz = COALESCE($2, name_uz), description_ru = COALESCE($3, description_ru), description_uz = COALESCE($4, description_uz) WHERE id = $5 RETURNING id::text, subject_id as "subjectId", name_ru as "nameRu", name_uz as "nameUz", description_ru as "descriptionRu", description_uz as "descriptionUz", created_by as "createdBy", created_at',
-      [nameRu, nameUz, descriptionRu, descriptionUz, moduleId]
+      'UPDATE modules SET name = COALESCE($1, name), description = COALESCE($2, description) WHERE id = $3 RETURNING id::text, subject_id as "subjectId", name, description, created_by as "createdBy", created_at',
+      [name, description, moduleId]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Модуль не найден' });
@@ -734,7 +734,7 @@ app.get('/api/modules/:moduleId/tests', auth, async (req, res) => {
     //   return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     // }
     console.log(`🔍 Получение тестов для модуля: ${moduleId}`);
-    const { rows } = await pool.query('SELECT id, module_id as "moduleId", name_ru as "nameRu", name_uz as "nameUz", duration, time_limit as "timeLimit", max_score as "maxScore", status, assigned_grades as "assignedGrades", questions, created_by as "createdBy", jsonb_array_length(questions) as "questionsCount" FROM tests WHERE module_id = $1', [moduleId]);
+    const { rows } = await pool.query('SELECT id, module_id as "moduleId", name, duration, time_limit as "timeLimit", max_score as "maxScore", status, assigned_grades as "assignedGrades", questions, created_by as "createdBy", jsonb_array_length(questions) as "questionsCount" FROM tests WHERE module_id = $1', [moduleId]);
     console.log(`✅ Найдено ${rows.length} тестов для модуля ${moduleId}`);
     res.json({ success: true, data: rows });
   } catch (error) {

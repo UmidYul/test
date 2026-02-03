@@ -133,118 +133,129 @@ const translations = {
         subjectsManagementDesc: 'Добавляйте и редактируйте школьные предметы',
         addSubject: 'Добавить предмет',
         editSubject: 'Редактировать предмет',
-        subjectName: 'Название предмета',
         noSubjects: 'Предметы не найдены',
-    }
-};
+    },
+    uz: {
+        // Common
+        login: 'Kirish',
+        logout: 'Chiqish',
+        save: 'Saqlash',
+        cancel: 'Bekor qilish',
+        delete: 'O\'chirish',
+        edit: 'Tahrirlash',
+        add: 'Qo\'shish',
+        back: 'Orqaga',
+        next: 'Keyingi',
+        submit: 'Yuborish',
+        loading: 'Yuklanmoqda...',
+        error: 'Xato',
+        success: 'Muvaffaqiyatli',
 
-
-// Login Page
-selectRole: 'Rolni tanlang',
-    loginAsStudent: 'O\'quvchi sifatida kirish',
+        // Login Page
+        selectRole: 'Rolni tanlang',
+        loginAsStudent: 'O\'quvchi sifatida kirish',
         loginAsTeacher: 'O\'qituvchi sifatida kirish',
-            loginAsAdmin: 'Administrator sifatida kirish',
-                username: 'Login',
-                    password: 'Parol',
-                        changePassword: 'Parolni o\'zgartirish',
-                            currentPassword: 'Joriy parol',
-                                newPassword: 'Yangi parol',
-                                    confirmPassword: 'Parolni tasdiqlang',
-                                        mustChangePassword: 'Vaqtinchalik parolingizni o\'zgartirishingiz kerak',
+        loginAsAdmin: 'Administrator sifatida kirish',
+        username: 'Login',
+        password: 'Parol',
+        changePassword: 'Parolni o\'zgartirish',
+        currentPassword: 'Joriy parol',
+        newPassword: 'Yangi parol',
+        confirmPassword: 'Parolni tasdiqlang',
+        mustChangePassword: 'Vaqtinchalik parolingizni o\'zgartirishingiz kerak',
 
-                                            // Student
-                                            student: 'O\'quvchi',
-                                                dashboard: 'Bosh sahifa',
-                                                    subjects: 'Fanlar',
-                                                        subjectTests: 'Fan testlari',
-                                                            interestTest: 'Qiziqishlarni aniqlash testi',
-                                                                myProfile: 'Mening profilim',
-                                                                    firstName: 'Ism',
-                                                                        lastName: 'Familiya',
-                                                                            grade: 'Sinf',
-                                                                                interests: 'Qiziqishlar',
-                                                                                    welcome: 'Xush kelibsiz',
+        // Student
+        student: 'O\'quvchi',
+        dashboard: 'Bosh sahifa',
+        subjects: 'Fanlar',
+        subjectTests: 'Fan testlari',
+        interestTest: 'Qiziqishlarni aniqlash testi',
+        myProfile: 'Mening profilim',
+        firstName: 'Ism',
+        lastName: 'Familiya',
+        grade: 'Sinf',
+        interests: 'Qiziqishlar',
+        welcome: 'Xush kelibsiz',
 
-                                                                                        // Teacher
-                                                                                        teacher: 'O\'qituvchi',
-                                                                                            classes: 'Sinflar',
-                                                                                                manageTests: 'Testlarni boshqarish',
+        // Teacher
+        teacher: 'O\'qituvchi',
+        classes: 'Sinflar',
+        manageTests: 'Testlarni boshqarish',
 
-                                                                                                    // Modules & Tests
-                                                                                                    modules: 'Modullar',
-                                                                                                        module: 'Modul',
-                                                                                                            createModule: 'Modul yaratish',
-                                                                                                                moduleName: 'Modul nomi',
-                                                                                                                    moduleDescription: 'Modul tavsifi',
-                                                                                                                        tests: 'Testlar',
-                                                                                                                            test: 'Test',
-                                                                                                                                createTest: 'Test yaratish',
-                                                                                                                                    testName: 'Test nomi',
-                                                                                                                                        testDuration: 'Test vaqti (daqiqalar)',
-                                                                                                                                            maxScore: 'Maksimal ball',
-                                                                                                                                                questions: 'Savollar',
-                                                                                                                                                    question: 'Savol',
-                                                                                                                                                        addQuestion: 'Savol qo\'shish',
-                                                                                                                                                            questionText: 'Savol matni',
-                                                                                                                                                                questionType: 'Savol turi',
-                                                                                                                                                                    singleChoice: 'Bitta to\'g\'ri javob',
-                                                                                                                                                                        multipleChoice: 'Bir nechta to\'g\'ri javob',
-                                                                                                                                                                            answers: 'Javob variantlari',
-                                                                                                                                                                                correctAnswer: 'To\'g\'ri javob',
-                                                                                                                                                                                    addAnswer: 'Variant qo\'shish',
-                                                                                                                                                                                        publish: 'Nashr qilish',
-                                                                                                                                                                                            draft: 'Qoralama',
-                                                                                                                                                                                                published: 'Nashr qilingan',
-                                                                                                                                                                                                    status: 'Holat',
-                                                                                                                                                                                                        notStarted: 'Boshlanmagan',
-                                                                                                                                                                                                            inProgress: 'Jarayonda',
-                                                                                                                                                                                                                completed: 'Tugallangan',
-                                                                                                                                                                                                                    result: 'Natija',
-                                                                                                                                                                                                                        score: 'Ballar',
-                                                                                                                                                                                                                            percentage: 'Foiz',
-                                                                                                                                                                                                                                attempts: 'Urinishlar',
-                                                                                                                                                                                                                                    startTest: 'Testni boshlash',
-                                                                                                                                                                                                                                        continueTest: 'Testni davom ettirish',
-                                                                                                                                                                                                                                            submitTest: 'Testni yakunlash',
-                                                                                                                                                                                                                                                viewResults: 'Natijalarni ko\'rish',
-                                                                                                                                                                                                                                                    analytics: 'Analitika',
-                                                                                                                                                                                                                                                        averageScore: 'O\'rtacha ball',
-                                                                                                                                                                                                                                                            completionRate: 'Bajarilish foizi',
-                                                                                                                                                                                                                                                                controlTests: 'Nazorat isbotlari',
-                                                                                                                                                                                                                                                                    controlTest: 'Nazorat isbo\'ti',
-                                                                                                                                                                                                                                                                        noControlTests: 'Nazorat isbotlari tayinlanmagan',
+        // Modules & Tests
+        modules: 'Modullar',
+        module: 'Modul',
+        createModule: 'Modul yaratish',
+        moduleName: 'Modul nomi',
+        moduleDescription: 'Modul tavsifi',
+        tests: 'Testlar',
+        test: 'Test',
+        createTest: 'Test yaratish',
+        testName: 'Test nomi',
+        testDuration: 'Test vaqti (daqiqalar)',
+        maxScore: 'Maksimal ball',
+        questions: 'Savollar',
+        question: 'Savol',
+        addQuestion: 'Savol qo\'shish',
+        questionText: 'Savol matni',
+        questionType: 'Savol turi',
+        singleChoice: 'Bitta to\'g\'ri javob',
+        multipleChoice: 'Bir nechta to\'g\'ri javob',
+        answers: 'Javob variantlari',
+        correctAnswer: 'To\'g\'ri javob',
+        addAnswer: 'Variant qo\'shish',
+        publish: 'Nashr qilish',
+        draft: 'Qoralama',
+        published: 'Nashr qilingan',
+        status: 'Holat',
+        notStarted: 'Boshlanmagan',
+        inProgress: 'Jarayonda',
+        completed: 'Tugallangan',
+        result: 'Natija',
+        score: 'Ballar',
+        percentage: 'Foiz',
+        attempts: 'Urinishlar',
+        startTest: 'Testni boshlash',
+        continueTest: 'Testni davom ettirish',
+        submitTest: 'Testni yakunlash',
+        viewResults: 'Natijalarni ko\'rish',
+        analytics: 'Analitika',
+        averageScore: 'O\'rtacha ball',
+        completionRate: 'Bajarilish foizi',
+        controlTests: 'Nazorat isbotlari',
+        controlTest: 'Nazorat isbo\'ti',
+        noControlTests: 'Nazorat isbotlari tayinlanmagan',
 
-                                                                                                                                                                                                                                                                            // Admin
-                                                                                                                                                                                                                                                                            admin: 'Administrator',
-                                                                                                                                                                                                                                                                                adminPanel: 'Admin Panel',
-                                                                                                                                                                                                                                                                                    adminManagement: "Tizimni boshqarish va nazorat",
-                                                                                                                                                                                                                                                                                        userManagement: 'Foydalanuvchilarni boshqarish',
-                                                                                                                                                                                                                                                                                            users: 'Foydalanuvchilar',
-                                                                                                                                                                                                                                                                                                addUser: 'Foydalanuvchi qo\'shish',
-                                                                                                                                                                                                                                                                                                    role: 'Rol',
-                                                                                                                                                                                                                                                                                                        actions: 'Harakatlar',
-                                                                                                                                                                                                                                                                                                            analytics: 'Analitika',
-                                                                                                                                                                                                                                                                                                                analyticsDesc: 'Statistika va tizim metrikalari',
-                                                                                                                                                                                                                                                                                                                    classes: 'Sinflar',
-                                                                                                                                                                                                                                                                                                                        classesManagement: 'Sinflar va guruhlarni boshqarish',
-                                                                                                                                                                                                                                                                                                                            teacherTests: "O'qituvchi testlari",
-                                                                                                                                                                                                                                                                                                                                teacherTestsDesc: 'Kompetensiyalarni baholash testlari',
-                                                                                                                                                                                                                                                                                                                                    newUser: 'Yangi foydalanuvchi',
-                                                                                                                                                                                                                                                                                                                                        newUserDesc: "O'quvchi yoki o'qituvchi qo'shish",
-                                                                                                                                                                                                                                                                                                                                            passwords: 'Parollar',
-                                                                                                                                                                                                                                                                                                                                                passwordsManagement: 'Foydalanuvchi parollarini boshqarish',
-                                                                                                                                                                                                                                                                                                                                                    students: "O'quvchilar",
-                                                                                                                                                                                                                                                                                                                                                        teachers: "O'qituvchilar",
-                                                                                                                                                                                                                                                                                                                                                            classFilter: 'Sinf bo\'yicha filtrlash',
-                                                                                                                                                                                                                                                                                                                                                                allClasses: 'Barcha sinflar',
-                                                                                                                                                                                                                                                                                                                                                                    noStudents: "O'quvchilar topilmadi",
-                                                                                                                                                                                                                                                                                                                                                                        noTeachers: "O'qituvchilar topilmadi",
-                                                                                                                                                                                                                                                                                                                                                                            subjectsManagement: 'Fanlarni boshqarish',
-                                                                                                                                                                                                                                                                                                                                                                                subjectsManagementDesc: 'Fanlarni qo\'shing va tahrirlang',
-                                                                                                                                                                                                                                                                                                                                                                                    addSubject: 'Fan qo\'shish',
-                                                                                                                                                                                                                                                                                                                                                                                        editSubject: 'Fanni tahrirlash',
-                                                                                                                                                                                                                                                                                                                                                                                            subjectNameRu: 'Nomi (RU)',
-                                                                                                                                                                                                                                                                                                                                                                                                subjectNameUz: 'Nomi (UZ)',
+        // Admin
+        admin: 'Administrator',
+        adminPanel: 'Admin Panel',
+        adminManagement: "Tizimni boshqarish va nazorat",
+        userManagement: 'Foydalanuvchilarni boshqarish',
+        users: 'Foydalanuvchilar',
+        addUser: 'Foydalanuvchi qo\'shish',
+        role: 'Rol',
+        actions: 'Harakatlar',
+        analytics: 'Analitika',
+        analyticsDesc: 'Statistika va tizim metrikalari',
+        classes: 'Sinflar',
+        classesManagement: 'Sinflar va guruhlarni boshqarish',
+        teacherTests: "O'qituvchi testlari",
+        teacherTestsDesc: 'Kompetensiyalarni baholash testlari',
+        newUser: 'Yangi foydalanuvchi',
+        newUserDesc: "O'quvchi yoki o'qituvchi qo'shish",
+        passwords: 'Parollar',
+        passwordsManagement: 'Foydalanuvchi parollarini boshqarish',
+        students: "O'quvchilar",
+        teachers: "O'qituvchilar",
+        classFilter: 'Sinf bo\'yicha filtrlash',
+        allClasses: 'Barcha sinflar',
+        noStudents: "O'quvchilar topilmadi",
+        noTeachers: "O'qituvchilar topilmadi",
+        subjectsManagement: 'Fanlarni boshqarish',
+        subjectsManagementDesc: 'Fanlarni qo\'shing va tahrirlang',
+        addSubject: 'Fan qo\'shish',
+        editSubject: 'Fanni tahrirlash',
+        noSubjects: 'Fanlar topilmadi',
     }
 };
 
@@ -659,16 +670,16 @@ function t(key) {
 const chartPalette = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
 
 const DEFAULT_SUBJECT_ORDER = [
-    { id: '1', nameRu: 'Алгебра', nameUz: 'Algebra' },
-    { id: '2', nameRu: 'Геометрия', nameUz: 'Geometriya' },
-    { id: '3', nameRu: 'Физика', nameUz: 'Fizika' },
-    { id: '4', nameRu: 'Химия', nameUz: 'Kimyo' },
-    { id: '5', nameRu: 'Биология', nameUz: 'Biologiya' },
-    { id: '6', nameRu: 'История', nameUz: 'Tarix' },
-    { id: '7', nameRu: 'Литература', nameUz: 'Adabiyot' },
-    { id: '8', nameRu: 'География', nameUz: 'Geografiya' },
-    { id: '9', nameRu: 'Английский язык', nameUz: 'Ingliz tili' },
-    { id: '10', nameRu: 'Информатика', nameUz: 'Informatika' }
+    { id: '1', name: 'Алгебра' },
+    { id: '2', name: 'Геометрия' },
+    { id: '3', name: 'Физика' },
+    { id: '4', name: 'Химия' },
+    { id: '5', name: 'Биология' },
+    { id: '6', name: 'История' },
+    { id: '7', name: 'Литература' },
+    { id: '8', name: 'География' },
+    { id: '9', name: 'Английский язык' },
+    { id: '10', name: 'Информатика' }
 ];
 
 function getChartLineColor() {
@@ -696,26 +707,25 @@ function buildAverageSeries(series, labels) {
 
 function getOrderedSubjects(subjects = []) {
     const normalized = (Array.isArray(subjects) ? subjects : []).map(subject => {
-        const id = subject?._id || subject?.id || subject?.subjectId || subject?.nameRu || subject?.nameUz || subject?.label || subject?.subjectName;
+        const id = subject?._id || subject?.id || subject?.subjectId || subject?.name || subject?.label || subject?.subjectName;
         return {
             id: id ? String(id) : '',
-            nameRu: subject?.nameRu || subject?.name || subject?.subjectName || subject?.label || '',
-            nameUz: subject?.nameUz || subject?.name || subject?.subjectName || subject?.label || ''
+            name: subject?.name || subject?.subjectName || subject?.label || ''
         };
-    }).filter(subject => subject.id || subject.nameRu || subject.nameUz);
+    }).filter(subject => subject.id || subject.name);
 
     const byId = new Map(normalized.map(subject => [subject.id, subject]));
-    const byName = new Map(normalized.map(subject => [(subject.nameRu || '').toLowerCase(), subject]));
+    const byName = new Map(normalized.map(subject => [(subject.name || '').toLowerCase(), subject]));
 
     const ordered = DEFAULT_SUBJECT_ORDER.map(subject => {
-        const match = byId.get(subject.id) || byName.get(subject.nameRu.toLowerCase());
+        const match = byId.get(subject.id) || byName.get(subject.name.toLowerCase());
         return match ? { ...subject, ...match } : subject;
     });
 
     normalized.forEach(subject => {
         const exists = ordered.some(item => {
             const sameId = item.id && subject.id && item.id === subject.id;
-            const sameName = (item.nameRu || '').toLowerCase() === (subject.nameRu || '').toLowerCase();
+            const sameName = (item.name || '').toLowerCase() === (subject.name || '').toLowerCase();
             return sameId || sameName;
         });
         if (!exists) {
@@ -733,7 +743,7 @@ function buildSubjectAverageChart(chartData, seriesLabel, options = {}) {
     if (!chartData?.series?.length) {
         if (!includeAllSubjects) return { labels: [], series: [] };
         const orderedSubjects = getOrderedSubjects(subjectList);
-        const labels = orderedSubjects.map(subject => (lang === 'uz' ? (subject.nameUz || subject.nameRu) : (subject.nameRu || subject.nameUz)));
+        const labels = orderedSubjects.map(subject => subject.name);
         return {
             labels,
             series: [
@@ -787,13 +797,12 @@ function buildSubjectAverageChart(chartData, seriesLabel, options = {}) {
     }
 
     const orderedSubjects = getOrderedSubjects(subjectList);
-    const labels = orderedSubjects.map(subject => (lang === 'uz' ? (subject.nameUz || subject.nameRu) : (subject.nameRu || subject.nameUz)));
+    const labels = orderedSubjects.map(subject => subject.name);
     const data = orderedSubjects.map(subject => {
         const idKey = subject.id ? String(subject.id) : '';
         if (idKey && averagesByKey.has(idKey)) return averagesByKey.get(idKey);
-        const ruKey = (subject.nameRu || '').toLowerCase();
-        if (ruKey && averagesByKey.has(ruKey)) return averagesByKey.get(ruKey);
-        const uzKey = (subject.nameUz || '').toLowerCase();
+        const nameKey = (subject.name || '').toLowerCase();
+        if (nameKey && averagesByKey.has(nameKey)) return averagesByKey.get(nameKey);
         if (uzKey && averagesByKey.has(uzKey)) return averagesByKey.get(uzKey);
         return null;
     });
@@ -1999,108 +2008,84 @@ async function renderStudentProfile() {
             math: {
                 subjects: [
                     {
-                        nameRu: 'Математика',
-                        nameUz: 'Matematika',
+                        name: 'Математика',
                         icon: '🔢',
-                        reasonRu: 'Ваши логические способности и интерес к числам делают математику идеальным выбором',
-                        reasonUz: 'Mantiqiy qobiliyatingiz va sonlarga qiziqish matematikani ideal tanlov qiladi'
+                        reason: 'Ваши логические способности и интерес к числам делают математику идеальным выбором'
                     },
                     {
-                        nameRu: 'Физика',
-                        nameUz: 'Fizika',
+                        name: 'Физика',
                         icon: '⚛️',
-                        reasonRu: 'Физика требует сильных математических навыков и логического мышления',
-                        reasonUz: 'Fizika kuchli matematika ko\'nikmalarini va mantiqiy fikrlashni talab qiladi'
+                        reason: 'Физика требует сильных математических навыков и логического мышления'
                     }
                 ]
             },
             science: {
                 subjects: [
                     {
-                        nameRu: 'Биология',
-                        nameUz: 'Biologiya',
+                        name: 'Биология',
                         icon: '🧬',
-                        reasonRu: 'Ваш интерес к природе и живым организмам идеально подходит для биологии',
-                        reasonUz: 'Tabiat va tirik organizmlar haqidagi qiziqishingiz biologiya uchun ideal'
+                        reason: 'Ваш интерес к природе и живым организмам идеально подходит для биологии'
                     },
                     {
-                        nameRu: 'Химия',
-                        nameUz: 'Kimyo',
+                        name: 'Химия',
                         icon: '🧪',
-                        reasonRu: 'Химия откроет вам мир научных экспериментов и исследований',
-                        reasonUz: 'Kimyo sizga ilmiy tajribalar va tadqiqotlar dunyosini ochadi'
+                        reason: 'Химия откроет вам мир научных экспериментов и исследований'
                     }
                 ]
             },
             tech: {
                 subjects: [
                     {
-                        nameRu: 'Информатика',
-                        nameUz: 'Informatika',
+                        name: 'Информатика',
                         icon: '💻',
-                        reasonRu: 'Ваши технические навыки прекрасно подходят для программирования',
-                        reasonUz: 'Texnik ko\'nikmalaringiz dasturlash uchun juda mos'
+                        reason: 'Ваши технические навыки прекрасно подходят для программирования'
                     },
                     {
-                        nameRu: 'Физика',
-                        nameUz: 'Fizika',
+                        name: 'Физика',
                         icon: '⚛️',
-                        reasonRu: 'Физика - основа всех современных технологий',
-                        reasonUz: 'Fizika - barcha zamonaviy texnologiyalarning asosi'
+                        reason: 'Физика - основа всех современных технологий'
                     }
                 ]
             },
             art: {
                 subjects: [
                     {
-                        nameRu: 'Изобразительное искусство',
-                        nameUz: 'Tasviriy san\'at',
+                        name: 'Изобразительное искусство',
                         icon: '🎨',
-                        reasonRu: 'Развивайте свой творческий потенциал через искусство',
-                        reasonUz: 'San\'at orqali ijodiy salohiyatingizni rivojlantiring'
+                        reason: 'Развивайте свой творческий потенциал через искусство'
                     },
                     {
-                        nameRu: 'Музыка',
-                        nameUz: 'Musiqa',
+                        name: 'Музыка',
                         icon: '🎵',
-                        reasonRu: 'Музыка поможет выразить вашу креативность',
-                        reasonUz: 'Musiqa ijodkorligingizni ifodalashga yordam beradi'
+                        reason: 'Музыка поможет выразить вашу креативность'
                     }
                 ]
             },
             social: {
                 subjects: [
                     {
-                        nameRu: 'История',
-                        nameUz: 'Tarix',
+                        name: 'История',
                         icon: '📜',
-                        reasonRu: 'История поможет понять общество и человеческие отношения',
-                        reasonUz: 'Tarix jamiyat va inson munosabatlarini tushunishga yordam beradi'
+                        reason: 'История поможет понять общество и человеческие отношения'
                     },
                     {
-                        nameRu: 'Обществознание',
-                        nameUz: 'Jamiyatshunoslik',
+                        name: 'Обществознание',
                         icon: '👥',
-                        reasonRu: 'Идеально для развития социальных и коммуникативных навыков',
-                        reasonUz: 'Ijtimoiy va kommunikativ ko\'nikmalarni rivojlantirish uchun ideal'
+                        reason: 'Идеально для развития социальных и коммуникативных навыков'
                     }
                 ]
             },
             language: {
                 subjects: [
                     {
-                        nameRu: 'Литература',
-                        nameUz: 'Adabiyot',
+                        name: 'Литература',
                         icon: '📚',
-                        reasonRu: 'Литература развивает языковые навыки и культурное понимание',
-                        reasonUz: 'Adabiyot til ko\'nikmalarini va madaniy tushunchani rivojlantiradi'
+                        reason: 'Литература развивает языковые навыки и культурное понимание'
                     },
                     {
-                        nameRu: 'Иностранный язык',
-                        nameUz: 'Chet tili',
+                        name: 'Иностранный язык',
                         icon: '🌍',
-                        reasonRu: 'Откройте новые возможности через изучение языков',
-                        reasonUz: 'Tillarni o\'rganish orqali yangi imkoniyatlarni oching'
+                        reason: 'Откройте новые возможности через изучение языков'
                     }
                 ]
             }
@@ -2290,12 +2275,12 @@ async function renderStudentProfile() {
                                         ${subject.icon}
                                     </div>
                                     <div style="flex: 1;">
-                                        <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem;">${lang === 'uz' ? subject.nameUz : subject.nameRu}</h3>
+                                        <h3 style="margin: 0 0 0.25rem 0; font-size: 1.1rem;">${subject.name}</h3>
                                         <div style="color: var(--primary); font-weight: bold;">${Math.round(score)}% ${lang === 'uz' ? 'mos' : 'соответствие'}</div>
                                     </div>
                                 </div>
                                 <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem; line-height: 1.5;">
-                                    ${lang === 'uz' ? subject.reasonUz : subject.reasonRu}
+                                    ${lang === 'uz' ? subject.reason : subject.reason}
                                 </p>
                             </div>
                         `).join('')}
@@ -2328,7 +2313,7 @@ async function renderStudentProfile() {
                     <select id="subjectSelector" class="form-input">
                         <option value="" selected disabled>${lang === 'uz' ? 'Fanni tanlang...' : 'Выберите предмет...'}</option>
                         ${subjects.filter(s => resultsBySubject[s._id]).map(subject => `
-                            <option value="${subject._id}">${lang === 'uz' ? subject.nameUz : subject.nameRu} (${resultsBySubject[subject._id].length} ${lang === 'uz' ? 'ta test' : 'тестов'})</option>
+                            <option value="${subject._id}">${subject.name} (${resultsBySubject[subject._id].length} ${lang === 'uz' ? 'ta test' : 'тестов'})</option>
                         `).join('')}
                     </select>
                 </div>
@@ -2353,7 +2338,7 @@ async function renderStudentProfile() {
             const subject = subjects.find(s => (s._id || s.id) === subjectId);
             return {
                 subjectId,
-                subjectName: subject?.nameRu || subject?.nameUz || subjectId,
+                subjectName: subject?.name || subjectId,
                 data: (resultsBySubject[subjectId] || []).map(result => result.score)
             };
         });
@@ -2393,11 +2378,11 @@ async function renderStudentProfile() {
                 const subjectAverageScore = Math.round(testResults.reduce((sum, r) => sum + r.score, 0) / subjectTotalTests);
 
                 const subject = subjects.find(s => s._id === subjectId);
-                const subjectName = subject ? (lang === 'uz' ? subject.nameUz : subject.nameRu) : '';
+                const subjectName = subject ? subject.name : '';
 
                 const modulesRes = await apiRequest(`/api/subjects/${subjectId}/modules`);
                 const modules = modulesRes.success ? (modulesRes.data?.data || modulesRes.data || []) : [];
-                const moduleNameById = new Map(modules.map(m => [m._id, lang === 'uz' ? m.nameUz : m.nameRu]));
+                const moduleNameById = new Map(modules.map(m => [m._id, m.name]));
 
                 const moduleBuckets = {};
                 testResults.forEach(result => {
@@ -2664,8 +2649,8 @@ async function renderSubjectTests() {
                 ${result.data.map(subject => `
                     <div class="subject-card" data-subject-id="${subject._id}">
                         <div class="subject-header">
-                            <div class="subject-icon">${getSubjectIcon(store.getState().language === 'uz' ? subject.nameUz : subject.nameRu)}</div>
-                            <h3>${store.getState().language === 'uz' ? subject.nameUz : subject.nameRu}</h3>
+                            <div class="subject-icon">${getSubjectIcon(subject.name)}</div>
+                            <h3>${subject.name}</h3>
                         </div>
                         <div class="subject-info">
                             <p>${store.getState().language === 'uz' ? 'Savollar' : 'Вопросов'}: ${subject.questionsCount || 10}</p>
@@ -2770,7 +2755,7 @@ async function renderStudentSubjectModules() {
     if (subjectsResult.success) {
         const subject = subjectsResult.data.find(s => s._id === subjectId);
         if (subject) {
-            document.getElementById('subjectName').textContent = lang === 'uz' ? subject.nameUz : subject.nameRu;
+            document.getElementById('subjectName').textContent = subject.name;
         }
     }
 
@@ -2842,8 +2827,8 @@ async function renderStudentSubjectModules() {
 
         modulesContainer.innerHTML = modulesWithTests.map(module => `
             <div class="card" style="margin-bottom: 2rem;">
-                <h3 style="margin-bottom: 0.5rem;">${lang === 'uz' ? module.nameUz : module.nameRu}</h3>
-                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">${lang === 'uz' ? module.descriptionUz : module.descriptionRu}</p>
+                <h3 style="margin-bottom: 0.5rem;">${module.name}</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">${module.description}</p>
                 
                 ${module.tests.length > 0 ? `
                     <div style="display: grid; gap: 1rem;">
@@ -2856,7 +2841,7 @@ async function renderStudentSubjectModules() {
             if (!isPassed) {
                 return `
                                     <div class="card" style="background: var(--bg-tertiary); transition: all 0.3s ease;">
-                                        <h4 style="margin-bottom: 0.5rem;">${lang === 'uz' ? test.nameUz : test.nameRu}</h4>
+                                        <h4 style="margin-bottom: 0.5rem;">${test.name}</h4>
                                         <div style="display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-muted);">
                                             ${test.duration ? `<span>⏱️ ${test.duration} ${lang === 'uz' ? 'daqiqa' : 'мин'}</span>` : ''}
                                             <span>📝 ${test.questionsCount || 0} ${lang === 'uz' ? 'savol' : 'вопросов'}</span>
@@ -2925,7 +2910,7 @@ async function renderStudentSubjectModules() {
                                     
                                     <!-- Название теста -->
                                     <h4 style="margin-bottom: 0.5rem; padding-right: 130px;">
-                                        ${lang === 'uz' ? test.nameUz : test.nameRu}
+                                        ${test.name}
                                     </h4>
                                     
                                     <!-- Метаданные теста -->
@@ -3090,7 +3075,7 @@ async function renderTestTaker() {
 
     if (testResult.success && testResult.data) {
         const test = testResult.data;
-        document.getElementById('testName').textContent = lang === 'uz' ? test.nameUz : test.nameRu;
+        document.getElementById('testName').textContent = test.name;
 
         const questions = test.questions || [];
 
@@ -3903,11 +3888,10 @@ async function renderAdminSubjects() {
                                 ${subjects.map(subject => {
             const id = subject._id || subject.id || '';
             return `
-                                        <div class="subjects-card" data-name-ru="${(subject.nameRu || '').toLowerCase()}" data-name-uz="${(subject.nameUz || '').toLowerCase()}">
+                                        <div class="subjects-card" data-name="${(subject.name || '').toLowerCase()}">
                                             <div class="subjects-card__header">
                                                 <div>
-                                                    <div class="subjects-card__title">${subject.nameRu || '—'}</div>
-                                                    <div class="subjects-card__subtitle">${subject.nameUz || '—'}</div>
+                                                    <div class="subjects-card__title">${subject.name || '—'}</div>
                                                 </div>
                                                 <span class="subjects-badge">${lang === 'uz' ? 'Fan' : 'Subject'}</span>
                                             </div>
@@ -3983,12 +3967,8 @@ function showAddSubjectModal() {
             <p style="margin: 0 0 1.5rem 0; color: var(--text-secondary); font-size: 0.9rem;">${t('subjectsManagementDesc')}</p>
             <form id="subjectForm" style="display: grid; gap: 1rem;">
                 <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 0.4rem;">${t('subjectNameRu')}</label>
-                    <input id="subjectNameRu" type="text" placeholder="${lang === 'uz' ? 'Masalan: Matematika' : 'Например: Математика'}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
-                </div>
-                <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 0.4rem;">${t('subjectNameUz')}</label>
-                    <input id="subjectNameUz" type="text" placeholder="${lang === 'uz' ? 'Masalan: Matematika' : 'Например: Matematika'}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.4rem;">Название предмета</label>
+                    <input id="subjectName" type="text" placeholder="Например: Математика" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
                     <button type="button" id="closeSubjectModal" class="button button-secondary" style="flex: 1;">${t('cancel')}</button>
@@ -4008,22 +3988,21 @@ function showAddSubjectModal() {
     document.getElementById('closeSubjectModal')?.addEventListener('click', () => modal.remove());
     document.getElementById('subjectForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nameRu = document.getElementById('subjectNameRu').value.trim();
-        const nameUz = document.getElementById('subjectNameUz').value.trim();
-        if (!nameRu || !nameUz) {
-            showAlert(lang === 'uz' ? 'Barcha maydonlarni to\'ldiring' : 'Заполните все обязательные поля', 'warning');
+        const name = document.getElementById('subjectName').value.trim();
+        if (!name) {
+            showAlert('Заполните название предмета', 'warning');
             return;
         }
 
-        const payload = { nameRu, nameUz };
+        const payload = { name };
 
         const result = await apiRequest('/api/subjects', 'POST', payload);
         if (result.success) {
-            showAlert(lang === 'uz' ? 'Fan qo\'shildi' : 'Предмет добавлен', 'success');
+            showAlert('Предмет добавлен', 'success');
             modal.remove();
             renderAdminSubjects();
         } else {
-            showAlert(result.error || (lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка'), 'error');
+            showAlert(result.error || 'Произошла ошибка', 'error');
         }
     });
 }
@@ -4038,12 +4017,8 @@ function showEditSubjectModal(subject) {
             <p style="margin: 0 0 1.5rem 0; color: var(--text-secondary); font-size: 0.9rem;">${t('subjectsManagementDesc')}</p>
             <form id="subjectEditForm" style="display: grid; gap: 1rem;">
                 <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 0.4rem;">${t('subjectNameRu')}</label>
-                    <input id="subjectEditNameRu" type="text" value="${subject.nameRu || ''}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
-                </div>
-                <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 0.4rem;">${t('subjectNameUz')}</label>
-                    <input id="subjectEditNameUz" type="text" value="${subject.nameUz || ''}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.4rem;">Название предмета</label>
+                    <input id="subjectEditName" type="text" value="${subject.name || ''}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
                 </div>
                 <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
                     <button type="button" id="closeSubjectEditModal" class="button button-secondary" style="flex: 1;">${t('cancel')}</button>
@@ -4063,14 +4038,13 @@ function showEditSubjectModal(subject) {
     document.getElementById('closeSubjectEditModal')?.addEventListener('click', () => modal.remove());
     document.getElementById('subjectEditForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const nameRu = document.getElementById('subjectEditNameRu').value.trim();
-        const nameUz = document.getElementById('subjectEditNameUz').value.trim();
-        if (!nameRu || !nameUz) {
+        const name = document.getElementById('subjectEditName').value.trim();
+        if (!name) {
             showAlert(lang === 'uz' ? 'Barcha maydonlarni to\'ldiring' : 'Заполните все обязательные поля', 'warning');
             return;
         }
 
-        const payload = { nameRu, nameUz };
+        const payload = { name };
 
         const subjectId = subject._id || subject.id;
         const result = await apiRequest(`/api/subjects/${subjectId}`, 'PUT', payload);
@@ -4405,8 +4379,8 @@ async function showAddUserModal() {
                     <div class="teacher-subjects-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto;">
                         ${subjectsList.map(subject => `
                             <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(139, 92, 246, 0.1)'" onmouseout="this.style.background='transparent'">
-                                <input type="checkbox" class="teacherSubject" value="${subject._id}" data-name="${subject.nameRu}" style="width: 18px; height: 18px; cursor: pointer;">
-                                <span style="flex: 1; font-size: 0.95rem;">${lang === 'uz' ? subject.nameUz : subject.nameRu}</span>
+                                <input type="checkbox" class="teacherSubject" value="${subject._id}" data-name="${subject.name}" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span style="flex: 1; font-size: 0.95rem;">${subject.name}</span>
                             </label>
                         `).join('')}
                     </div>
@@ -5155,9 +5129,7 @@ async function loadTeacherDetail(teacherId) {
                     ${subjects.map((subject, idx) => {
             const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#f5576c', '#ffa502'];
             const color = colors[idx % colors.length];
-            const subjectName = lang === 'uz'
-                ? (subject.nameUz || subject.name || subject)
-                : (subject.nameRu || subject.name || subject);
+            const subjectName = subject.name || subject;
             const emojis = ['📐', '🔬', '⚗️', '🧬', '📜', '📖'];
             const emoji = emojis[idx % emojis.length];
             return `
@@ -5240,7 +5212,7 @@ async function loadTeacherDetail(teacherId) {
             const date = new Date(test.createdAt || test.updatedAt);
             const dateStr = date.toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'ru-RU', { month: 'short', day: 'numeric', year: '2-digit' });
             const testType = test.testType || (lang === 'uz' ? 'Standart' : 'Стандарт');
-            const testTitle = lang === 'uz' ? (test.nameUz || test.nameRu || test.testName || test.name || 'Номи келмаган тест') : (test.nameRu || test.nameUz || test.testName || test.name || 'Тест без названия');
+            const testTitle = test.name || test.testName || (lang === 'uz' ? 'Номи келмаган тест' : 'Тест без названия');
             return `
                                     <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-tertiary)'" onmouseout="this.style.background='transparent'">
                                         <td style="padding: 0.75rem; color: var(--text-primary);">${testTitle}</td>
@@ -6787,107 +6759,85 @@ function displayInterestResults(categories) {
         math: {
             subjects: [
                 {
-                    nameRu: 'Математика',
-                    nameUz: 'Matematika',
+                    name: 'Математика',
                     icon: '🔢',
-                    reasonRu: 'Ваши логические способности и интерес к числам делают математику идеальным выбором',
-                    reasonUz: 'Mantiqiy qobiliyatingiz va sonlarga qiziqish matematikani ideal tanlov qiladi'
+                    reason: 'Ваши логические способности и интерес к числам делают математику идеальным выбором'
                 },
                 {
-                    nameRu: 'Физика',
-                    nameUz: 'Fizika',
+                    name: 'Физика',
                     icon: '⚛️',
-                    reasonRu: 'Физика требует сильных математических навыков и логического мышления',
-                    reasonUz: 'Fizika kuchli matematika ko\'nikmalarini va mantiqiy fikrlashni talab qiladi'
+                    reason: 'Физика требует сильных математических навыков и логического мышления'
                 }
             ]
         },
         science: {
             subjects: [
                 {
-                    nameRu: 'Биология',
-                    nameUz: 'Biologiya',
+                    name: 'Биология',
                     icon: '🧬',
-                    reasonRu: 'Ваш интерес к природе и живым организмам идеально подходит для биологии',
-                    reasonUz: 'Tabiat va tirik organizmlar haqidagi qiziqishingiz biologiya uchun ideal'
+                    reason: 'Ваш интерес к природе и живым организмам идеально подходит для биологии'
                 },
                 {
-                    nameRu: 'Химия',
-                    nameUz: 'Kimyo',
+                    name: 'Химия',
                     icon: '🧪',
-                    reasonRu: 'Химия откроет вам мир научных экспериментов и исследований',
-                    reasonUz: 'Kimyo sizga ilmiy tajribalar va tadqiqotlar dunyosini ochadi'
+                    reason: 'Химия откроет вам мир научных экспериментов и исследований'
                 }
             ]
         },
         tech: {
             subjects: [
                 {
-                    nameRu: 'Информатика',
-                    nameUz: 'Informatika',
+                    name: 'Информатика',
                     icon: '💻',
-                    reasonRu: 'Ваши технические навыки прекрасно подходят для программирования',
-                    reasonUz: 'Texnik ko\'nikmalaringiz dasturlash uchun juda mos'
+                    reason: 'Ваши технические навыки прекрасно подходят для программирования'
                 },
                 {
-                    nameRu: 'Физика',
-                    nameUz: 'Fizika',
+                    name: 'Физика',
                     icon: '⚛️',
-                    reasonRu: 'Физика - основа всех современных технологий',
-                    reasonUz: 'Fizika - barcha zamonaviy texnologiyalarning asosi'
+                    reason: 'Физика - основа всех современных технологий'
                 }
             ]
         },
         art: {
             subjects: [
                 {
-                    nameRu: 'Изобразительное искусство',
-                    nameUz: 'Tasviriy san\'at',
+                    name: 'Изобразительное искусство',
                     icon: '🎨',
-                    reasonRu: 'Развивайте свой творческий потенциал через искусство',
-                    reasonUz: 'San\'at orqali ijodiy salohiyatingizni rivojlantiring'
+                    reason: 'Развивайте свой творческий потенциал через искусство'
                 },
                 {
-                    nameRu: 'Музыка',
-                    nameUz: 'Musiqa',
+                    name: 'Музыка',
                     icon: '🎵',
-                    reasonRu: 'Музыка поможет выразить вашу креативность',
-                    reasonUz: 'Musiqa ijodkorligingizni ifodalashga yordam beradi'
+                    reason: 'Музыка поможет выразить вашу креативность'
                 }
             ]
         },
         social: {
             subjects: [
                 {
-                    nameRu: 'История',
-                    nameUz: 'Tarix',
+                    name: 'История',
                     icon: '📜',
-                    reasonRu: 'История поможет понять общество и человеческие отношения',
-                    reasonUz: 'Tarix jamiyat va inson munosabatlarini tushunishga yordam beradi'
+                    reason: 'История поможет понять общество и человеческие отношения'
                 },
                 {
-                    nameRu: 'Обществознание',
-                    nameUz: 'Jamiyatshunoslik',
+                    name: 'Обществознание',
                     icon: '👥',
-                    reasonRu: 'Идеально для развития социальных и коммуникативных навыков',
-                    reasonUz: 'Ijtimoiy va kommunikativ ko\'nikmalarni rivojlantirish uchun ideal'
+                    reason: 'Идеально для развития социальных и коммуникативных навыков'
                 }
             ]
         },
         language: {
             subjects: [
                 {
-                    nameRu: 'Литература',
-                    nameUz: 'Adabiyot',
+                    name: 'Литература',
                     icon: '📚',
-                    reasonRu: 'Литература развивает языковые навыки и воображение',
-                    reasonUz: 'Adabiyot til ko\'nikmalarini va tasavvurni rivojlantiradi'
+                    reason: 'Литература развивает языковые навыки и воображение'
                 },
                 {
-                    nameRu: 'Иностранные языки',
-                    nameUz: 'Chet tillar',
+                    name: 'Иностранные языки',
                     icon: '🌍',
-                    reasonRu: 'Ваша способность к языкам откроет новые возможности',
+                    reason: 'Ваша способность к языкам откроет новые возможности'
+                }, {
                     reasonUz: 'Tillar haqidagi qobiliyatingiz yangi imkoniyatlarni ochadi'
                 }
             ]
@@ -7159,7 +7109,7 @@ function displayInterestResults(categories) {
                                     ">${subject.icon}</div>
                                     <div>
                                         <h3 style="margin: 0; font-size: 1.25rem; color: var(--text-primary); font-weight: 700;">
-                                            ${lang === 'uz' ? subject.nameUz : subject.nameRu}
+                                            ${subject.name}
                                         </h3>
                                         <div style="
                                             display: inline-block;
@@ -7180,7 +7130,7 @@ function displayInterestResults(categories) {
                                     line-height: 1.6;
                                     padding-left: 0.5rem;
                                     border-left: 3px solid #667eea;
-                                ">${lang === 'uz' ? subject.reasonUz : subject.reasonRu}</p>
+                                ">${subject.reason}</p>
                             </div>
                         `).join('');
         }).join('')}
@@ -7282,7 +7232,7 @@ async function renderControlTests() {
             return `
                             <div class="test-card" data-test-id="${test._id}">
                                 <div class="test-header">
-                                    <h3>${lang === 'uz' ? test.nameUz : test.nameRu}</h3>
+                                    <h3>${test.name}</h3>
                                     ${isCompleted ? `
                                         <div style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: ${statusColor}20; border: 2px solid ${statusColor}; border-radius: 8px; text-align: center;">
                                             <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">${statusIcon}</div>
@@ -8006,8 +7956,8 @@ async function renderTeacherSubjects() {
                 ${subjectsToShow.map(subject => `
                     <div class="subject-card" data-subject-id="${subject._id}" style="background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 1px solid var(--border-color); transition: all 0.3s ease; cursor: pointer;">
                         <div class="subject-header" style="pointer-events: none;">
-                            <div class="subject-icon" style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">${getSubjectIcon(lang === 'uz' ? subject.nameUz : subject.nameRu)}</div>
-                            <h3 style="margin: 1rem 0 0.5rem 0; font-size: 1.25rem;">${lang === 'uz' ? subject.nameUz : subject.nameRu}</h3>
+                            <div class="subject-icon" style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">${getSubjectIcon(subject.name)}</div>
+                            <h3 style="margin: 1rem 0 0.5rem 0; font-size: 1.25rem;">${subject.name}</h3>
                         </div>
                         <div class="subject-info" style="margin: 0.75rem 0; pointer-events: none;">
                             <p id="subject-${subject._id}-stats" style="color: var(--text-muted); font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
@@ -8088,37 +8038,19 @@ async function renderTeacherSubjectManagement() {
                 </div>
             </div>
             <form id="createModuleForm" class="module-form">
-                <div class="form-row-2cols">
-                    <div class="form-group">
-                        <label class="form-label">
-                            <span style="font-size: 1.25rem;">🇷🇺</span>
-                            ${lang === 'uz' ? 'Modul nomi (Ruscha)' : 'Название модуля (RU)'}
-                        </label>
-                        <input type="text" class="form-input" id="moduleNameRu" placeholder="${lang === 'uz' ? 'Masalan: Algebra asoslari' : 'Например: Основы алгебры'}" required />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">
-                            <span style="font-size: 1.25rem;">🇺🇿</span>
-                            ${lang === 'uz' ? 'Modul nomi (O\'zbekcha)' : 'Название модуля (UZ)'}
-                        </label>
-                        <input type="text" class="form-input" id="moduleNameUz" placeholder="${lang === 'uz' ? 'Masalan: Algebra asoslari' : 'Например: Основы алгебры'}" required />
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <span style="font-size: 1.25rem;">📚</span>
+                        ${lang === 'uz' ? 'Modul nomi' : 'Название модуля'}
+                    </label>
+                    <input type="text" class="form-input" id="moduleName" placeholder="${lang === 'uz' ? 'Masalan: Algebra asoslari' : 'Например: Основы алгебры'}" required />
                 </div>
-                <div class="form-row-2cols">
-                    <div class="form-group">
-                        <label class="form-label">
-                            <span style="font-size: 1.25rem;">📝</span>
-                            ${lang === 'uz' ? 'Tavsif (Ruscha)' : 'Описание (RU)'}
-                        </label>
-                        <textarea class="form-textarea" id="moduleDescRu" rows="3" placeholder="${lang === 'uz' ? 'Modul haqida qisqacha ma\'lumot' : 'Краткая информация о модуле'}"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">
-                            <span style="font-size: 1.25rem;">📝</span>
-                            ${lang === 'uz' ? 'Tavsif (O\'zbekcha)' : 'Описание (UZ)'}
-                        </label>
-                        <textarea class="form-textarea" id="moduleDescUz" rows="3" placeholder="${lang === 'uz' ? 'Modul haqida qisqacha ma\'lumot' : 'Краткая информация о модуле'}"></textarea>
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        <span style="font-size: 1.25rem;">📝</span>
+                        ${lang === 'uz' ? 'Tavsif' : 'Описание'}
+                    </label>
+                    <textarea class="form-textarea" id="moduleDesc" rows="3" placeholder="${lang === 'uz' ? 'Modul haqida qisqacha ma\'lumot' : 'Краткая информация о модуле'}"></textarea>
                 </div>
                 <button type="submit" class="button button-primary submit-btn">
                     <span style="font-size: 1.25rem;">✨</span>
@@ -8184,14 +8116,12 @@ async function renderTeacherSubjectManagement() {
     document.getElementById('createModuleForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const nameRu = document.getElementById('moduleNameRu').value;
-        const nameUz = document.getElementById('moduleNameUz').value;
-        const descriptionRu = document.getElementById('moduleDescRu').value;
-        const descriptionUz = document.getElementById('moduleDescUz').value;
+        const name = document.getElementById('moduleName').value;
+        const description = document.getElementById('moduleDesc').value;
 
         const result = await apiRequest(`/api/subjects/${subjectId}/modules`, {
             method: 'POST',
-            body: JSON.stringify({ nameRu, nameUz, descriptionRu, descriptionUz })
+            body: JSON.stringify({ name, description })
         });
 
         const messageDiv = document.getElementById('moduleMessage');
@@ -8205,8 +8135,7 @@ async function renderTeacherSubjectManagement() {
                 await apiRequest(`/api/modules/${result.data._id}/tests`, {
                     method: 'POST',
                     body: JSON.stringify({
-                        nameRu: lang === 'uz' ? 'Test' : 'Тест',
-                        nameUz: lang === 'uz' ? 'Test' : 'Test',
+                        name: lang === 'uz' ? 'Test' : 'Тест',
                         duration: 30,
                         maxScore: 100,
                         status: 'published',
@@ -10162,20 +10091,12 @@ async function renderTeacherModulesOld() {
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>${t('moduleName')} (RU)</label>
-                    <input type="text" id="moduleNameRu" placeholder="${store.getState().language === 'uz' ? 'Masalan: Algebra' : 'Например: Алгебра'}" required />
+                    <label>${t('moduleName')}</label>
+                    <input type="text" id="moduleName" placeholder="${store.getState().language === 'uz' ? 'Masalan: Algebra' : 'Например: Алгебра'}" required />
                 </div>
                 <div class="form-group">
-                    <label>${t('moduleName')} (UZ)</label>
-                    <input type="text" id="moduleNameUz" placeholder="${store.getState().language === 'uz' ? 'Masalan: Algebra' : 'Например: Алгебра'}" required />
-                </div>
-                <div class="form-group">
-                    <label>${store.getState().language === 'uz' ? 'Tavsif (RU)' : 'Описание (RU)'}</label>
-                    <textarea id="moduleDescRu" rows="3" placeholder="${store.getState().language === 'uz' ? 'Modul tavsifi ruscha' : 'Описание модуля на русском'}" required></textarea>
-                </div>
-                <div class="form-group">
-                    <label>${store.getState().language === 'uz' ? 'Tavsif (UZ)' : 'Описание (UZ)'}</label>
-                    <textarea id="moduleDescUz" rows="3" placeholder="${store.getState().language === 'uz' ? 'Modul tavsifi o\'zbekcha' : 'Описание модуля на узбекском'}" required></textarea>
+                    <label>${store.getState().language === 'uz' ? 'Tavsif' : 'Описание'}</label>
+                    <textarea id="moduleDesc" rows="3" placeholder="${store.getState().language === 'uz' ? 'Modul tavsifi' : 'Описание модуля'}" required></textarea>
                 </div>
                 <button type="submit" class="button button-primary">
                     ${t('create')}
@@ -10243,14 +10164,12 @@ async function renderTeacherModulesOld() {
         e.preventDefault();
 
         const subjectId = document.getElementById('moduleSubject').value;
-        const nameRu = document.getElementById('moduleNameRu').value;
-        const nameUz = document.getElementById('moduleNameUz').value;
-        const descriptionRu = document.getElementById('moduleDescRu').value;
-        const descriptionUz = document.getElementById('moduleDescUz').value;
+        const name = document.getElementById('moduleName').value;
+        const description = document.getElementById('moduleDesc').value;
 
         const result = await apiRequest(`/api/subjects/${subjectId}/modules`, {
             method: 'POST',
-            body: JSON.stringify({ nameRu, nameUz, descriptionRu, descriptionUz })
+            body: JSON.stringify({ name, description })
         });
 
         const messageDiv = document.getElementById('moduleMessage');
@@ -10282,8 +10201,8 @@ async function loadModules(subjectId) {
             <div class="card" style="margin-bottom: 1rem;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="flex: 1;">
-                        <h4 style="margin-bottom: 0.5rem;">${store.getState().language === 'uz' ? module.nameUz : module.nameRu}</h4>
-                        <p style="color: var(--text-muted); margin-bottom: 1rem;">${store.getState().language === 'uz' ? module.descriptionUz : module.descriptionRu}</p>
+                        <h4 style="margin-bottom: 0.5rem;">${module.name}</h4>
+                        <p style="color: var(--text-muted); margin-bottom: 1rem;">${module.description}</p>
                         <small style="color: var(--text-muted);">${store.getState().language === 'uz' ? 'Yaratildi' : 'Создан'}: ${new Date(module.createdAt).toLocaleDateString()}</small>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">

@@ -60,16 +60,16 @@ function initDefaultSubjects() {
     }
 
     subjects.push(
-        { _id: '1', nameRu: 'Алгебра', nameUz: 'Algebra', questionsCount: 10 },
-        { _id: '2', nameRu: 'Геометрия', nameUz: 'Geometriya', questionsCount: 10 },
-        { _id: '3', nameRu: 'Физика', nameUz: 'Fizika', questionsCount: 10 },
-        { _id: '4', nameRu: 'Химия', nameUz: 'Kimyo', questionsCount: 10 },
-        { _id: '5', nameRu: 'Биология', nameUz: 'Biologiya', questionsCount: 10 },
-        { _id: '6', nameRu: 'История', nameUz: 'Tarix', questionsCount: 10 },
-        { _id: '7', nameRu: 'Литература', nameUz: 'Adabiyot', questionsCount: 10 },
-        { _id: '8', nameRu: 'География', nameUz: 'Geografiya', questionsCount: 10 },
-        { _id: '9', nameRu: 'Английский язык', nameUz: 'Ingliz tili', questionsCount: 10 },
-        { _id: '10', nameRu: 'Информатика', nameUz: 'Informatika', questionsCount: 10 }
+        { _id: '1', name: 'Алгебра', questionsCount: 10 },
+        { _id: '2', name: 'Геометрия', questionsCount: 10 },
+        { _id: '3', name: 'Физика', questionsCount: 10 },
+        { _id: '4', name: 'Химия', questionsCount: 10 },
+        { _id: '5', name: 'Биология', questionsCount: 10 },
+        { _id: '6', name: 'История', questionsCount: 10 },
+        { _id: '7', name: 'Литература', questionsCount: 10 },
+        { _id: '8', name: 'География', questionsCount: 10 },
+        { _id: '9', name: 'Английский язык', questionsCount: 10 },
+        { _id: '10', name: 'Информатика', questionsCount: 10 }
     );
 }
 
@@ -207,40 +207,32 @@ async function initUsers() {
         {
             _id: '1',
             subjectId: '1',
-            nameRu: 'Алгебра',
-            nameUz: 'Algebra',
-            descriptionRu: 'Основы алгебры и линейные уравнения',
-            descriptionUz: 'Algebra asoslari va chiziqli tenglamalar',
+            name: 'Алгебра',
+            description: 'Основы алгебры и линейные уравнения',
             createdBy: '2',
             createdAt: new Date().toISOString()
         },
         {
             _id: '2',
             subjectId: '1',
-            nameRu: 'Геометрия',
-            nameUz: 'Geometriya',
-            descriptionRu: 'Планиметрия и стереометрия',
-            descriptionUz: 'Planimetriya va stereometriya',
+            name: 'Геометрия',
+            description: 'Планиметрия и стереометрия',
             createdBy: '2',
             createdAt: new Date().toISOString()
         },
         {
             _id: '3',
             subjectId: '2',
-            nameRu: 'Механика',
-            nameUz: 'Mexanika',
-            descriptionRu: 'Кинематика и динамика',
-            descriptionUz: 'Kinematika va dinamika',
+            name: 'Механика',
+            description: 'Кинематика и динамика',
             createdBy: '2',
             createdAt: new Date().toISOString()
         },
         {
             _id: '4',
             subjectId: '2',
-            nameRu: 'Электричество',
-            nameUz: 'Elektr',
-            descriptionRu: 'Электростатика и электродинамика',
-            descriptionUz: 'Elektrostatika va elektrodinamika',
+            name: 'Электричество',
+            description: 'Электростатика и электродинамика',
             createdBy: '2',
             createdAt: new Date().toISOString()
         }
@@ -251,8 +243,7 @@ async function initUsers() {
         {
             _id: '1',
             moduleId: '1',
-            nameRu: 'Линейные уравнения',
-            nameUz: 'Chiziqli tenglamalar',
+            name: 'Линейные уравнения',
             duration: 30,
             timeLimit: 15,
             maxScore: 100,
@@ -297,8 +288,7 @@ async function initUsers() {
         {
             _id: '2',
             moduleId: '3',
-            nameRu: 'Законы Ньютона',
-            nameUz: 'Nyuton qonunlari',
+            name: 'Законы Ньютона',
             duration: 25,
             timeLimit: 12,
             maxScore: 100,
@@ -652,14 +642,14 @@ app.post('/api/subjects', auth, (req, res) => {
         return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { nameRu, nameUz, questionsCount } = req.body || {};
+    const { name, questionsCount } = req.body || {};
 
-    if (!nameRu || !nameUz) {
+    if (!name) {
         return res.status(400).json({ message: 'Заполните обязательные поля' });
     }
 
     const exists = subjects.find(
-        s => s.nameRu?.toLowerCase() === nameRu.toLowerCase() || s.nameUz?.toLowerCase() === nameUz.toLowerCase()
+        s => s.name?.toLowerCase() === name.toLowerCase()
     );
     if (exists) {
         return res.status(400).json({ message: 'Предмет уже существует' });
@@ -667,8 +657,7 @@ app.post('/api/subjects', auth, (req, res) => {
 
     const newSubject = {
         _id: Date.now().toString(),
-        nameRu: nameRu.trim(),
-        nameUz: nameUz.trim(),
+        name: name.trim(),
         questionsCount: Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0
     };
 

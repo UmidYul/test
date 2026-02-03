@@ -38,16 +38,16 @@ function initDefaultSubjects() {
     }
 
     subjects.push(
-        { _id: '1', nameRu: 'Алгебра', nameUz: 'Algebra', questionsCount: 10 },
-        { _id: '2', nameRu: 'Геометрия', nameUz: 'Geometriya', questionsCount: 10 },
-        { _id: '3', nameRu: 'Физика', nameUz: 'Fizika', questionsCount: 10 },
-        { _id: '4', nameRu: 'Химия', nameUz: 'Kimyo', questionsCount: 10 },
-        { _id: '5', nameRu: 'Биология', nameUz: 'Biologiya', questionsCount: 10 },
-        { _id: '6', nameRu: 'История', nameUz: 'Tarix', questionsCount: 10 },
-        { _id: '7', nameRu: 'Литература', nameUz: 'Adabiyot', questionsCount: 10 },
-        { _id: '8', nameRu: 'География', nameUz: 'Geografiya', questionsCount: 10 },
-        { _id: '9', nameRu: 'Английский язык', nameUz: 'Ingliz tili', questionsCount: 10 },
-        { _id: '10', nameRu: 'Информатика', nameUz: 'Informatika', questionsCount: 10 }
+        { _id: '1', name: 'Алгебра', questionsCount: 10 },
+        { _id: '2', name: 'Геометрия', questionsCount: 10 },
+        { _id: '3', name: 'Физика', questionsCount: 10 },
+        { _id: '4', name: 'Химия', questionsCount: 10 },
+        { _id: '5', name: 'Биология', questionsCount: 10 },
+        { _id: '6', name: 'История', questionsCount: 10 },
+        { _id: '7', name: 'Литература', questionsCount: 10 },
+        { _id: '8', name: 'География', questionsCount: 10 },
+        { _id: '9', name: 'Английский язык', questionsCount: 10 },
+        { _id: '10', name: 'Информатика', questionsCount: 10 }
     );
 }
 
@@ -179,40 +179,32 @@ async function initUsers() {
         {
             _id: '1',
             subjectId: '1',
-            nameRu: 'Алгебра',
-            nameUz: 'Algebra',
-            descriptionRu: 'Основы алгебры и линейные уравнения',
-            descriptionUz: 'Algebra asoslari va chiziqli tenglamalar',
+            name: 'Алгебра',
+            description: 'Основы алгебры и линейные уравнения',
             createdBy: '2',
             createdAt: new Date().toISOString()
         },
         {
             _id: '2',
             subjectId: '1',
-            nameRu: 'Геометрия',
-            nameUz: 'Geometriya',
-            descriptionRu: 'Планиметрия и стереометрия',
-            descriptionUz: 'Planimetriya va stereometriya',
+            name: 'Геометрия',
+            description: 'Планиметрия и стереометрия',
             createdBy: '2',
             createdAt: new Date().toISOString()
         },
         {
             _id: '3',
             subjectId: '2',
-            nameRu: 'Механика',
-            nameUz: 'Mexanika',
-            descriptionRu: 'Кинематика и динамика',
-            descriptionUz: 'Kinematika va dinamika',
+            name: 'Механика',
+            description: 'Кинематика и динамика',
             createdBy: '2',
             createdAt: new Date().toISOString()
         },
         {
             _id: '4',
             subjectId: '2',
-            nameRu: 'Электричество',
-            nameUz: 'Elektr',
-            descriptionRu: 'Электростатика и электродинамика',
-            descriptionUz: 'Elektrostatika va elektrodinamika',
+            name: 'Электричество',
+            description: 'Электростатика и электродинамика',
             createdBy: '2',
             createdAt: new Date().toISOString()
         }
@@ -223,8 +215,7 @@ async function initUsers() {
         {
             _id: '1',
             moduleId: '1',
-            nameRu: 'Линейные уравнения',
-            nameUz: 'Chiziqli tenglamalar',
+            name: 'Линейные уравнения',
             duration: 30,
             timeLimit: 15,
             maxScore: 100,
@@ -269,8 +260,7 @@ async function initUsers() {
         {
             _id: '2',
             moduleId: '3',
-            nameRu: 'Законы Ньютона',
-            nameUz: 'Nyuton qonunlari',
+            name: 'Законы Ньютона',
             duration: 25,
             timeLimit: 12,
             maxScore: 100,
@@ -626,14 +616,14 @@ app.post('/api/subjects', auth, (req, res) => {
         return res.status(403).json({ message: 'Access denied' });
     }
 
-    const { nameRu, nameUz, questionsCount } = req.body || {};
+    const { name, questionsCount } = req.body || {};
 
-    if (!nameRu || !nameUz) {
+    if (!name) {
         return res.status(400).json({ message: 'Заполните обязательные поля' });
     }
 
     const exists = subjects.find(
-        s => s.nameRu?.toLowerCase() === nameRu.toLowerCase() || s.nameUz?.toLowerCase() === nameUz.toLowerCase()
+        s => s.name?.toLowerCase() === name.toLowerCase()
     );
     if (exists) {
         return res.status(400).json({ message: 'Предмет уже существует' });
@@ -641,8 +631,7 @@ app.post('/api/subjects', auth, (req, res) => {
 
     const newSubject = {
         _id: Date.now().toString(),
-        nameRu: nameRu.trim(),
-        nameUz: nameUz.trim(),
+        name: name.trim(),
         questionsCount: Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0
     };
 
@@ -662,13 +651,12 @@ app.put('/api/subjects/:subjectId', auth, (req, res) => {
         return res.status(404).json({ message: 'Subject not found' });
     }
 
-    const { nameRu, nameUz, questionsCount } = req.body || {};
-    if (!nameRu || !nameUz) {
+    const { name, questionsCount } = req.body || {};
+    if (!name) {
         return res.status(400).json({ message: 'Заполните обязательные поля' });
     }
 
-    subject.nameRu = nameRu.trim();
-    subject.nameUz = nameUz.trim();
+    subject.name = name.trim();
     if (Number.isFinite(Number(questionsCount))) {
         subject.questionsCount = Number(questionsCount);
     }
@@ -1039,7 +1027,7 @@ app.get('/api/subjects/:subjectId/modules', auth, (req, res) => {
         const subjectModules = modules.filter(m => m.subjectId === subjectId);
         console.log(`✅ Найдено модулей: ${subjectModules.length}`);
         if (subjectModules.length > 0) {
-            console.log('📝 Модули:', subjectModules.map(m => m.nameRu).join(', '));
+            console.log('📝 Модули:', subjectModules.map(m => m.name).join(', '));
         }
         res.json({ success: true, data: subjectModules });
     } catch (error) {
@@ -1056,7 +1044,7 @@ app.post('/api/subjects/:subjectId/modules', auth, (req, res) => {
         }
 
         const { subjectId } = req.params;
-        const { nameRu, nameUz, descriptionRu, descriptionUz } = req.body;
+        const { name, description } = req.body;
         const user = users.find(u => u._id === req.userId);
 
         if (user?.role === 'teacher' && !teacherHasSubject(user, subjectId)) {
@@ -1064,15 +1052,13 @@ app.post('/api/subjects/:subjectId/modules', auth, (req, res) => {
         }
 
         console.log(`➕ Создание нового модуля для предмета: ${subjectId}`);
-        console.log(`📝 Название: ${nameRu} / ${nameUz}`);
+        console.log(`📝 Название: ${name}`);
 
         const newModule = {
             _id: (modules.length + 1).toString(),
             subjectId,
-            nameRu,
-            nameUz,
-            descriptionRu,
-            descriptionUz,
+            name,
+            description,
             createdBy: req.userId,
             createdAt: new Date().toISOString()
         };
@@ -1094,7 +1080,7 @@ app.put('/api/modules/:moduleId', auth, (req, res) => {
         }
 
         const { moduleId } = req.params;
-        const { nameRu, nameUz, descriptionRu, descriptionUz } = req.body;
+        const { name, description } = req.body;
 
         const moduleIndex = modules.findIndex(m => m._id === moduleId);
 
@@ -1106,10 +1092,8 @@ app.put('/api/modules/:moduleId', auth, (req, res) => {
 
         modules[moduleIndex] = {
             ...modules[moduleIndex],
-            nameRu: nameRu || modules[moduleIndex].nameRu,
-            nameUz: nameUz || modules[moduleIndex].nameUz,
-            descriptionRu: descriptionRu || modules[moduleIndex].descriptionRu,
-            descriptionUz: descriptionUz || modules[moduleIndex].descriptionUz,
+            name: name || modules[moduleIndex].name,
+            description: description || modules[moduleIndex].description,
             updatedAt: new Date().toISOString()
         };
 
