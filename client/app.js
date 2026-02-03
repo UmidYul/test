@@ -4381,7 +4381,8 @@ async function showAddUserModal() {
                         ${lang === 'uz' ? 'Predmetlar' : 'Предметы'}
                     </label>
                     <div class="teacher-subjects-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto;">
-                        ${subjectsList && subjectsList.length > 0 ? subjectsList.map((subject, index) => `
+                        
+                    ${subjectsList && subjectsList.length > 0 ? subjectsList.map((subject, index) => `
                             <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(139, 92, 246, 0.1)'" onmouseout="this.style.background='transparent'">
                                 <input type="checkbox" class="teacherSubject" value="${subject && subject.id ? subject.id : 'undefined-' + index}" data-name="${subject && subject.name ? subject.name : 'undefined-' + index}" style="width: 18px; height: 18px; cursor: pointer;">
                                 <span style="flex: 1; font-size: 0.95rem;">${subject && subject.name ? subject.name : 'undefined-' + index}</span>

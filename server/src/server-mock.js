@@ -85,7 +85,7 @@ app.post('/api/auth/login', async (req, res) => {
       console.log(`[LOGIN] Failed login for ${username} (user not found)`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       console.log(`[LOGIN] Failed login for ${username} (wrong password)`);
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -98,15 +98,13 @@ app.post('/api/auth/login', async (req, res) => {
     console.log(`[LOGIN] Success for ${username} (role: ${user.role})`);
     res.json({
       token,
-      requirePasswordChange: user.require_password_change || false,
       user: {
         id: user.id,
         username: user.username,
         role: user.role,
         firstName: user.first_name,
         lastName: user.last_name,
-        grade: user.grade,
-        isTemporaryPassword: user.is_temporary_password || false
+        grade: user.grade
       }
     });
   } catch (error) {
@@ -125,13 +123,13 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }
     const hashed = await bcrypt.hash(newPassword, 10);
     await pool.query(
-      'UPDATE users SET password = $1, is_temporary_password = false, require_password_change = false, updated_at = NOW() WHERE id = $2',
+      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
       [hashed, req.userId]
     );
     console.log(`✅ Password changed for user: ${user.username}`);
@@ -238,8 +236,7 @@ app.get('/api/users', auth, async (req, res) => {
   try {
     const { role } = req.query;
     let query = `SELECT u.id, u.username, u.role, u.first_name as "firstName", u.last_name as "lastName",
-                         u.is_temporary_password as "isTemporaryPassword",
-                         u.require_password_change as "requirePasswordChange", u.created_at, u.updated_at,
+                         u.created_at, u.updated_at,
                          CASE
                            WHEN u.role = 'student' THEN cs.class_id
                            WHEN u.role = 'teacher' THEN tp.homeroom_class_id
@@ -453,7 +450,7 @@ app.post('/api/users/register', async (req, res) => {
     const userId = crypto.randomUUID();
 
     const result = await pool.query(
-      `INSERT INTO users (id, username, password, role, first_name, last_name, email, phone, status, created_at, updated_at)
+      `INSERT INTO users (id, username, password_hash, role, first_name, last_name, email, phone, status, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', NOW(), NOW()) RETURNING id::text, username, role, first_name, last_name, email, phone, status, grade, grade_section`,
       [userId, username, hashedOTP, role, firstName, lastName, null, null]
     );
