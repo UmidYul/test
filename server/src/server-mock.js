@@ -145,7 +145,7 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
 // Get all subjects (PostgreSQL)
 app.get('/api/subjects', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT id, name_ru as "nameRu", name_uz as "nameUz", questions_count as "questionsCount" FROM subjects ORDER BY id');
+    const { rows } = await pool.query('SELECT id, name FROM subjects ORDER BY id');
     console.log(`[SUBJECTS] Fetched all subjects (${rows.length})`);
     res.json(rows);
   } catch (error) {
@@ -159,21 +159,21 @@ app.post('/api/subjects', auth, async (req, res) => {
   if (req.userRole !== 'admin') {
     return res.status(403).json({ message: 'Access denied' });
   }
-  const { nameRu, nameUz, questionsCount } = req.body || {};
-  if (!nameRu || !nameUz) {
+  const { name } = req.body || {};
+  if (!name) {
     return res.status(400).json({ message: 'Заполните обязательные поля' });
   }
   try {
-    const exists = await pool.query('SELECT 1 FROM subjects WHERE LOWER(name_ru) = LOWER($1) OR LOWER(name_uz) = LOWER($2)', [nameRu, nameUz]);
+    const exists = await pool.query('SELECT 1 FROM subjects WHERE LOWER(name) = LOWER($1)', [name]);
     if (exists.rowCount > 0) {
       return res.status(400).json({ message: 'Предмет уже существует' });
     }
     const subjectId = crypto.randomUUID();
     const result = await pool.query(
-      'INSERT INTO subjects (id, name_ru, name_uz, questions_count) VALUES ($1, $2, $3, $4) RETURNING id::text, name_ru as "nameRu", name_uz as "nameUz", questions_count as "questionsCount"',
-      [subjectId, nameRu.trim(), nameUz.trim(), Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0]
+      'INSERT INTO subjects (id, name) VALUES ($1, $2) RETURNING id::text, name',
+      [subjectId, name.trim()]
     );
-    console.log(`[SUBJECTS] Created subject: ${nameRu} / ${nameUz}`);
+    console.log(`[SUBJECTS] Created subject: ${name}`);
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     console.error('[SUBJECTS] Error creating:', error);
@@ -187,14 +187,14 @@ app.put('/api/subjects/:subjectId', auth, async (req, res) => {
     return res.status(403).json({ message: 'Access denied' });
   }
   const { subjectId } = req.params;
-  const { nameRu, nameUz, questionsCount } = req.body || {};
-  if (!nameRu || !nameUz) {
+  const { name } = req.body || {};
+  if (!name) {
     return res.status(400).json({ message: 'Заполните обязательные поля' });
   }
   try {
     const result = await pool.query(
-      'UPDATE subjects SET name_ru = $1, name_uz = $2, questions_count = $3 WHERE id = $4 RETURNING id::text, name_ru as "nameRu", name_uz as "nameUz", questions_count as "questionsCount"',
-      [nameRu.trim(), nameUz.trim(), Number.isFinite(Number(questionsCount)) ? Number(questionsCount) : 0, subjectId]
+      'UPDATE subjects SET name = $1 WHERE id = $2 RETURNING id::text, name',
+      [name.trim(), subjectId]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Subject not found' });
