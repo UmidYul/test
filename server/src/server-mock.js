@@ -859,12 +859,9 @@ app.get('/api/tests', auth, async (req, res) => {
       query += ' WHERE created_by = $1';
       params.push(req.userId);
     } else if (req.userRole === 'student') {
-      // Получить grade ученика
-      const { rows: userRows } = await pool.query('SELECT grade FROM users WHERE id = $1', [req.userId]);
-      if (userRows.length === 0) return res.status(404).json({ success: false, error: 'Пользователь не найден' });
-      const grade = userRows[0].grade;
+      // Студенты видят опубликованные тесты для студентов
       query += ' WHERE target_role = $1 AND status = $2';
-      params.push(grade, 'published');
+      params.push('student', 'published');
     }
     query += ' ORDER BY created_at DESC';
     const { rows } = await pool.query(query, params);
@@ -926,10 +923,10 @@ app.get('/api/tests/:testId/start', auth, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Тест еще не опубликован' });
     }
 
-    // Проверить, что ученик подходит по grade
-    const { rows: userRows } = await pool.query('SELECT grade FROM users WHERE id = $1', [req.userId]);
-    if (userRows.length === 0 || userRows[0].grade !== test.target_role) {
-      return res.status(403).json({ success: false, error: 'Тест не доступен для вашего класса' });
+    // Проверить, что пользователь может проходить этот тест (роль должна совпадать)
+    const { rows: userRows } = await pool.query('SELECT role FROM users WHERE id = $1', [req.userId]);
+    if (userRows.length === 0 || userRows[0].role !== test.target_role) {
+      return res.status(403).json({ success: false, error: 'Тест не доступен для вашей роли' });
     }
 
     // Проверить, не проходил ли уже тест
@@ -2132,69 +2129,22 @@ function teacherHasSubject(user, subjectId) {
 }
 
 // Get class analytics - Line chart data (average scores over time)
-app.get('/api/analytics/classes/:grade/timeline', auth, (req, res) => {
+app.get('/api/analytics/classes/:grade/timeline', auth, async (req, res) => {
   try {
     const { grade } = req.params;
     const { section } = req.query;
-    const classItem = findClassByIdOrGrade(grade, section);
 
-    if (!canAccessClassAnalytics(req.userId, req.userRole, classItem, section)) {
-      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
-    }
-
-    // Get students of this class
-    const resolvedSection = getClassSection(classItem, section);
-    let classStudents = getClassStudents(classItem || { grade }, resolvedSection);
-
-    const studentIds = classStudents.map(s => s._id);
-
-    // Get all test results for these students
-    const classResults = testResults.filter(r => studentIds.includes(r.userId));
-
-    // Group by subject and date
-    const timelineData = {};
-
-    classResults.forEach(result => {
-      const date = new Date(result.completedAt).toISOString().split('T')[0]; // YYYY-MM-DD
-      const subjectId = result.subjectId;
-
-      if (!timelineData[subjectId]) {
-        timelineData[subjectId] = {};
-      }
-
-      if (!timelineData[subjectId][date]) {
-        timelineData[subjectId][date] = {
-          scores: [],
-          count: 0
-        };
-      }
-
-      timelineData[subjectId][date].scores.push(result.score);
-      timelineData[subjectId][date].count++;
-    });
-
-    // Calculate averages
-    const labels = [...new Set(classResults.map(r => new Date(r.completedAt).toISOString().split('T')[0]))].sort();
-    const series = Object.keys(timelineData).map(subjectId => {
-      const subject = subjects.find(s => s._id === subjectId);
-      const subjectName = subject ? subject.name : `Subject ${subjectId}`;
-      const data = labels.map(date => {
-        const bucket = timelineData[subjectId][date];
-        return bucket ? Math.round((bucket.scores.reduce((a, b) => a + b, 0) / bucket.count) * 10) / 10 : null;
-      });
-      return { subjectId, subjectName, data };
-    });
-
+    // Stub implementation - returns empty data
     res.json({
       success: true,
       data: {
-        labels,
-        series,
+        labels: [],
+        series: [],
         meta: {
-          classId: classItem?._id || classItem?.id || grade,
-          grade: classItem?.grade || grade,
-          section: resolvedSection || null,
-          classLabel: getClassLabel(classItem)
+          classId: grade,
+          grade: grade,
+          section: section || null,
+          classLabel: section ? `${grade}${section}` : grade
         }
       }
     });
@@ -2211,7 +2161,7 @@ app.get('/api/analytics/students/:studentId/timeline', auth, async (req, res) =>
 
     // Get student from database
     const studentResult = await pool.query(
-      'SELECT id, username, first_name, last_name, role, class_id FROM users WHERE id = $1 AND role = $2',
+      'SELECT id, username, first_name, last_name, role FROM users WHERE id = $1 AND role = $2',
       [studentId, 'student']
     );
 
@@ -2253,7 +2203,7 @@ app.get('/api/analytics/students/:studentId/timeline', auth, async (req, res) =>
 });
 
 // Teacher subject analytics (admin or self)
-app.get('/api/analytics/teachers/:teacherId/subjects', auth, (req, res) => {
+app.get('/api/analytics/teachers/:teacherId/subjects', auth, async (req, res) => {
   try {
     const { teacherId } = req.params;
 
@@ -2261,34 +2211,8 @@ app.get('/api/analytics/teachers/:teacherId/subjects', auth, (req, res) => {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
 
-    const teacherModules = modules.filter(m => m.createdBy === teacherId);
-    const teacherTestIds = tests.filter(t => teacherModules.some(m => m._id === t.moduleId)).map(t => t._id);
-    const teacherResults = testResults.filter(r => teacherTestIds.includes(r.testId));
-
-    const statsBySubject = {};
-    teacherResults.forEach(result => {
-      const subjectId = result.subjectId;
-      if (!statsBySubject[subjectId]) {
-        const subject = subjects.find(s => s._id === subjectId);
-        statsBySubject[subjectId] = {
-          subjectId,
-          subjectName: subject ? subject.name : `Subject ${subjectId}`,
-          scores: [],
-          count: 0
-        };
-      }
-      statsBySubject[subjectId].scores.push(result.score);
-      statsBySubject[subjectId].count++;
-    });
-
-    const data = Object.values(statsBySubject).map(stat => ({
-      subjectId: stat.subjectId,
-      subjectName: stat.subjectName,
-      averageScore: stat.scores.length ? Math.round((stat.scores.reduce((a, b) => a + b, 0) / stat.scores.length) * 10) / 10 : 0,
-      testsCompleted: stat.count
-    }));
-
-    res.json({ success: true, data });
+    // Stub implementation - returns empty data
+    res.json({ success: true, data: [] });
   } catch (error) {
     console.error('Error fetching teacher subject analytics:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке аналитики учителя' });
@@ -2296,78 +2220,20 @@ app.get('/api/analytics/teachers/:teacherId/subjects', auth, (req, res) => {
 });
 
 // Get extended class statistics
-app.get('/api/analytics/classes/:grade/stats', auth, (req, res) => {
+app.get('/api/analytics/classes/:grade/stats', auth, async (req, res) => {
   try {
     const { grade } = req.params;
     const { section } = req.query;
-    const classItem = findClassByIdOrGrade(grade, section);
 
-    if (!canAccessClassAnalytics(req.userId, req.userRole, classItem, section)) {
-      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
-    }
-
-    // Get students of this class
-    const resolvedSection = getClassSection(classItem, section);
-    let classStudents = getClassStudents(classItem || { grade }, resolvedSection);
-
-    const studentIds = classStudents.map(s => s._id);
-    const classResults = testResults.filter(r => studentIds.includes(r.userId));
-
-    if (classResults.length === 0) {
-      return res.json({
-        success: true,
-        data: {
-          averageScore: 0,
-          totalTests: 0,
-          studentsCount: classStudents.length,
-          subjectStats: [],
-          distribution: { excellent: 0, good: 0, satisfactory: 0, poor: 0 }
-        }
-      });
-    }
-
-    // Calculate overall average
-    const totalScore = classResults.reduce((sum, r) => sum + r.score, 0);
-    const averageScore = totalScore / classResults.length;
-
-    // Subject-wise statistics
-    const subjectStats = {};
-    classResults.forEach(result => {
-      const subjectId = result.subjectId;
-      if (!subjectStats[subjectId]) {
-        const subject = subjects.find(s => s._id === subjectId);
-        subjectStats[subjectId] = {
-          subjectName: subject ? subject.name : `Subject ${subjectId}`,
-          scores: [],
-          count: 0
-        };
-      }
-      subjectStats[subjectId].scores.push(result.score);
-      subjectStats[subjectId].count++;
-    });
-
-    const subjectStatsList = Object.values(subjectStats).map(stat => ({
-      subject: stat.subjectName,
-      average: stat.scores.reduce((a, b) => a + b, 0) / stat.count,
-      testsCount: stat.count
-    }));
-
-    // Score distribution
-    const distribution = {
-      excellent: classResults.filter(r => r.score >= 85).length,
-      good: classResults.filter(r => r.score >= 70 && r.score < 85).length,
-      satisfactory: classResults.filter(r => r.score >= 50 && r.score < 70).length,
-      poor: classResults.filter(r => r.score < 50).length
-    };
-
+    // Stub implementation - returns empty data
     res.json({
       success: true,
       data: {
-        averageScore: Math.round(averageScore * 10) / 10,
-        totalTests: classResults.length,
-        studentsCount: classStudents.length,
-        subjectStats: subjectStatsList,
-        distribution
+        averageScore: 0,
+        totalTests: 0,
+        studentsCount: 0,
+        subjectStats: [],
+        distribution: { excellent: 0, good: 0, satisfactory: 0, poor: 0 }
       }
     });
   } catch (error) {
@@ -2377,43 +2243,14 @@ app.get('/api/analytics/classes/:grade/stats', auth, (req, res) => {
 });
 
 // Compare classes
-app.get('/api/analytics/classes/compare', auth, (req, res) => {
+app.get('/api/analytics/classes/compare', auth, async (req, res) => {
   try {
     if (req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
 
-    const classesData = [];
-
-    // Get all unique grades
-    const grades = [...new Set(users.filter(u => u.role === 'student').map(u => u.grade))];
-
-    grades.forEach(grade => {
-      const classStudents = users.filter(u => u.role === 'student' && u.grade === grade);
-      const studentIds = classStudents.map(s => s._id);
-      const classResults = testResults.filter(r => studentIds.includes(r.userId));
-
-      if (classResults.length > 0) {
-        const totalScore = classResults.reduce((sum, r) => sum + r.score, 0);
-        const averageScore = totalScore / classResults.length;
-
-        classesData.push({
-          grade,
-          averageScore: Math.round(averageScore * 10) / 10,
-          studentsCount: classStudents.length,
-          testsCompleted: classResults.length
-        });
-      } else {
-        classesData.push({
-          grade,
-          averageScore: 0,
-          studentsCount: classStudents.length,
-          testsCompleted: 0
-        });
-      }
-    });
-
-    res.json({ success: true, data: classesData });
+    // Stub implementation - returns empty data
+    res.json({ success: true, data: [] });
   } catch (error) {
     console.error('Error comparing classes:', error);
     res.status(500).json({ success: false, error: 'Ошибка при сравнении классов' });
