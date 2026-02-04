@@ -5373,4 +5373,94 @@ var _r=Object.defineProperty;var Sr=(e,t,i)=>t in e?_r(e,t,{enumerable:!0,config
             <div style="text-align: center; padding: 2rem; color: #ef4444;">
                 ${t==="uz"?"Xatolik yuz berdi":"Произошла ошибка"}
             </div>
-        `}}async function nm(e){var s;const t=((s=z.getState().user)==null?void 0:s.language)||"ru",i=prompt(t==="uz"?"Yangi parol:":"Новый пароль:","password123");if(i&&confirm(t==="uz"?"Parolni tiklashni xohlaysizmi?":"Вы уверены, что хотите сбросить пароль?"))try{await A(`/api/users/${e}/reset-password`,{method:"POST",body:JSON.stringify({newPassword:i})}),alert(t==="uz"?`Parol o'zgartirildi: ${i}`:`Пароль сброшен на: ${i}`)}catch(n){console.error("Error resetting password:",n),alert(t==="uz"?"Xatolik yuz berdi!":"Произошла ошибка!")}}function am(e){const t=document.querySelector(".profile-tab:nth-child(4)");t&&t.click()}async function rm(e,t){var a;e.preventDefault();const i=new FormData(e.target),s=((a=z.getState().user)==null?void 0:a.language)||"ru",n={first_name:i.get("first_name"),last_name:i.get("last_name"),email:i.get("email"),phone:i.get("phone"),status:i.get("status")};try{await A(`/api/users/${t}`,{method:"PUT",body:JSON.stringify(n)}),alert(s==="uz"?"O'zgarishlar saqlandi!":"Изменения сохранены!"),await yr(t)}catch(r){console.error("Error updating student:",r),alert(s==="uz"?"Xatolik yuz berdi!":"Произошла ошибка!")}}async function om(e){var s;const t=((s=z.getState().user)==null?void 0:s.language)||"ru",i=prompt(t==="uz"?"Xabar matni:":"Текст уведомления:");if(i)try{await A(`/api/users/${e}/notify`,{method:"POST",body:JSON.stringify({message:i})}),alert(t==="uz"?"Xabar yuborildi!":"Уведомление отправлено!")}catch(n){console.error("Error sending notification:",n),alert(t==="uz"?"Xatolik yuz berdi!":"Произошла ошибка!")}}async function lm(e,t){var s;const i=((s=z.getState().user)==null?void 0:s.language)||"ru";try{const n=await A(`/api/users/${e}`),a=JSON.stringify(n,null,2),r=new Blob([a],{type:"application/json"}),o=URL.createObjectURL(r),l=document.createElement("a");l.href=o,l.download=`student_${e}_${t}.json`,document.body.appendChild(l),l.click(),document.body.removeChild(l),URL.revokeObjectURL(o),alert(i==="uz"?"Ma'lumotlar yuklandi!":"Данные экспортированы!")}catch(n){console.error("Error exporting data:",n),alert(i==="uz"?"Xatolik yuz berdi!":"Произошла ошибка!")}}async function dm(e,t){var n;const i=((n=z.getState().user)==null?void 0:n.language)||"ru",s=i==="uz"?`${t}ni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi!`:`Вы уверены, что хотите удалить ${t}? Это действие необратимо!`;if(confirm(s)&&confirm(i==="uz"?"Rostdan ham o'chirishni xohlaysizmi?":"Вы действительно уверены?"))try{await A(`/api/users/${e}`,{method:"DELETE"}),alert(i==="uz"?"O'quvchi o'chirildi!":"Ученик удален!"),window.router.navigate("/admin/classes")}catch(a){console.error("Error deleting student:",a),alert(i==="uz"?"Xatolik yuz berdi!":"Произошла ошибка!")}}document.addEventListener("DOMContentLoaded",()=>{window.deleteClass=Xh,window.editClass=Uh,window.viewClassStudents=Ai,window.filterStudents=Fh,window.toggleSelectAll=Nh,window.updateBulkPanel=Ds,window.clearSelection=Hh,window.bulkRemoveStudents=Vh,window.exportSelectedToExcel=Wh,window.saveClassEdit=Yh,window.showCreateClassModal=zr,window.showClassCreatedWizardStep2=kr,window.validateClassGrade=Jh,window.validateClassName=Gh,window.showValidationError=Pt,window.hideValidationError=Zh,window.createClass=em,window.closeModal=Bi,window.showAddUserModal=br,window.showAddStudentToClassModal=Qh,window.removeStudentFromClass=Kh,window.switchProfileTab=im,window.resetStudentPassword=nm,window.editStudent=am,window.updateStudent=rm,window.sendNotificationToStudent=om,window.exportStudentData=lm,window.deleteStudent=dm,ur(),ne(),ms();const e=window.location.pathname;k.navigate(e==="/"?"/":e,!1)});
+        `}}async function nm(e){var n;const t=((n=z.getState().user)==null?void 0:n.language)||"ru";let i="";try{const a=await A(`/api/users/${e}`);i=`${a.first_name||""} ${a.last_name||""}`.trim()}catch(a){console.error("Error loading student:",a)}const s=`
+        <div class="admin-modal-overlay" onclick="if(event.target === this) window.closeModal()">
+            <div class="admin-modal" style="max-width: 500px;">
+                <div class="admin-modal-header">
+                    <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700;">
+                        🔑 ${t==="uz"?"Parolni tiklash":"Сброс пароля"}
+                    </h2>
+                    <button onclick="window.closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+                </div>
+                <div class="admin-modal-body">
+                    ${i?`
+                        <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
+                                ${t==="uz"?"O'quvchi":"Ученик"}:
+                            </div>
+                            <div style="font-weight: 700; font-size: 1.1rem;">${i}</div>
+                        </div>
+                    `:""}
+                    <form id="resetPasswordForm" onsubmit="window.submitResetPassword(event, '${e}')">
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">
+                                ${t==="uz"?"Yangi parol":"Новый пароль"}:
+                            </label>
+                            <input 
+                                type="text" 
+                                id="newPassword" 
+                                name="newPassword" 
+                                class="form-input" 
+                                required 
+                                minlength="6"
+                                placeholder="${t==="uz"?"Kamida 6 belgi":"Минимум 6 символов"}"
+                                style="font-family: monospace; font-size: 1.1rem; padding: 0.75rem;"
+                            >
+                            <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+                                ${t==="uz"?"Parol xavfsiz joyda saqlang":"Сохраните пароль в надежном месте"}
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <button 
+                                type="button" 
+                                onclick="document.getElementById('newPassword').value = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-2).toUpperCase() + Math.floor(Math.random()*100)"
+                                style="padding: 0.5rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; font-size: 0.9rem; color: var(--text-primary);"
+                            >
+                                🎲 ${t==="uz"?"Tasodifiy parol yaratish":"Сгенерировать случайный пароль"}
+                            </button>
+                        </div>
+                        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                            <button type="button" onclick="window.closeModal()" class="btn" style="background: var(--bg-secondary); color: var(--text-primary);">
+                                ${t==="uz"?"Bekor qilish":"Отмена"}
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                ${t==="uz"?"Parolni tiklash":"Сбросить пароль"}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;document.body.insertAdjacentHTML("beforeend",s),document.getElementById("newPassword").focus()}async function am(e,t){var n;e.preventDefault();const i=((n=z.getState().user)==null?void 0:n.language)||"ru",s=document.getElementById("newPassword").value;if(!s||s.length<6){alert(i==="uz"?"Parol kamida 6 belgidan iborat bo'lishi kerak!":"Пароль должен содержать минимум 6 символов!");return}try{await A(`/api/users/${t}/reset-password`,{method:"POST",body:JSON.stringify({newPassword:s})});const a=`
+            <div class="admin-modal-overlay" onclick="if(event.target === this) window.closeModal()">
+                <div class="admin-modal" style="max-width: 500px;">
+                    <div class="admin-modal-header">
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #10b981;">
+                            ✅ ${i==="uz"?"Muvaffaqiyatli!":"Успешно!"}
+                        </h2>
+                        <button onclick="window.closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+                    </div>
+                    <div class="admin-modal-body">
+                        <div style="padding: 1.5rem; background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 0.95rem; color: #166534; margin-bottom: 1rem;">
+                                ${i==="uz"?"Yangi parol":"Новый пароль"}:
+                            </div>
+                            <div style="font-family: monospace; font-size: 1.5rem; font-weight: 700; color: #15803d; padding: 1rem; background: white; border-radius: 8px; margin-bottom: 1rem;">
+                                ${s}
+                            </div>
+                            <button 
+                                onclick="navigator.clipboard.writeText('${s}'); this.innerHTML='✅ ${i==="uz"?"Nusxa olindi!":"Скопировано!"}';" 
+                                style="padding: 0.75rem 1.5rem; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;"
+                            >
+                                📋 ${i==="uz"?"Nusxa olish":"Копировать"}
+                            </button>
+                        </div>
+                        <div style="margin-top: 1.5rem; text-align: center;">
+                            <button onclick="window.closeModal()" class="btn btn-primary">
+                                ${i==="uz"?"Yopish":"Закрыть"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;window.closeModal(),document.body.insertAdjacentHTML("beforeend",a)}catch(a){console.error("Error resetting password:",a),alert(i==="uz"?"Xatolik yuz berdi!":"Произошла ошибка!")}}function rm(e){const t=document.querySelector(".profile-tab:nth-child(4)");t&&t.click()}async function om(e,t){var a;e.preventDefault();const i=new FormData(e.target),s=((a=z.getState().user)==null?void 0:a.language)||"ru",n={first_name:i.get("first_name"),last_name:i.get("last_name"),email:i.get("email"),phone:i.get("phone"),status:i.get("status")};try{await A(`/api/users/${t}`,{method:"PUT",body:JSON.stringify(n)}),alert(s==="uz"?"O'zgarishlar saqlandi!":"Изменения сохранены!"),await yr(t)}catch(r){console.error("Error updating student:",r),alert(s==="uz"?"Xatolik yuz berdi!":"Произошла ошибка!")}}async function lm(e){var s;const t=((s=z.getState().user)==null?void 0:s.language)||"ru",i=prompt(t==="uz"?"Xabar matni:":"Текст уведомления:");if(i)try{await A(`/api/users/${e}/notify`,{method:"POST",body:JSON.stringify({message:i})}),alert(t==="uz"?"Xabar yuborildi!":"Уведомление отправлено!")}catch(n){console.error("Error sending notification:",n),alert(t==="uz"?"Xatolik yuz berdi!":"Произошла ошибка!")}}async function dm(e,t){var s;const i=((s=z.getState().user)==null?void 0:s.language)||"ru";try{const n=await A(`/api/users/${e}`),a=JSON.stringify(n,null,2),r=new Blob([a],{type:"application/json"}),o=URL.createObjectURL(r),l=document.createElement("a");l.href=o,l.download=`student_${e}_${t}.json`,document.body.appendChild(l),l.click(),document.body.removeChild(l),URL.revokeObjectURL(o),alert(i==="uz"?"Ma'lumotlar yuklandi!":"Данные экспортированы!")}catch(n){console.error("Error exporting data:",n),alert(i==="uz"?"Xatolik yuz berdi!":"Произошла ошибка!")}}async function cm(e,t){var n;const i=((n=z.getState().user)==null?void 0:n.language)||"ru",s=i==="uz"?`${t}ni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi!`:`Вы уверены, что хотите удалить ${t}? Это действие необратимо!`;if(confirm(s)&&confirm(i==="uz"?"Rostdan ham o'chirishni xohlaysizmi?":"Вы действительно уверены?"))try{await A(`/api/users/${e}`,{method:"DELETE"}),alert(i==="uz"?"O'quvchi o'chirildi!":"Ученик удален!"),window.router.navigate("/admin/classes")}catch(a){console.error("Error deleting student:",a),alert(i==="uz"?"Xatolik yuz berdi!":"Произошла ошибка!")}}document.addEventListener("DOMContentLoaded",()=>{window.deleteClass=Xh,window.editClass=Uh,window.viewClassStudents=Ai,window.filterStudents=Fh,window.toggleSelectAll=Nh,window.updateBulkPanel=Ds,window.clearSelection=Hh,window.bulkRemoveStudents=Vh,window.exportSelectedToExcel=Wh,window.saveClassEdit=Yh,window.showCreateClassModal=zr,window.showClassCreatedWizardStep2=kr,window.validateClassGrade=Jh,window.validateClassName=Gh,window.showValidationError=Pt,window.hideValidationError=Zh,window.createClass=em,window.closeModal=Bi,window.showAddUserModal=br,window.showAddStudentToClassModal=Qh,window.removeStudentFromClass=Kh,window.switchProfileTab=im,window.resetStudentPassword=nm,window.submitResetPassword=am,window.editStudent=rm,window.updateStudent=om,window.sendNotificationToStudent=lm,window.exportStudentData=dm,window.deleteStudent=cm,ur(),ne(),ms();const e=window.location.pathname;k.navigate(e==="/"?"/":e,!1)});

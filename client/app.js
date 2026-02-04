@@ -13090,21 +13090,137 @@ async function loadStudentSubjects() {
 
 async function resetStudentPassword(studentId) {
     const lang = store.getState().user?.language || 'ru';
-    const newPassword = prompt(lang === 'uz' ? 'Yangi parol:' : 'Новый пароль:', 'password123');
 
-    if (!newPassword) return;
+    // Get student info for display
+    let studentName = '';
+    try {
+        const student = await apiRequest(`/api/users/${studentId}`);
+        studentName = `${student.first_name || ''} ${student.last_name || ''}`.trim();
+    } catch (error) {
+        console.error('Error loading student:', error);
+    }
 
-    if (confirm(lang === 'uz' ? 'Parolni tiklashni xohlaysizmi?' : 'Вы уверены, что хотите сбросить пароль?')) {
-        try {
-            await apiRequest(`/api/users/${studentId}/reset-password`, {
-                method: 'POST',
-                body: JSON.stringify({ newPassword })
-            });
-            alert(lang === 'uz' ? `Parol o'zgartirildi: ${newPassword}` : `Пароль сброшен на: ${newPassword}`);
-        } catch (error) {
-            console.error('Error resetting password:', error);
-            alert(lang === 'uz' ? 'Xatolik yuz berdi!' : 'Произошла ошибка!');
-        }
+    const modalHTML = `
+        <div class="admin-modal-overlay" onclick="if(event.target === this) window.closeModal()">
+            <div class="admin-modal" style="max-width: 500px;">
+                <div class="admin-modal-header">
+                    <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700;">
+                        🔑 ${lang === 'uz' ? 'Parolni tiklash' : 'Сброс пароля'}
+                    </h2>
+                    <button onclick="window.closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+                </div>
+                <div class="admin-modal-body">
+                    ${studentName ? `
+                        <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
+                                ${lang === 'uz' ? 'O\'quvchi' : 'Ученик'}:
+                            </div>
+                            <div style="font-weight: 700; font-size: 1.1rem;">${studentName}</div>
+                        </div>
+                    ` : ''}
+                    <form id="resetPasswordForm" onsubmit="window.submitResetPassword(event, '${studentId}')">
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">
+                                ${lang === 'uz' ? 'Yangi parol' : 'Новый пароль'}:
+                            </label>
+                            <input 
+                                type="text" 
+                                id="newPassword" 
+                                name="newPassword" 
+                                class="form-input" 
+                                required 
+                                minlength="6"
+                                placeholder="${lang === 'uz' ? 'Kamida 6 belgi' : 'Минимум 6 символов'}"
+                                style="font-family: monospace; font-size: 1.1rem; padding: 0.75rem;"
+                            >
+                            <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+                                ${lang === 'uz' ? 'Parol xavfsiz joyda saqlang' : 'Сохраните пароль в надежном месте'}
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <button 
+                                type="button" 
+                                onclick="document.getElementById('newPassword').value = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-2).toUpperCase() + Math.floor(Math.random()*100)"
+                                style="padding: 0.5rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; font-size: 0.9rem; color: var(--text-primary);"
+                            >
+                                🎲 ${lang === 'uz' ? 'Tasodifiy parol yaratish' : 'Сгенерировать случайный пароль'}
+                            </button>
+                        </div>
+                        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                            <button type="button" onclick="window.closeModal()" class="btn" style="background: var(--bg-secondary); color: var(--text-primary);">
+                                ${lang === 'uz' ? 'Bekor qilish' : 'Отмена'}
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                ${lang === 'uz' ? 'Parolni tiklash' : 'Сбросить пароль'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    document.getElementById('newPassword').focus();
+}
+
+async function submitResetPassword(event, studentId) {
+    event.preventDefault();
+    const lang = store.getState().user?.language || 'ru';
+    const newPassword = document.getElementById('newPassword').value;
+
+    if (!newPassword || newPassword.length < 6) {
+        alert(lang === 'uz' ? 'Parol kamida 6 belgidan iborat bo\'lishi kerak!' : 'Пароль должен содержать минимум 6 символов!');
+        return;
+    }
+
+    try {
+        await apiRequest(`/api/users/${studentId}/reset-password`, {
+            method: 'POST',
+            body: JSON.stringify({ newPassword })
+        });
+
+        // Show success message with the new password
+        const successModal = `
+            <div class="admin-modal-overlay" onclick="if(event.target === this) window.closeModal()">
+                <div class="admin-modal" style="max-width: 500px;">
+                    <div class="admin-modal-header">
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #10b981;">
+                            ✅ ${lang === 'uz' ? 'Muvaffaqiyatli!' : 'Успешно!'}
+                        </h2>
+                        <button onclick="window.closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+                    </div>
+                    <div class="admin-modal-body">
+                        <div style="padding: 1.5rem; background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; text-align: center;">
+                            <div style="font-size: 0.95rem; color: #166534; margin-bottom: 1rem;">
+                                ${lang === 'uz' ? 'Yangi parol' : 'Новый пароль'}:
+                            </div>
+                            <div style="font-family: monospace; font-size: 1.5rem; font-weight: 700; color: #15803d; padding: 1rem; background: white; border-radius: 8px; margin-bottom: 1rem;">
+                                ${newPassword}
+                            </div>
+                            <button 
+                                onclick="navigator.clipboard.writeText('${newPassword}'); this.innerHTML='✅ ${lang === 'uz' ? 'Nusxa olindi!' : 'Скопировано!'}';" 
+                                style="padding: 0.75rem 1.5rem; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;"
+                            >
+                                📋 ${lang === 'uz' ? 'Nusxa olish' : 'Копировать'}
+                            </button>
+                        </div>
+                        <div style="margin-top: 1.5rem; text-align: center;">
+                            <button onclick="window.closeModal()" class="btn btn-primary">
+                                ${lang === 'uz' ? 'Yopish' : 'Закрыть'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        window.closeModal();
+        document.body.insertAdjacentHTML('beforeend', successModal);
+
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        alert(lang === 'uz' ? 'Xatolik yuz berdi!' : 'Произошла ошибка!');
     }
 }
 
@@ -13232,6 +13348,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Student profile functions
     window.switchProfileTab = switchProfileTab;
     window.resetStudentPassword = resetStudentPassword;
+    window.submitResetPassword = submitResetPassword;
     window.editStudent = editStudent;
     window.updateStudent = updateStudent;
     window.sendNotificationToStudent = sendNotificationToStudent;
