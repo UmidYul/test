@@ -1999,16 +1999,18 @@ app.post('/api/classes', auth, async (req, res) => {
     if (req.userRole !== 'admin') {
       return res.status(403).json({ success: false, error: 'Только администратор может создавать классы' });
     }
-    const { grade, name: section, homeroomTeacherId } = req.body;
-    console.log('🔍 Parsed data:', { grade, section, homeroomTeacherId });
+    const { grade, name: section, homeroomTeacherId, teacherId } = req.body;
+    // Поддерживаем оба параметра для обратной совместимости
+    const actualTeacherId = homeroomTeacherId || teacherId;
+    console.log('🔍 Parsed data:', { grade, section, teacherId: actualTeacherId });
 
     if (!grade || !section) {
       return res.status(400).json({ success: false, error: 'Укажите номер класса и название' });
     }
 
-    // Валидировать homeroomTeacherId, если указан
-    if (homeroomTeacherId) {
-      const { rows: teacherCheck } = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [homeroomTeacherId, 'teacher']);
+    // Валидировать teacherId, если указан
+    if (actualTeacherId) {
+      const { rows: teacherCheck } = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [actualTeacherId, 'teacher']);
       if (teacherCheck.length === 0) {
         return res.status(400).json({ success: false, error: 'Указанный классный руководитель не найден или не является учителем' });
       }
@@ -2026,13 +2028,15 @@ app.post('/api/classes', auth, async (req, res) => {
     newClass.studentCount = 0;
 
     // Создать homeroom assignment, если указан учитель
-    if (homeroomTeacherId) {
+    if (actualTeacherId) {
       const assignmentId = crypto.randomUUID();
       await pool.query(
         'INSERT INTO homeroom_assignments (id, teacher_id, class_id, start_at, end_at) VALUES ($1, $2, $3, NOW(), NULL)',
-        [assignmentId, homeroomTeacherId, classId]
+        [assignmentId, actualTeacherId, classId]
       );
-      console.log(`🏫 Homeroom assignment created for teacher ${homeroomTeacherId} in class ${classId}`);
+      console.log(`✅ Homeroom assignment created: teacher ${actualTeacherId} -> class ${classId}`);
+    } else {
+      console.log('ℹ️ No teacher assigned to this class');
     }
 
     console.log('✅ Class created successfully:', newClass);
