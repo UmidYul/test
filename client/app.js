@@ -613,36 +613,6 @@ function showConfirm(message, title = '') {
     document.body.appendChild(modal);
     setTimeout(() => modal.classList.add('show'), 10);
 
-    // Ensure the studentClass select is populated (in case template rendering missed or classes loaded later)
-    (function populateStudentClassSelect() {
-        const sel = document.getElementById('studentClass');
-        if (!sel) return;
-        // Clear existing options and add placeholder
-        sel.innerHTML = '';
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.textContent = lang === 'uz' ? 'Sinfni tanlang' : 'Выберите класс';
-        sel.appendChild(placeholder);
-
-        if (Array.isArray(classesList) && classesList.length > 0) {
-            classesList.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id || c._id || '';
-                const grade = c.grade || '';
-                const name = c.name || '';
-                const suffix = lang === 'uz' ? 'sinf' : 'класс';
-                opt.textContent = `${grade}${name} ${suffix}`;
-                sel.appendChild(opt);
-            });
-        } else {
-            const noOpt = document.createElement('option');
-            noOpt.value = '';
-            noOpt.disabled = true;
-            noOpt.textContent = lang === 'uz' ? 'Sinf mavjud emas' : 'Классы не найдены';
-            sel.appendChild(noOpt);
-        }
-    })();
-
     return new Promise(resolve => {
         const closeModal = (result) => {
             modal.classList.remove('show');
@@ -4257,31 +4227,6 @@ async function showAddUserModal() {
         console.error('❌ Ошибка при загрузке предметов:', error);
     }
 
-    // Load classes for student class select
-    let classesList = [];
-    try {
-        const response = await apiRequest('/api/classes');
-        if (response.success) {
-            classesList = response.data || [];
-            console.log('🏫 Загружено классов:', classesList.length, classesList);
-        } else {
-            console.error('❌ Ошибка загрузки классов:', response);
-        }
-    } catch (error) {
-        console.error('❌ Ошибка при загрузке классов:', error);
-        // Показать уведомление пользователю
-        setTimeout(() => {
-            alert(lang === 'uz' ? 'Sinf ma\'lumotlari yuklanmadi. Iltimos, sahifani yangilang.' : 'Данные классов не загружены. Пожалуйста, обновите страницу.');
-        }, 1000);
-    }
-
-    // Expose loaded classes to global scope so the built bundle can access them
-    try {
-        window.classesList = classesList;
-    } catch (err) {
-        console.warn('Unable to set window.classesList:', err);
-    }
-
     // No extra teacher-specific class data needed here
 
     const modal = document.createElement('div');
@@ -4289,24 +4234,14 @@ async function showAddUserModal() {
 
     modal.innerHTML = `
         <div class="modal-content" style="max-width: 550px;">
-            <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(59, 130, 246, 0.15) 100%); border: 1px solid rgba(16, 185, 129, 0.35); color: var(--text-primary); padding: 1.25rem; border-radius: 14px; margin-bottom: 1.25rem;">
+            <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(124, 58, 237, 0.15) 100%); border: 1px solid rgba(139, 92, 246, 0.35); color: var(--text-primary); padding: 1.25rem; border-radius: 14px; margin-bottom: 1.25rem;">
                 <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem;">${lang === 'uz' ? 'Admin paneli' : 'Админ панель'}</div>
-                <h2 style="margin: 0; font-size: 1.35rem; font-weight: 800;">${lang === 'uz' ? 'Foydalanuvchi qo\'shish' : 'Добавить пользователя'}</h2>
-                <p style="margin: 0.4rem 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">${lang === 'uz' ? 'O\'quvchi yoki o\'qituvchi yaratish' : 'Создайте ученика или учителя'}</p>
+                <h2 style="margin: 0; font-size: 1.35rem; font-weight: 800;">${lang === 'uz' ? 'O\'qituvchi qo\'shish' : 'Добавить учителя'}</h2>
+                <p style="margin: 0.4rem 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">${lang === 'uz' ? 'Yangi o\'qituvchi yaratish' : 'Создать нового учителя'}</p>
             </div>
             
             <form id="addUserForm" class="add-user-form" style="display: flex; flex-direction: column; gap: 1rem;">
                 <div id="addUserAlert" class="inline-alert" style="display: none;"></div>
-                <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                        ${lang === 'uz' ? 'Rol' : 'Роль'}
-                    </label>
-                    <select id="userRole">
-                        <option value="student">${lang === 'uz' ? 'O\'quvchi' : 'Ученик'}</option>
-                        <option value="teacher">${lang === 'uz' ? 'O\'qituvchi' : 'Учитель'}</option>
-                    </select>
-                </div>
-                
                 <div class="add-user-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
@@ -4349,24 +4284,8 @@ async function showAddUserModal() {
             : '⚠️ Email обязателен!'}
                 </div>
                 
-                <!-- STUDENT FIELDS -->
-                <div id="studentFields" style="display: none; border: 2px solid rgba(16, 185, 129, 0.3); padding: 1rem; border-radius: 8px;">
-                    <div>
-                        <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                            ${lang === 'uz' ? 'Sinf' : 'Класс'}
-                        </label>
-                        <select id="studentClass" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
-                            <option value="">${lang === 'uz' ? 'Sinfni tanlang' : 'Выберите класс'}</option>
-                            ${classesList.length > 0
-            ? classesList.map(cls => `<option value="${cls.id}">${cls.grade}${cls.name} ${lang === 'uz' ? 'sinf' : 'класс'}</option>`).join('')
-            : `<option value="" disabled>${lang === 'uz' ? 'Sinf mavjud emas' : 'Классы не найдены'}</option>`
-        }
-                        </select>
-                    </div>
-                </div>
-                
                 <!-- TEACHER FIELDS -->
-                <div id="teacherFields" class="teacher-fields" style="display: none; border: 2px solid rgba(139, 92, 246, 0.3); padding: 1rem; border-radius: 8px; overflow: auto;">
+                <div id="teacherFields" class="teacher-fields" style="border: 2px solid rgba(139, 92, 246, 0.3); padding: 1rem; border-radius: 8px; overflow: auto;">
                     ${console.log('📚 subjectsList перед рендерингом teacher fields:', subjectsList)}
                     <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; font-size: 0.9rem;">
                         ${lang === 'uz' ? 'Predmetlar' : 'Предметы'}
@@ -4397,10 +4316,6 @@ async function showAddUserModal() {
     document.body.appendChild(modal);
     setTimeout(() => modal.classList.add('show'), 10);
 
-    // Handle role change
-    const roleSelect = document.getElementById('userRole');
-    const studentFields = document.getElementById('studentFields');
-    const teacherFields = document.getElementById('teacherFields');
     const addUserAlert = document.getElementById('addUserAlert');
 
     const showAddUserAlert = (message, type = 'info') => {
@@ -4419,19 +4334,6 @@ async function showAddUserModal() {
         addUserAlert.style.display = 'flex';
     };
 
-    const updateFieldsVisibility = (role) => {
-        const isStudent = role === 'student';
-        studentFields.style.display = isStudent ? 'block' : 'none';
-        teacherFields.style.display = !isStudent ? 'block' : 'none';
-    };
-
-    // Initialize fields visibility based on default role
-    updateFieldsVisibility(roleSelect.value);
-
-    roleSelect.addEventListener('change', (e) => {
-        updateFieldsVisibility(e.target.value);
-    });
-
     // Close button
     document.getElementById('closeAddUserBtn').addEventListener('click', () => {
         modal.classList.remove('show');
@@ -4442,7 +4344,6 @@ async function showAddUserModal() {
     document.getElementById('addUserForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const role = document.getElementById('userRole').value;
         const firstName = document.getElementById('userFirstName').value.trim();
         const lastName = document.getElementById('userLastName').value.trim();
         const email = document.getElementById('userEmail').value.trim();
@@ -4458,33 +4359,24 @@ async function showAddUserModal() {
             return;
         }
 
+        const selectedSubjects = Array.from(document.querySelectorAll('.teacherSubject:checked')).map(checkbox => ({
+            id: checkbox.value,
+            name: checkbox.dataset.name
+        }));
+
+        if (selectedSubjects.length === 0) {
+            showAddUserAlert(lang === 'uz' ? 'Kamida bitta predmet tanlang' : 'Выберите хотя бы один предмет', 'warning');
+            return;
+        }
+
         const userData = {
-            role,
+            role: 'teacher',
             firstName,
             lastName,
             email,
-            phone: phone || null
+            phone: phone || null,
+            subjects: selectedSubjects
         };
-
-        if (role === 'student') {
-            const classId = document.getElementById('studentClass').value.trim();
-            console.log('🎓 Создание ученика:', { classId });
-            if (!classId) {
-                showAddUserAlert(lang === 'uz' ? 'Sinfni tanlang' : 'Выберите класс', 'warning');
-                return;
-            }
-            userData.classId = classId;
-        } else if (role === 'teacher') {
-            const selectedSubjects = Array.from(document.querySelectorAll('.teacherSubject:checked')).map(checkbox => ({
-                id: checkbox.value,
-                name: checkbox.dataset.name
-            }));
-            if (selectedSubjects.length === 0) {
-                showAddUserAlert(lang === 'uz' ? 'Kamida bitta predmet tanlang' : 'Выберите хотя бы один предмет', 'warning');
-                return;
-            }
-            userData.subjects = selectedSubjects;
-        }
 
         try {
             const response = await apiRequest('/api/users/register', {
