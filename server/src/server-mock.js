@@ -1855,6 +1855,19 @@ app.get('/api/classes', auth, async (req, res) => {
     const { rows: debugHA } = await pool.query('SELECT * FROM homeroom_assignments LIMIT 5');
     console.log('🔍 homeroom_assignments содержит:', debugHA);
 
+    // Debug: проверим JOIN без GROUP BY
+    const { rows: debugJoin } = await pool.query(`
+      SELECT 
+        c.id, c.section,
+        ha.id as ha_id, ha.teacher_id, ha.end_at,
+        u.id as u_id, u.first_name
+      FROM classes c
+      LEFT JOIN homeroom_assignments ha ON c.id = ha.class_id AND ha.end_at IS NULL
+      LEFT JOIN users u ON ha.teacher_id = u.id
+      LIMIT 3
+    `);
+    console.log('🔗 JOIN Debug (first 3):', debugJoin);
+
     const { rows } = await pool.query(`
       SELECT 
         c.id,
