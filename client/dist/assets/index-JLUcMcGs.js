@@ -4958,8 +4958,8 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                         <div style="margin-bottom: 1.5rem;">
                             <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">Секция</label>
                             <select id="editClassSection">
-                                ${r.sections.map(f=>`
-                                    <option value="${f}" ${f===c?"selected":""}>${r.grade}${f}</option>
+                                ${r.sections.map(h=>`
+                                    <option value="${h}" ${h===c?"selected":""}>${r.grade}${h}</option>
                                 `).join("")}
                             </select>
                         </div>
@@ -4974,14 +4974,8 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                         <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">Классный руководитель</label>
                         <select id="editClassTeacher">
                             <option value="">-- Не выбран --</option>
-                            ${o.map(f=>`<option value="${f._id||f.id}" ${r.teacherId===(f._id||f.id)?"selected":""}>${f.firstName} ${f.lastName}</option>`).join("")}
+                            ${o.map(h=>`<option value="${h._id||h.id}" ${r.teacherId===(h._id||h.id)?"selected":""}>${h.firstName} ${h.lastName}</option>`).join("")}
                         </select>
-                    </div>
-
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">Ученики класса</label>
-                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Выберите учеников, которые будут относиться к этому классу</div>
-                        <div id="editClassStudents" style="max-height: 280px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; background: var(--bg-secondary);"></div>
                     </div>
 
                     <div style="display: flex; gap: 0.8rem; justify-content: flex-end;">
@@ -4990,22 +4984,7 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                     </div>
                 </div>
             </div>
-        `;document.body.insertAdjacentHTML("beforeend",u);const h=document.getElementById("editClassSection"),g=document.getElementById("editClassStudents"),m=()=>(h==null?void 0:h.value)||r.name||"",p=()=>{const f=m(),y=`${r.grade||""}${f||r.name||""}`.trim(),b=l.filter(x=>{const v=x.classId||x.class_id;return!v||v===e});if(b.length===0){g.innerHTML=`
-                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
-                        <div>Все ученики уже распределены по классам</div>
-                    </div>
-                `;return}g.innerHTML=b.map(x=>{const w=(x.classId||x.class_id)===e,$=x.grade?`${x.grade}${x.className||""}`:"—";return`
-                    <label style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0.5rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; hover:background: var(--bg-tertiary);">
-                        <input type="checkbox" name="editClassStudent" value="${x.id}" ${w?"checked":""} style="width: 18px; height: 18px; accent-color: var(--primary); margin-top: 0.15rem;">
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: var(--text-primary);">${x.firstName} ${x.lastName}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">
-                                @${x.username}${w?` • сейчас в ${y}`:" • не в классе"}
-                            </div>
-                        </div>
-                    </label>
-                `}).join("")};p(),h==null||h.addEventListener("change",p)}catch(i){console.error("Error loading class:",i),j("Ошибка при загрузке класса","error")}}async function Xh(e){var o,l,d;const t=z.getState().token,i=document.getElementById("editClassName"),s=i?i.value.trim():"",n=((o=document.getElementById("editClassTeacher"))==null?void 0:o.value)||null,a=((l=document.getElementById("editClassSection"))==null?void 0:l.value)||((d=document.getElementById("editClassOriginalName"))==null?void 0:d.value)||"",r=Array.from(document.querySelectorAll('input[name="editClassStudent"]:checked')).map(c=>c.value);try{const c={};if(s&&(c.name=s),n!==null&&(c.teacherId=n||null),!(await fetch(`${U}/api/classes/${e}`,{method:"PUT",headers:{"Content-Type":"application/json",Authorization:`Bearer ${t}`},body:JSON.stringify(c)})).ok)throw new Error("Failed to update class");const h=await fetch(`${U}/api/classes/${e}/students`,{method:"PUT",headers:{"Content-Type":"application/json",Authorization:`Bearer ${t}`},body:JSON.stringify({studentIds:r,section:a})});if(!h.ok){const g=await h.json();throw new Error(g.error||"Failed to update class students")}j("Класс успешно обновлен","success"),Bi(),qs()}catch(c){console.error("Error updating class:",c),j("Ошибка при обновлении класса","error")}}async function Qh(e){console.log("📚 deleteClass called with ID:",e,"Type:",typeof e);const t=z.getState().token;if(await Wt("Удалить класс?","Это действие необратимо"))try{const s=`${U}/api/classes/${e}`;if(console.log("📚 DELETE request to:",s),!(await fetch(s,{method:"DELETE",headers:{Authorization:`Bearer ${t}`}})).ok)throw new Error("Failed to delete class");j("Класс удален","success"),qs()}catch(s){console.error("Error deleting class:",s),j("Ошибка при удалении класса","error")}}async function Kh(e,t){console.log("🎓 showAddStudentToClassModal called with classId:",e,"classLabel:",t);const i=z.getState().language,s=document.createElement("div");s.className="modal",s.innerHTML=`
+        `;document.body.insertAdjacentHTML("beforeend",u)}catch(i){console.error("Error loading class:",i),j("Ошибка при загрузке класса","error")}}async function Xh(e){var a;const t=z.getState().token,i=document.getElementById("editClassName"),s=i?i.value.trim():"",n=((a=document.getElementById("editClassTeacher"))==null?void 0:a.value)||null;try{const r={};if(s&&(r.name=s),n!==null&&(r.teacherId=n||null),!(await fetch(`${U}/api/classes/${e}`,{method:"PUT",headers:{"Content-Type":"application/json",Authorization:`Bearer ${t}`},body:JSON.stringify(r)})).ok)throw new Error("Failed to update class");j("Класс успешно обновлен","success"),Bi(),qs()}catch(r){console.error("Error updating class:",r),j("Ошибка при обновлении класса","error")}}async function Qh(e){console.log("📚 deleteClass called with ID:",e,"Type:",typeof e);const t=z.getState().token;if(await Wt("Удалить класс?","Это действие необратимо"))try{const s=`${U}/api/classes/${e}`;if(console.log("📚 DELETE request to:",s),!(await fetch(s,{method:"DELETE",headers:{Authorization:`Bearer ${t}`}})).ok)throw new Error("Failed to delete class");j("Класс удален","success"),qs()}catch(s){console.error("Error deleting class:",s),j("Ошибка при удалении класса","error")}}async function Kh(e,t){console.log("🎓 showAddStudentToClassModal called with classId:",e,"classLabel:",t);const i=z.getState().language,s=document.createElement("div");s.className="modal",s.innerHTML=`
         <div class="modal-content" style="max-width: 500px;">
             <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(59, 130, 246, 0.15) 100%); border: 1px solid rgba(16, 185, 129, 0.35); color: var(--text-primary); padding: 1.25rem; border-radius: 14px; margin-bottom: 1.25rem;">
                 <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem;">${t}</div>
@@ -5214,6 +5193,7 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                                             <td style="padding: 1rem; text-align: right;">
                                                 <div class="class-actions" style="display: flex; gap: 0.4rem; justify-content: flex-end;">
                                                     <button onclick="viewClassStudents('${u}')" style="padding: 0.5rem 0.9rem; font-size: 0.8rem; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); cursor: pointer; transition: all 0.2s; font-weight: 500;">Просмотр</button>
+                                                    <button onclick="manageClassStudents('${u}')" style="padding: 0.5rem 0.9rem; font-size: 0.8rem; background: transparent; border: 1px solid #10b981; border-radius: 6px; color: #10b981; cursor: pointer; transition: all 0.2s; font-weight: 500;">👥 Ученики</button>
                                                     <button onclick="editClass('${u}')" style="padding: 0.5rem 0.9rem; font-size: 0.8rem; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); cursor: pointer; transition: all 0.2s; font-weight: 500;">Редакт.</button>
                                                     <button onclick="deleteClass('${u}')" style="padding: 0.5rem 0.9rem; font-size: 0.8rem; background: transparent; border: 1px solid #ef4444; border-radius: 6px; color: #ef4444; cursor: pointer; transition: all 0.2s; font-weight: 500;">Удалить</button>
                                                 </div>
