@@ -1287,235 +1287,43 @@ app.get('/api/teacher/analytics', auth, async (req, res) => {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке аналитики' });
   }
 });
-teacherModules.forEach(module => {
-  const subject = subjects.find(s => s._id === module.subjectId);
-  if (!subject) return;
-
-  const subjectTests = teacherTests.filter(t => t.moduleId === module._id);
-  const subjectTestIds = subjectTests.map(t => t._id);
-  const subjectResults = allResults.filter(r => subjectTestIds.includes(r.testId));
-
-  const subjectName = subject.name;
-  if (!statsBySubject[subjectName]) {
-    statsBySubject[subjectName] = {
-      subject: subjectName,
-      testsCount: 0,
-      completedCount: 0,
-      averageScore: 0,
-      totalScores: []
-    };
-  }
-
-  statsBySubject[subjectName].testsCount += subjectTests.length;
-  statsBySubject[subjectName].completedCount += subjectResults.length;
-  statsBySubject[subjectName].totalScores.push(...subjectResults.map(r => r.score));
-});
-
-// Calculate average score for each subject
-Object.keys(statsBySubject).forEach(subjectName => {
-  const scores = statsBySubject[subjectName].totalScores;
-  statsBySubject[subjectName].averageScore = scores.length > 0
-    ? Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length)
-    : 0;
-  delete statsBySubject[subjectName].totalScores;
-});
-
-// Recent test completions (last 10)
-const recentCompletions = allResults
-  .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
-  .slice(0, 10)
-  .map(result => {
-    const student = users.find(u => u._id === result.userId);
-    const test = tests.find(t => t._id === result.testId);
-    const module = test ? modules.find(m => m._id === test.moduleId) : null;
-    const subject = module ? subjects.find(s => s._id === module.subjectId) : null;
-
-    return {
-      studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown',
-      studentGrade: student ? student.grade : 'N/A',
-      testName: test ? test.name : 'Unknown',
-      subjectName: subject ? subject.name : 'Unknown',
-      score: result.score,
-      submittedAt: result.submittedAt
-    };
-  });
-
-// Top performing students
-const studentScores = {};
-allResults.forEach(result => {
-  if (!studentScores[result.userId]) {
-    studentScores[result.userId] = { scores: [], count: 0 };
-  }
-  studentScores[result.userId].scores.push(result.score);
-  studentScores[result.userId].count++;
-});
-
-const topStudents = Object.entries(studentScores)
-  .map(([userId, data]) => {
-    const student = users.find(u => u._id === userId);
-    const avgScore = Math.round(data.scores.reduce((sum, s) => sum + s, 0) / data.count);
-    return {
-      name: student ? `${student.firstName} ${student.lastName}` : 'Unknown',
-      grade: student ? student.grade : 'N/A',
-      averageScore: avgScore,
-      testsCompleted: data.count
-    };
-  })
-  .sort((a, b) => b.averageScore - a.averageScore)
-  .slice(0, 5);
-
-res.json({
-  success: true,
-  data: {
-    totalModules: teacherModules.length,
-    totalTests: teacherTests.length,
-    totalCompletions: allResults.length,
-    averageScore: allResults.length > 0
-      ? Math.round(allResults.reduce((sum, r) => sum + r.score, 0) / allResults.length)
-      : 0,
-    statsByClass: Object.values(statsByClass),
-    statsBySubject: Object.values(statsBySubject),
-    recentCompletions,
-    topStudents
-  }
-});
-  } catch (error) {
-  console.error('Error loading teacher analytics:', error);
-  res.status(500).json({ success: false, error: 'Ошибка при загрузке аналитики' });
-}
-});
 
 // Teacher module difficulty analytics (options)
-app.get('/api/teacher/analytics/subject-modules/options', auth, (req, res) => {
+app.get('/api/teacher/analytics/subject-modules/options', auth, async (req, res) => {
   try {
     if (req.userRole !== 'teacher') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
 
-    const teacher = users.find(u => u._id === req.userId);
-    if (!teacher) {
-      return res.status(404).json({ success: false, error: 'Учитель не найден' });
-    }
-
-    const teacherSubjects = resolveTeacherSubjects(teacher);
-    const teacherClasses = classes.filter(cls => cls.teacherId === teacher._id);
-    const gradeSet = new Set(teacherClasses.map(cls => String(cls.grade)).filter(Boolean));
-
+    // Stub implementation
     res.json({
       success: true,
       data: {
-        subjects: teacherSubjects,
-        classes: teacherClasses,
-        grades: Array.from(gradeSet).sort()
+        subjects: [],
+        grades: []
       }
     });
   } catch (error) {
-    console.error('Error loading teacher module analytics options:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при загрузке опций аналитики' });
+    console.error('Error fetching analytics options:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при загрузке опций' });
   }
 });
 
 // Teacher module difficulty analytics (by subject + class/parallel)
-app.get('/api/teacher/analytics/subject-modules', auth, (req, res) => {
+app.get('/api/teacher/analytics/subject-modules', auth, async (req, res) => {
   try {
     if (req.userRole !== 'teacher') {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
 
-    const teacher = users.find(u => u._id === req.userId);
-    if (!teacher) {
-      return res.status(404).json({ success: false, error: 'Учитель не найден' });
-    }
-
-    const { subjectId, grade, section } = req.query;
-    if (!subjectId || !grade) {
-      return res.status(400).json({ success: false, error: 'Необходимо выбрать предмет и класс' });
-    }
-
-    if (!teacherHasSubject(teacher, subjectId)) {
-      return res.status(403).json({ success: false, error: 'Доступ к предмету запрещен' });
-    }
-
-    const teacherClasses = classes.filter(cls => cls.teacherId === teacher._id && String(cls.grade) === String(grade));
-    if (!teacherClasses.length) {
-      return res.status(403).json({ success: false, error: 'Доступ к классу запрещен' });
-    }
-
-    let allowAllSections = false;
-    const allowedSections = new Set();
-
-    teacherClasses.forEach(cls => {
-      if (cls.sections?.length) {
-        cls.sections.forEach(sec => allowedSections.add(sec));
-      } else if (cls.name) {
-        allowedSections.add(cls.name);
-      } else {
-        allowAllSections = true;
-      }
-    });
-
-    if (section) {
-      if (!allowAllSections && !allowedSections.has(section)) {
-        return res.status(403).json({ success: false, error: 'Доступ к классу запрещен' });
-      }
-    }
-
-    const students = users.filter(u => {
-      if (u.role !== 'student') return false;
-      if (String(u.grade) !== String(grade)) return false;
-      if (section) return u.gradeSection === section;
-      if (allowAllSections) return true;
-      return allowedSections.size ? allowedSections.has(u.gradeSection) : true;
-    });
-
-    const studentIds = new Set(students.map(s => s._id));
-    const subjectModules = modules.filter(m => String(m.subjectId) === String(subjectId));
-    const subjectModuleIds = new Set(subjectModules.map(m => m._id));
-
-    const relevantResults = testResults.filter(r => studentIds.has(r.userId) && subjectModuleIds.has(r.moduleId));
-
-    const moduleStats = new Map();
-    subjectModules.forEach(module => {
-      moduleStats.set(module._id, {
-        moduleId: module._id,
-        name: module.name,
-        averageScore: null,
-        attempts: 0,
-        studentsCount: 0
-      });
-    });
-
-    const moduleStudentSet = new Map();
-    relevantResults.forEach(result => {
-      if (!moduleStats.has(result.moduleId)) return;
-      const stat = moduleStats.get(result.moduleId);
-      stat.attempts += 1;
-      stat.averageScore = (stat.averageScore ?? 0) + result.score;
-
-      if (!moduleStudentSet.has(result.moduleId)) {
-        moduleStudentSet.set(result.moduleId, new Set());
-      }
-      moduleStudentSet.get(result.moduleId).add(result.userId);
-    });
-
-    moduleStats.forEach((stat, moduleId) => {
-      if (!stat.attempts) {
-        stat.averageScore = null;
-        stat.studentsCount = 0;
-      } else {
-        stat.averageScore = Math.round((stat.averageScore / stat.attempts) * 10) / 10;
-        stat.studentsCount = moduleStudentSet.get(moduleId)?.size || 0;
-      }
-    });
-
+    // Stub implementation
     res.json({
       success: true,
       data: {
-        subjectId,
-        grade: String(grade),
-        section: section || null,
-        studentCount: students.length,
-        modules: Array.from(moduleStats.values())
+        grade: null,
+        section: null,
+        studentCount: 0,
+        modules: []
       }
     });
   } catch (error) {
@@ -1569,20 +1377,6 @@ app.put('/api/control-tests/:testId', auth, async (req, res) => {
     res.status(500).json({ success: false, error: 'Ошибка при обновлении контрольной работы' });
   }
 });
-duration: duration || test.duration,
-  maxScore: maxScore || test.maxScore,
-    questions: questions || test.questions,
-      assignedClasses: assignedClasses || test.assignedClasses,
-        updatedAt: new Date().toISOString()
-    });
-
-console.log(`✏️ Control test updated: ${testId}`);
-res.json({ success: true, data: test });
-  } catch (error) {
-  console.error('Error updating control test:', error);
-  res.status(500).json({ success: false, error: 'Ошибка при обновлении контрольной работы' });
-}
-});
 
 // Delete control test (teacher only - creator)
 app.delete('/api/control-tests/:testId', auth, async (req, res) => {
@@ -1610,69 +1404,11 @@ app.get('/api/student/control-tests', auth, async (req, res) => {
   }
 });
 
-res.json({ success: true, data: assignedTests });
-  } catch (error) {
-  console.error('Error fetching student control tests:', error);
-  res.status(500).json({ success: false, error: 'Ошибка при загрузке контрольных работ' });
-}
-});
-
 // Submit control test result
-app.post('/api/control-tests/:testId/submit', auth, (req, res) => {
+app.post('/api/control-tests/:testId/submit', auth, async (req, res) => {
   try {
-    const { testId } = req.params;
-    const { answers, timeTaken } = req.body;
-
-    const test = controlTests.find(t => t._id === testId);
-    if (!test) {
-      return res.status(404).json({ success: false, error: 'Контрольная работа не найдена' });
-    }
-
-    // Calculate score
-    let correctCount = 0;
-    const questionResults = [];
-
-    if (test.questions && Array.isArray(answers)) {
-      test.questions.forEach((question, index) => {
-        const selectedAnswerIndex = answers[index];
-        const isCorrect = selectedAnswerIndex !== undefined &&
-          question.answers[selectedAnswerIndex] &&
-          question.answers[selectedAnswerIndex].isCorrect;
-
-        if (isCorrect) correctCount++;
-
-        questionResults.push({
-          questionIndex: index,
-          selectedAnswer: selectedAnswerIndex,
-          isCorrect: isCorrect
-        });
-      });
-    }
-
-    const score = Math.round((correctCount / (test.questions?.length || 1)) * (test.maxScore || 100));
-
-    const result = {
-      _id: Date.now().toString(),
-      userId: req.userId,
-      testId: testId,
-      testName: test.name,
-      score: score,
-      correctCount: correctCount,
-      totalCount: test.questions?.length || 0,
-      timeTaken: timeTaken || 0,
-      questionResults: questionResults,
-      completedAt: new Date().toISOString(),
-      teacherId: test.createdBy
-    };
-
-    controlTestResults.push(result);
-    console.log(`📊 Control test result submitted: ${result._id}`);
-
-    res.status(201).json({
-      success: true,
-      data: result,
-      message: 'Контрольная работа отправлена'
-    });
+    // Stub implementation
+    res.status(404).json({ success: false, error: 'Контрольная работа не найдена' });
   } catch (error) {
     console.error('Error submitting control test:', error);
     res.status(500).json({ success: false, error: 'Ошибка при отправке результатов' });
@@ -1680,30 +1416,10 @@ app.post('/api/control-tests/:testId/submit', auth, (req, res) => {
 });
 
 // Get control test results (for teacher - their tests)
-app.get('/api/control-tests/:testId/results', auth, (req, res) => {
+app.get('/api/control-tests/:testId/results', auth, async (req, res) => {
   try {
-    const { testId } = req.params;
-    const test = controlTests.find(t => t._id === testId);
-
-    if (!test) {
-      return res.status(404).json({ success: false, error: 'Контрольная работа не найдена' });
-    }
-
-    if (test.createdBy !== req.userId && req.userRole !== 'admin') {
-      return res.status(403).json({ success: false, error: 'Доступно только учителю и администратору' });
-    }
-
-    const results = controlTestResults.filter(r => r.testId === testId);
-    const enrichedResults = results.map(result => {
-      const student = users.find(u => u._id === result.userId);
-      return {
-        ...result,
-        studentName: student ? `${student.firstName} ${student.lastName}` : 'Unknown',
-        studentGrade: student ? `${student.grade}${student.gradeSection}` : 'Unknown'
-      };
-    });
-
-    res.json({ success: true, data: enrichedResults });
+    // Stub implementation
+    res.json({ success: true, data: [] });
   } catch (error) {
     console.error('Error fetching control test results:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке результатов' });
@@ -2182,37 +1898,12 @@ app.put('/api/classes/:classId/students', auth, async (req, res) => {
 });
 
 // Get tests available for student's grade
-app.get('/api/modules/:moduleId/tests/available', auth, (req, res) => {
+app.get('/api/modules/:moduleId/tests/available', auth, async (req, res) => {
   try {
-    const { moduleId } = req.params;
-    const user = users.find(u => u._id === req.userId);
-
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'Пользователь не найден' });
-    }
-
-    let moduleTests = tests.filter(t => t.moduleId === moduleId);
-
-    // Filter by grade if student
-    if (user.role === 'student' && user.grade) {
-      moduleTests = moduleTests.filter(t => {
-        // If no assignedGrades, test is available to all
-        if (!t.assignedGrades || t.assignedGrades.length === 0) {
-          return true;
-        }
-        return t.assignedGrades.includes(user.grade);
-      });
-    }
-
-    // Add questionsCount
-    const testsWithCount = moduleTests.map(t => ({
-      ...t,
-      questionsCount: t.questions?.length || 0
-    }));
-
-    res.json({ success: true, data: testsWithCount });
+    // Stub implementation - modules not implemented
+    res.json({ success: true, data: [] });
   } catch (error) {
-    console.error('Error getting tests:', error);
+    console.error('Error loading available tests:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке тестов' });
   }
 });
@@ -2222,7 +1913,7 @@ app.get('/api/modules/:moduleId/tests/available', auth, (req, res) => {
 // ===========================================
 
 // Save interest test results
-app.post('/api/interest-results', auth, (req, res) => {
+app.post('/api/interest-results', auth, async (req, res) => {
   try {
     console.log('📝 POST /api/interest-results - User ID:', req.userId);
     const { results, categories } = req.body;
@@ -2259,51 +1950,24 @@ app.post('/api/interest-results', auth, (req, res) => {
 });
 
 // Get interest test results
-app.get('/api/interest-results', auth, (req, res) => {
+app.get('/api/interest-results', auth, async (req, res) => {
   try {
-    console.log('📝 GET /api/interest-results - User ID:', req.userId);
-    const user = users.find(u => u._id === req.userId);
-
-    if (!user) {
-      console.log('❌ User not found');
-      return res.status(404).json({ success: false, error: 'Пользователь не найден' });
-    }
-
-    console.log('👤 User found:', user.username);
-    console.log('📊 User interest test results:', user.interestTestResults);
-
-    if (!user.interestTestResults) {
-      console.log('⚠️ No interest test results for user');
-      return res.json({
-        success: true,
-        data: null,
-        message: 'Тест интересов еще не пройден'
-      });
-    }
-
-    console.log('✅ Returning interest test results');
+    // Stub implementation - interest tests not stored in database
     res.json({
       success: true,
-      data: user.interestTestResults
+      data: null,
+      message: 'Тест интересов еще не пройден'
     });
   } catch (error) {
-    console.error('Error getting interest test results:', error);
+    console.error('Error fetching interest test results:', error);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке результатов' });
   }
 });
 
 // Reset interest test results
-app.delete('/api/interest-results', auth, (req, res) => {
+app.delete('/api/interest-results', auth, async (req, res) => {
   try {
-    console.log('🗑️ DELETE /api/interest-results - User ID:', req.userId);
-    const user = users.find(u => u._id === req.userId);
-
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'Пользователь не найден' });
-    }
-
-    user.interestTestResults = null;
-
+    // Stub implementation
     res.json({
       success: true,
       message: 'Результаты теста интересов удалены'
@@ -2493,7 +2157,7 @@ const PORT = process.env.PORT || 5001;
 // ...demo data init удалён...
 
 // Admin endpoint to reset all data
-app.post('/api/admin/reset-data', auth, (req, res) => {
+app.post('/api/admin/reset-data', auth, async (req, res) => {
   try {
     // Check if user is admin
     if (req.userRole !== 'admin') {
@@ -2503,32 +2167,10 @@ app.post('/api/admin/reset-data', auth, (req, res) => {
       });
     }
 
-    // Preserve admin user
-    const adminUser = users.find(u => u.role === 'admin');
-
-    // Clear all data arrays
-    users.length = 0;
-    subjects.length = 0;
-    modules.length = 0;
-    tests.length = 0;
-    testResults.length = 0;
-    testProgress.length = 0;
-    classes.length = 0;
-    teacherTestResults.length = 0;
-    controlTests.length = 0;
-    controlTestResults.length = 0;
-
-    // Restore admin user
-    if (adminUser) {
-      users.push(adminUser);
-    }
-
-    initDefaultSubjects();
-
-    console.log('🗑️  Admin reset all data');
-    res.json({
-      success: true,
-      message: 'All data cleared successfully'
+    // Stub implementation - dangerous operation, not implemented
+    res.status(501).json({
+      success: false,
+      error: 'Function not implemented'
     });
   } catch (error) {
     console.error('Error resetting data:', error);
