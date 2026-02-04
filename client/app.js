@@ -5068,11 +5068,11 @@ async function loadStudentDetail(studentId) {
                     <span>📧</span>
                     ${lang === 'uz' ? 'Xabar yuborish' : 'Отправить уведомление'}
                 </button>
-                <button class="action-button" onclick="window.exportStudentData('${student.id}', '${fullName}')">
+                <button class="action-button" onclick="window.exportStudentData('${student.id}', \`${fullName}\`)">
                     <span>📊</span>
                     ${lang === 'uz' ? 'Eksport qilish' : 'Экспорт данных'}
                 </button>
-                <button class="action-button danger" onclick="window.deleteStudent('${student.id}', '${fullName}')">
+                <button class="action-button danger" onclick="window.deleteStudent('${student.id}', \`${fullName}\`)">
                     <span>🗑️</span>
                     ${lang === 'uz' ? "O'chirish" : 'Удалить'}
                 </button>
@@ -5101,8 +5101,8 @@ async function loadStudentDetail(studentId) {
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
                     <!-- Class Info -->
                     ${studentClass ? `
-                        <div style="padding: 1.5rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color);">
-                            <h4 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
                                 <span>🎓</span>
                                 ${lang === 'uz' ? 'Sinf ma\'lumotlari' : 'Информация о классе'}
                             </h4>
@@ -5122,8 +5122,8 @@ async function loadStudentDetail(studentId) {
                     ` : ''}
                     
                     <!-- Contact Info -->
-                    <div style="padding: 1.5rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color);">
-                        <h4 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color);">
+                        <h4 style="margin: 0 0 0.75rem 0; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
                             <span>📞</span>
                             ${lang === 'uz' ? 'Kontakt ma\'lumotlari' : 'Контактная информация'}
                         </h4>
@@ -5238,7 +5238,7 @@ async function loadStudentDetail(studentId) {
                     <p style="margin: 0 0 1rem 0; color: #7f1d1d; font-size: 0.9rem;">
                         ${lang === 'uz' ? 'Ushbu amallar qaytarilmaydi. Ehtiyot bo\'ling!' : 'Эти действия необратимы. Будьте осторожны!'}
                     </p>
-                    <button onclick="window.deleteStudent('${student.id}', '${fullName}')" class="btn" style="background: #dc2626; color: white; border: none;">
+                    <button onclick="window.deleteStudent('${student.id}', \`${fullName}\`)" class="btn" style="background: #dc2626; color: white; border: none;">
                         ${lang === 'uz' ? 'O\'quvchini o\'chirish' : 'Удалить ученика'}
                     </button>
                 </div>
@@ -13052,7 +13052,7 @@ function switchProfileTab(tabName) {
 async function loadStudentSubjects() {
     const studentId = window.location.pathname.split('/').pop();
     const container = document.getElementById('subjects-list');
-    const lang = state.user?.language || 'uz';
+    const lang = store.getState().user?.language || 'ru';
 
     try {
         const subjects = await apiRequest('/api/subjects');
@@ -13088,11 +13088,23 @@ async function loadStudentSubjects() {
     }
 }
 
-function resetStudentPassword(studentId) {
-    const lang = state.user?.language || 'uz';
+async function resetStudentPassword(studentId) {
+    const lang = store.getState().user?.language || 'ru';
+    const newPassword = prompt(lang === 'uz' ? 'Yangi parol:' : 'Новый пароль:', 'password123');
+
+    if (!newPassword) return;
+
     if (confirm(lang === 'uz' ? 'Parolni tiklashni xohlaysizmi?' : 'Вы уверены, что хотите сбросить пароль?')) {
-        // TODO: Implement password reset API call
-        alert(lang === 'uz' ? 'Parol tiklandi!' : 'Пароль сброшен!');
+        try {
+            await apiRequest(`/api/users/${studentId}/reset-password`, {
+                method: 'POST',
+                body: JSON.stringify({ newPassword })
+            });
+            alert(lang === 'uz' ? `Parol o'zgartirildi: ${newPassword}` : `Пароль сброшен на: ${newPassword}`);
+        } catch (error) {
+            console.error('Error resetting password:', error);
+            alert(lang === 'uz' ? 'Xatolik yuz berdi!' : 'Произошла ошибка!');
+        }
     }
 }
 
@@ -13107,7 +13119,7 @@ function editStudent(studentId) {
 async function updateStudent(event, studentId) {
     event.preventDefault();
     const formData = new FormData(event.target);
-    const lang = state.user?.language || 'uz';
+    const lang = store.getState().user?.language || 'ru';
 
     const data = {
         first_name: formData.get('first_name'),
@@ -13124,39 +13136,70 @@ async function updateStudent(event, studentId) {
         });
 
         alert(lang === 'uz' ? 'O\'zgarishlar saqlandi!' : 'Изменения сохранены!');
-        window.router.navigate(`/admin/student/${studentId}`);
+        // Reload the page to show updated data
+        await renderAdminStudentDetail(studentId);
     } catch (error) {
         console.error('Error updating student:', error);
         alert(lang === 'uz' ? 'Xatolik yuz berdi!' : 'Произошла ошибка!');
     }
 }
 
-function sendNotificationToStudent(studentId) {
-    const lang = state.user?.language || 'uz';
+async function sendNotificationToStudent(studentId) {
+    const lang = store.getState().user?.language || 'ru';
     const message = prompt(lang === 'uz' ? 'Xabar matni:' : 'Текст уведомления:');
     if (message) {
-        // TODO: Implement notification API call
-        alert(lang === 'uz' ? 'Xabar yuborildi!' : 'Уведомление отправлено!');
+        try {
+            await apiRequest(`/api/users/${studentId}/notify`, {
+                method: 'POST',
+                body: JSON.stringify({ message })
+            });
+            alert(lang === 'uz' ? 'Xabar yuborildi!' : 'Уведомление отправлено!');
+        } catch (error) {
+            console.error('Error sending notification:', error);
+            alert(lang === 'uz' ? 'Xatolik yuz berdi!' : 'Произошла ошибка!');
+        }
     }
 }
 
-function exportStudentData(studentId, studentName) {
-    const lang = state.user?.language || 'uz';
-    // TODO: Implement PDF export functionality
-    alert(lang === 'uz' ? `${studentName} ma'lumotlari eksport qilinyapti...` : `Экспорт данных ${studentName}...`);
+async function exportStudentData(studentId, studentName) {
+    const lang = store.getState().user?.language || 'ru';
+    try {
+        const student = await apiRequest(`/api/users/${studentId}`);
+        const dataStr = JSON.stringify(student, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `student_${studentId}_${studentName}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        alert(lang === 'uz' ? 'Ma\'lumotlar yuklandi!' : 'Данные экспортированы!');
+    } catch (error) {
+        console.error('Error exporting data:', error);
+        alert(lang === 'uz' ? 'Xatolik yuz berdi!' : 'Произошла ошибка!');
+    }
 }
 
-function deleteStudent(studentId, studentName) {
-    const lang = state.user?.language || 'uz';
+async function deleteStudent(studentId, studentName) {
+    const lang = store.getState().user?.language || 'ru';
     const confirmMessage = lang === 'uz'
         ? `${studentName}ni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi!`
         : `Вы уверены, что хотите удалить ${studentName}? Это действие необратимо!`;
 
     if (confirm(confirmMessage)) {
         if (confirm(lang === 'uz' ? 'Rostdan ham o\'chirishni xohlaysizmi?' : 'Вы действительно уверены?')) {
-            // TODO: Implement delete API call
-            alert(lang === 'uz' ? 'O\'quvchi o\'chirildi!' : 'Ученик удален!');
-            window.router.navigate('/admin/classes');
+            try {
+                await apiRequest(`/api/users/${studentId}`, {
+                    method: 'DELETE'
+                });
+                alert(lang === 'uz' ? 'O\'quvchi o\'chirildi!' : 'Ученик удален!');
+                window.router.navigate('/admin/classes');
+            } catch (error) {
+                console.error('Error deleting student:', error);
+                alert(lang === 'uz' ? 'Xatolik yuz berdi!' : 'Произошла ошибка!');
+            }
         }
     }
 }
