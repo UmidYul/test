@@ -12233,29 +12233,71 @@ function showCreateClassModal() {
     modal.className = 'admin-modal-overlay';
     modal.innerHTML = `
         <div class="admin-modal-content" style="background: var(--bg-primary); border-radius: 14px; padding: 2rem; max-width: 500px; width: 100%; box-shadow: 0 25px 50px rgba(0,0,0,0.2); border: 1px solid var(--border-color);">
-            <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">Новый класс</h2>
-            <p style="margin: 0 0 1.5rem 0; color: var(--text-secondary); font-size: 0.9rem;">Создайте новый класс в системе</p>
+            <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">
+                ${lang === 'uz' ? 'Yangi sinf' : 'Новый класс'}
+            </h2>
+            <p style="margin: 0 0 1.5rem 0; color: var(--text-secondary); font-size: 0.9rem;">
+                ${lang === 'uz' ? 'Tizimda yangi sinf yarating' : 'Создайте новый класс в системе'}
+            </p>
+            
+            <!-- Validation Alert -->
+            <div id="classValidationAlert" style="display: none; padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; font-weight: 500;"></div>
             
             <div style="margin-bottom: 1.5rem;">
-                <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">📚 Номер класса</label>
-                <input type="text" id="newClassGrade" placeholder="1, 2, 3, 4..." style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.95rem; box-sizing: border-box; transition: all 0.2s;" onfocus="this.style.borderColor='#3B82F6'; this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)';" onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">
+                    📚 ${lang === 'uz' ? 'Sinf raqami' : 'Номер класса'} <span style="color: #ef4444;">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="newClassGrade" 
+                    placeholder="${lang === 'uz' ? '1, 2, 3, 4...' : '1, 2, 3, 4...'}" 
+                    style="width: 100%; padding: 0.8rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.95rem; box-sizing: border-box; transition: all 0.2s;" 
+                    onfocus="this.style.borderColor='#3B82F6'; this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'; hideValidationError();" 
+                    onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';"
+                    oninput="validateClassGrade(this)">
+                <div class="input-hint" style="margin-top: 0.4rem; font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.3rem;">
+                    💡 ${lang === 'uz' ? 'Faqat raqam kiriting (1-11)' : 'Только цифры (1-11)'}
+                </div>
             </div>
 
             <div style="margin-bottom: 1.5rem;">
-                <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">🔤 Буква класса</label>
-                <input type="text" id="newClassName" placeholder="А, Б, В, Г..." style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.95rem; box-sizing: border-box; transition: all 0.2s;" onfocus="this.style.borderColor='#3B82F6'; this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)';" onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">
+                    🔤 ${lang === 'uz' ? 'Sinf harfi' : 'Буква класса'} <span style="color: #ef4444;">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="newClassName" 
+                    placeholder="${lang === 'uz' ? 'A, B, V, G...' : 'А, Б, В, Г...'}" 
+                    maxlength="1"
+                    style="width: 100%; padding: 0.8rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.95rem; box-sizing: border-box; transition: all 0.2s;" 
+                    onfocus="this.style.borderColor='#3B82F6'; this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'; hideValidationError();" 
+                    onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';"
+                    oninput="validateClassName(this)">
+                <div class="input-hint" style="margin-top: 0.4rem; font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.3rem;">
+                    💡 ${lang === 'uz' ? 'Bitta harf (A, B, V)' : 'Одна буква (А, Б, В)'}
+                </div>
             </div>
 
             <div style="margin-bottom: 1.5rem;">
-                <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">👨‍🏫 Классный руководитель (опционально)</label>
-                <select id="newClassTeacher">
-                    <option value="">⏳ Загрузка учителей...</option>
+                <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">
+                    👨‍🏫 ${lang === 'uz' ? 'Sinf rahbari (ixtiyoriy)' : 'Классный руководитель (опционально)'}
+                </label>
+                <select id="newClassTeacher" style="width: 100%; padding: 0.8rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.95rem; box-sizing: border-box; transition: all 0.2s;">
+                    <option value="">⏳ ${lang === 'uz' ? 'O\'qituvchilar yuklanmoqda...' : 'Загрузка учителей...'}</option>
                 </select>
+                <div class="input-hint" style="margin-top: 0.4rem; font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.3rem;">
+                    ℹ️ ${lang === 'uz' ? 'Keyinroq tayinlashingiz mumkin' : 'Можно назначить позже'}
+                </div>
             </div>
 
-            <div style="display: flex; gap: 0.8rem; justify-content: flex-end;">
-                <button onclick="closeModal()" style="padding: 0.75rem 1.5rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-primary); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s;">Отмена</button>
-                <button id="createClassBtn" onclick="createClass()" style="padding: 0.75rem 1.5rem; background: #3B82F6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s;">Создать</button>
+            <div style="display: flex; gap: 0.8rem; justify-content: flex-end; margin-top: 2rem;">
+                <button onclick="closeModal()" style="padding: 0.75rem 1.5rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-primary); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s;">
+                    ${lang === 'uz' ? 'Bekor qilish' : 'Отмена'}
+                </button>
+                <button id="createClassBtn" onclick="createClass()" style="padding: 0.75rem 1.5rem; background: #3B82F6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>✨</span>
+                    <span>${lang === 'uz' ? 'Yaratish' : 'Создать'}</span>
+                </button>
             </div>
         </div>
     `;
@@ -12266,6 +12308,61 @@ function showCreateClassModal() {
 
     // Загружаем учителей асинхронно после отрисовки
     loadTeachersForModal(token);
+}
+
+// Validation helper functions for class creation
+function validateClassGrade(input) {
+    const value = input.value.trim();
+    // Allow only digits
+    input.value = value.replace(/[^0-9]/g, '');
+
+    const num = parseInt(input.value);
+    if (input.value && (num < 1 || num > 11)) {
+        showValidationError('Номер класса должен быть от 1 до 11', 'warning');
+        input.style.borderColor = '#f59e0b';
+    } else if (input.value) {
+        input.style.borderColor = '#10b981';
+    }
+}
+
+function validateClassName(input) {
+    const value = input.value.trim().toUpperCase();
+    // Allow only letters
+    const cleaned = value.replace(/[^A-ZА-Я]/g, '');
+    input.value = cleaned.substring(0, 1);
+
+    if (input.value) {
+        input.style.borderColor = '#10b981';
+    }
+}
+
+function showValidationError(message, type = 'error') {
+    const alert = document.getElementById('classValidationAlert');
+    if (!alert) return;
+
+    const colors = {
+        error: { bg: 'rgba(239, 68, 68, 0.1)', border: '#ef4444', text: '#ef4444', icon: '❌' },
+        warning: { bg: 'rgba(245, 158, 11, 0.1)', border: '#f59e0b', text: '#f59e0b', icon: '⚠️' },
+        success: { bg: 'rgba(16, 185, 129, 0.1)', border: '#10b981', text: '#10b981', icon: '✅' }
+    };
+
+    const color = colors[type] || colors.error;
+
+    alert.style.display = 'flex';
+    alert.style.alignItems = 'center';
+    alert.style.gap = '0.5rem';
+    alert.style.background = color.bg;
+    alert.style.border = `1px solid ${color.border}`;
+    alert.style.color = color.text;
+    alert.innerHTML = `
+        <span style="font-size: 1.1rem;">${color.icon}</span>
+        <span>${message}</span>
+    `;
+}
+
+function hideValidationError() {
+    const alert = document.getElementById('classValidationAlert');
+    if (alert) alert.style.display = 'none';
 }
 
 async function loadTeachersForModal(token) {
@@ -12305,6 +12402,7 @@ async function loadTeachersForModal(token) {
 
 async function createClass() {
     console.log('📚 Creating class...');
+    const lang = store.getState().language;
     const token = store.getState().token;
     const gradeInput = document.getElementById('newClassGrade').value.trim();
     const nameInput = document.getElementById('newClassName').value.trim();
@@ -12315,6 +12413,18 @@ async function createClass() {
     const btn = document.getElementById('createClassBtn');
     if (btn) btn.disabled = true;
 
+    // Enhanced validation
+    if (!gradeInput && !nameInput) {
+        showValidationError(
+            lang === 'uz'
+                ? 'Sinf raqami va harfini kiriting'
+                : 'Укажите номер класса и букву',
+            'error'
+        );
+        if (btn) btn.disabled = false;
+        return;
+    }
+
     const combinedMatch = !name && gradeInput.match(/^(\d+)\s*([A-Za-zА-Яа-я])$/);
     if (combinedMatch) {
         grade = combinedMatch[1];
@@ -12324,8 +12434,51 @@ async function createClass() {
     grade = grade.replace(/[^0-9]/g, '');
     name = name.replace(/\s+/g, '').toUpperCase();
 
-    if (!grade || !name) {
-        showAlert('Укажите номер класса и букву', 'error');
+    if (!grade) {
+        showValidationError(
+            lang === 'uz'
+                ? 'Sinf raqamini kiriting'
+                : 'Укажите номер класса',
+            'error'
+        );
+        document.getElementById('newClassGrade').focus();
+        if (btn) btn.disabled = false;
+        return;
+    }
+
+    if (!name) {
+        showValidationError(
+            lang === 'uz'
+                ? 'Sinf harfini kiriting'
+                : 'Укажите букву класса',
+            'error'
+        );
+        document.getElementById('newClassName').focus();
+        if (btn) btn.disabled = false;
+        return;
+    }
+
+    const gradeNum = parseInt(grade);
+    if (gradeNum < 1 || gradeNum > 11) {
+        showValidationError(
+            lang === 'uz'
+                ? 'Sinf raqami 1 dan 11 gacha bo\'lishi kerak'
+                : 'Номер класса должен быть от 1 до 11',
+            'error'
+        );
+        document.getElementById('newClassGrade').focus();
+        if (btn) btn.disabled = false;
+        return;
+    }
+
+    if (!/^[A-ZА-Я]$/.test(name)) {
+        showValidationError(
+            lang === 'uz'
+                ? 'Sinf harfi faqat bitta harf bo\'lishi kerak'
+                : 'Буква класса должна быть одной буквой',
+            'error'
+        );
+        document.getElementById('newClassName').focus();
         if (btn) btn.disabled = false;
         return;
     }
@@ -12337,6 +12490,11 @@ async function createClass() {
         }
 
         console.log('📚 Sending class data:', body);
+
+        // Show loading state
+        if (btn) {
+            btn.innerHTML = '<span>⏳</span><span>' + (lang === 'uz' ? 'Yaratilmoqda...' : 'Создание...') + '</span>';
+        }
 
         const response = await fetch(`${API_BASE_URL}/api/classes`, {
             method: 'POST',
@@ -12355,17 +12513,100 @@ async function createClass() {
             throw new Error(responseData.error || 'Failed to create class');
         }
 
-        console.log('✅ Class created successfully, closing modal...');
-        showAlert('Класс создан успешно', 'success');
+        console.log('✅ Class created successfully');
+        const createdClassId = responseData.data?.id || responseData.data?._id;
+        const classLabel = `${grade}${name}`;
+
+        // Close the creation modal
         closeModal();
-        console.log('✅ Modal closed, refreshing class list...');
-        renderAdminClasses();
+
+        // Show Step 2: Offer to add students
+        showClassCreatedWizardStep2(createdClassId, classLabel);
+
     } catch (error) {
         console.error('❌ Error creating class:', error);
-        showAlert('Ошибка при создании класса: ' + error.message, 'error');
+        showValidationError(
+            lang === 'uz'
+                ? 'Xatolik: ' + error.message
+                : 'Ошибка: ' + error.message,
+            'error'
+        );
     } finally {
-        if (btn) btn.disabled = false;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>✨</span><span>' + (lang === 'uz' ? 'Yaratish' : 'Создать') + '</span>';
+        }
     }
+}
+
+// Step 2 of class creation wizard: Offer to add students
+function showClassCreatedWizardStep2(classId, classLabel) {
+    const lang = store.getState().language;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.style.zIndex = '10001';
+
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 550px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+            <div style="text-align: center; padding: 2.5rem 2rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem; animation: bounceIn 0.6s;">🎉</div>
+                <h2 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 800;">
+                    ${lang === 'uz' ? 'Sinf yaratildi!' : 'Класс создан!'}
+                </h2>
+                <div style="background: rgba(255,255,255,0.2); border-radius: 12px; padding: 1rem; margin: 1rem 0 1.5rem 0; backdrop-filter: blur(10px);">
+                    <div style="font-size: 2rem; font-weight: 700; letter-spacing: 1px;">${classLabel}</div>
+                </div>
+                
+                <p style="margin: 0 0 2rem 0; font-size: 1rem; line-height: 1.6; opacity: 0.95;">
+                    ${lang === 'uz'
+            ? 'Endi siz darhol o\'quvchilarni qo\'shishingiz yoki keyinroq qilishingiz mumkin'
+            : 'Теперь вы можете сразу добавить учеников или сделать это позже'}
+                </p>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <button 
+                        onclick="window.closeModal(); window.showAddStudentToClassModal('${classId}', '${classLabel}')"
+                        style="width: 100%; padding: 1rem 1.5rem; background: white; color: #059669; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.75rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.2)'"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'">
+                        <span style="font-size: 1.3rem;">👨‍🎓</span>
+                        <span>${lang === 'uz' ? 'O\'quvchi qo\'shish' : 'Добавить учеников'}</span>
+                    </button>
+                    
+                    <button 
+                        onclick="window.closeModal(); window.viewClassStudents('${classId}')"
+                        style="width: 100%; padding: 1rem 1.5rem; background: rgba(255,255,255,0.15); color: white; border: 2px solid rgba(255,255,255,0.3); border-radius: 10px; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; backdrop-filter: blur(10px);"
+                        onmouseover="this.style.background='rgba(255,255,255,0.25)'"
+                        onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+                        ${lang === 'uz' ? 'Sinfga o\'tish' : 'Перейти к классу'}
+                    </button>
+                    
+                    <button 
+                        onclick="window.closeModal(); window.renderAdminClasses()"
+                        style="width: 100%; padding: 0.9rem 1.5rem; background: transparent; color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; font-weight: 500; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+                        onmouseout="this.style.background='transparent'">
+                        ${lang === 'uz' ? 'Keyinroq' : 'Позже'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add bounce animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 function closeModal() {
@@ -12864,6 +13105,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.exportSelectedToExcel = exportSelectedToExcel;
     window.saveClassEdit = saveClassEdit;
     window.showCreateClassModal = showCreateClassModal;
+    window.showClassCreatedWizardStep2 = showClassCreatedWizardStep2;
+    window.validateClassGrade = validateClassGrade;
+    window.validateClassName = validateClassName;
+    window.showValidationError = showValidationError;
+    window.hideValidationError = hideValidationError;
     window.createClass = createClass;
     window.closeModal = closeModal;
     window.showAddUserModal = showAddUserModal;
@@ -12880,3 +13126,4 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentPath = window.location.pathname;
     router.navigate(currentPath === '/' ? '/' : currentPath, false);
 });
+
