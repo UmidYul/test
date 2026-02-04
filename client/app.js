@@ -3564,6 +3564,27 @@ async function renderAdminDashboard() {
         </style>
         <div style="background: var(--bg-primary); min-height: 100vh; padding: 2rem 1.5rem;">
             <div style="max-width: 1400px; margin: 0 auto;">
+                <!-- Admin Profile Card -->
+                <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.05) 100%); border: 2px solid rgba(99, 102, 241, 0.3); border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                    <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.75rem; flex-shrink: 0; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 0.25rem; font-weight: 600;">${lang === 'uz' ? 'Administrator' : 'Администратор'}</div>
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${user.firstName || user.name || ''} ${user.lastName || ''}</h2>
+                        <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
+                                <i class="fas fa-envelope" style="color: #6366f1;"></i>
+                                <span>${user.email || user.username}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
+                                <i class="fas fa-user-tag" style="color: #8b5cf6;"></i>
+                                <span>@${user.username}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Header -->
                 <div id="adminHeader" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2.5rem;">
                     <div>
