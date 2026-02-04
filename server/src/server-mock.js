@@ -1961,7 +1961,7 @@ app.get('/api/classes/:classId', auth, async (req, res) => {
 
     // Получаем студентов этого класса из class_students
     const studentsQuery = await pool.query(`
-      SELECT u.id, u.username, u.first_name as "firstName", u.last_name as "lastName"
+      SELECT u.id, u.username, u.email, u.first_name as "firstName", u.last_name as "lastName"
       FROM class_students cs
       JOIN users u ON cs.student_id = u.id
       WHERE cs.class_id = $1 AND cs.left_at IS NULL
@@ -1987,7 +1987,7 @@ app.get('/api/classes/:classId/students', auth, async (req, res) => {
     const { classId } = req.params;
     // Получаем студентов этого класса из class_students
     const studentsQuery = await pool.query(`
-      SELECT u.id, u.username, u.first_name as "firstName", u.last_name as "lastName"
+      SELECT u.id, u.username, u.email, u.first_name as "firstName", u.last_name as "lastName"
       FROM class_students cs
       JOIN users u ON cs.student_id = u.id
       WHERE cs.class_id = $1 AND cs.left_at IS NULL
