@@ -2063,8 +2063,8 @@ app.put('/api/classes/:classId', auth, async (req, res) => {
         }
 
         await pool.query(
-          `INSERT INTO homeroom_assignments (teacher_id, class_id, start_at) 
-           VALUES ($1, $2, NOW())`,
+          `INSERT INTO homeroom_assignments (id, teacher_id, class_id, start_at) 
+           VALUES (gen_random_uuid(), $1, $2, NOW())`,
           [teacherId, classId]
         );
       }
