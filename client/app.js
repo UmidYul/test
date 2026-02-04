@@ -4905,12 +4905,10 @@ async function loadStudentDetail(studentId) {
 
     console.log('👤 Full Student Object:', student);
     console.log('👤 Student info:', {
-        firstName: student.firstName,
-        lastName: student.lastName,
+        first_name: student.first_name,
+        last_name: student.last_name,
         name: student.name,
         grade: student.grade,
-        className: student.className,
-        classId: student.classId,
         username: student.username,
         email: student.email,
         allKeys: Object.keys(student)
@@ -4925,15 +4923,8 @@ async function loadStudentDetail(studentId) {
 
     const scoreColor = avgScore >= 80 ? '#10b981' : avgScore >= 50 ? '#f59e0b' : '#ef4444';
 
-    // Пробуем разные варианты полей для имени
-    let fullName = '';
-    if (student.firstName || student.lastName) {
-        fullName = `${student.firstName || ''} ${student.lastName || ''}`.trim();
-    } else if (student.name) {
-        fullName = student.name;
-    } else {
-        fullName = 'Без имени';
-    }
+    // Используем snake_case поля из БД
+    const fullName = `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.name || 'Без имени';
 
     console.log('📝 Full name resolved:', fullName);
     const interests = student.interestTestResults?.categories || {};
