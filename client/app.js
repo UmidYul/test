@@ -4884,11 +4884,10 @@ async function loadStudentDetail(studentId) {
     const lang = store.getState().language;
 
     // Загружаем данные с обработкой ошибок для каждого запроса
-    const [userRes, resultsRes, subjectsRes, timelineRes] = await Promise.all([
+    const [userRes, resultsRes, subjectsRes] = await Promise.all([
         apiRequest(`/api/users/${studentId}`).catch(err => ({ success: false, error: err })),
-        apiRequest('/api/test-results').catch(err => ({ success: false, data: [] })),
-        apiRequest('/api/subjects').catch(err => ({ success: false, data: [] })),
-        apiRequest(`/api/analytics/students/${studentId}/timeline`).catch(err => ({ success: false, data: [] }))
+        apiRequest('/api/test-attempts').catch(err => ({ success: false, data: [] })),
+        apiRequest('/api/subjects').catch(err => ({ success: false, data: [] }))
     ]);
 
     console.log('📊 Student data loaded:', { userRes, student: userRes?.data });
