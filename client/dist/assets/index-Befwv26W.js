@@ -1867,18 +1867,6 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                         </button>
                     </div>
                 </form>
-                
-                <div style="margin-top: 3rem; padding: 1.5rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;">
-                    <h5 style="margin: 0 0 1rem 0; color: #991b1b; font-size: 1rem; font-weight: 700;">
-                        ${t==="uz"?"Xavfli zona":"Опасная зона"}
-                    </h5>
-                    <p style="margin: 0 0 1rem 0; color: #7f1d1d; font-size: 0.9rem;">
-                        ${t==="uz"?"Ushbu amallar qaytarilmaydi. Ehtiyot bo'ling!":"Эти действия необратимы. Будьте осторожны!"}
-                    </p>
-                    <button onclick="window.deleteStudent('${a.id}', \`${g}\`)" class="btn" style="background: #dc2626; color: white; border: none;">
-                        ${t==="uz"?"O'quvchini o'chirish":"Удалить ученика"}
-                    </button>
-                </div>
             </div>
         </div>
     `;a.interestTestResults&&Object.keys(p).length>0&&(f+=`

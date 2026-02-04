@@ -5326,18 +5326,6 @@ async function loadStudentDetail(studentId) {
                         </button>
                     </div>
                 </form>
-                
-                <div style="margin-top: 3rem; padding: 1.5rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;">
-                    <h5 style="margin: 0 0 1rem 0; color: #991b1b; font-size: 1rem; font-weight: 700;">
-                        ${lang === 'uz' ? 'Xavfli zona' : 'Опасная зона'}
-                    </h5>
-                    <p style="margin: 0 0 1rem 0; color: #7f1d1d; font-size: 0.9rem;">
-                        ${lang === 'uz' ? 'Ushbu amallar qaytarilmaydi. Ehtiyot bo\'ling!' : 'Эти действия необратимы. Будьте осторожны!'}
-                    </p>
-                    <button onclick="window.deleteStudent('${student.id}', \`${fullName}\`)" class="btn" style="background: #dc2626; color: white; border: none;">
-                        ${lang === 'uz' ? 'O\'quvchini o\'chirish' : 'Удалить ученика'}
-                    </button>
-                </div>
             </div>
         </div>
     `;
