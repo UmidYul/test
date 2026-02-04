@@ -1869,22 +1869,29 @@ app.get('/api/classes', auth, async (req, res) => {
       ORDER BY c.grade, c.section
     `);
 
+    console.log(`📊 Raw query result (first class):`, rows[0]);
+
     // Format teacher info
-    const formattedRows = rows.map(row => ({
-      ...row,
-      teacher: row.teacherId ? {
-        id: row.teacherId,
-        firstName: row.teacherFirstName,
-        lastName: row.teacherLastName,
-        fullName: `${row.teacherFirstName} ${row.teacherLastName}`
-      } : null,
-      // Remove teacher fields from root
-      teacherId: undefined,
-      teacherFirstName: undefined,
-      teacherLastName: undefined
-    }));
+    const formattedRows = rows.map(row => {
+      const formatted = {
+        id: row.id,
+        grade: row.grade,
+        name: row.name,
+        createdAt: row.createdAt,
+        studentCount: parseInt(row.studentCount) || 0,
+        teacher: row.teacherId ? {
+          id: row.teacherId,
+          firstName: row.teacherFirstName,
+          lastName: row.teacherLastName,
+          fullName: `${row.teacherFirstName} ${row.teacherLastName}`
+        } : null
+      };
+      return formatted;
+    });
 
     console.log(`📚 Загружено классов: ${formattedRows.length}`);
+    console.log(`📊 Formatted result (first class):`, formattedRows[0]);
+
     res.json({ success: true, data: formattedRows });
   } catch (error) {
     console.error('❌ Ошибка при загрузке классов:', error);
