@@ -249,6 +249,11 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
     const userId = req.params.id;
     const adminId = req.userId; // From JWT token
 
+    // Validate adminId
+    if (!adminId) {
+      return res.status(401).json({ error: 'Admin ID not found in token' });
+    }
+
     // Get the user being reset
     const { rows: userRows } = await pool.query(
       'SELECT id, first_name, last_name, email, username FROM users WHERE id = $1',
@@ -272,7 +277,7 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
     );
     const adminData = adminRows[0] || { first_name: 'Admin', last_name: '', email: '' };
 
-    // Update user
+    // Update user - set password_reset_by_admin_id to NULL if it's invalid, otherwise set to adminId
     await pool.query(
       `UPDATE users SET 
         password_hash = $1,
@@ -280,7 +285,7 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
         password_reset_at = NOW(),
         password_reset_by_admin_id = $2
       WHERE id = $3`,
-      [hashedPassword, adminId, userId]
+      [hashedPassword, adminId || null, userId]
     );
 
     // Send email to student
@@ -370,7 +375,17 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
 
   } catch (error) {
     console.error('Password reset error:', error);
-    res.status(500).json({ error: 'Failed to reset password', message: error.message });
+    console.error('Details:', {
+      userId: req.params.id,
+      adminId: req.userId,
+      errorCode: error.code,
+      errorMessage: error.message
+    });
+    res.status(500).json({
+      error: 'Failed to reset password',
+      message: error.message,
+      code: error.code
+    });
   }
 });
 
