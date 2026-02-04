@@ -4883,12 +4883,15 @@ async function renderAdminStudentDetail(studentId) {
 async function loadStudentDetail(studentId) {
     const lang = store.getState().language;
 
+    // Загружаем данные с обработкой ошибок для каждого запроса
     const [userRes, resultsRes, subjectsRes, timelineRes] = await Promise.all([
-        apiRequest(`/api/users/${studentId}`),
-        apiRequest('/api/test-results'),
-        apiRequest('/api/subjects'),
-        apiRequest(`/api/analytics/students/${studentId}/timeline`)
+        apiRequest(`/api/users/${studentId}`).catch(err => ({ success: false, error: err })),
+        apiRequest('/api/test-results').catch(err => ({ success: false, data: [] })),
+        apiRequest('/api/subjects').catch(err => ({ success: false, data: [] })),
+        apiRequest(`/api/analytics/students/${studentId}/timeline`).catch(err => ({ success: false, data: [] }))
     ]);
+
+    console.log('📊 Student data loaded:', { userRes, student: userRes?.data });
 
     if (!userRes.success) {
         document.getElementById('studentDetailContainer').innerHTML = `
@@ -4900,10 +4903,20 @@ async function loadStudentDetail(studentId) {
     }
 
     const student = userRes.data;
-    const allResults = resultsRes.data || [];
-    const subjects = subjectsRes.data || [];
+    const allResults = resultsRes.success ? (resultsRes.data || []) : [];
+    const subjects = subjectsRes.success ? (subjectsRes.data || []) : [];
 
-    const studentResults = allResults.filter(r => r.userId === studentId).sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+    console.log('👤 Student info:', {
+        firstName: student.firstName,
+        lastName: student.lastName,
+        grade: student.grade,
+        className: student.className,
+        username: student.username,
+        email: student.email
+    });
+
+    const studentResults = allResults.filter(r => r.userId === studentId || r.userId === student._id || r.userId === student.id)
+        .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
     const lastResults = studentResults.slice(0, 5);
 
     const avgScore = studentResults.length > 0
@@ -4917,7 +4930,7 @@ async function loadStudentDetail(studentId) {
     const passedTests = studentResults.filter(r => Math.round((r.correctCount / r.totalCount) * 100) >= 70).length;
 
     const scoreColor = avgScore >= 80 ? '#10b981' : avgScore >= 50 ? '#f59e0b' : '#ef4444';
-    const fullName = `${student.firstName || ''} ${student.lastName || ''}`;
+    const fullName = `${student.firstName || 'Без имени'} ${student.lastName || ''}`.trim();
     const interests = student.interestTestResults?.categories || {};
 
     // Get recommended subjects based on interests
