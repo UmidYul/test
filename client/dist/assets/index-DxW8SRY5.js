@@ -938,7 +938,7 @@ var _r=Object.defineProperty;var $r=(e,t,i)=>t in e?_r(e,t,{enumerable:!0,config
                     ${e==="uz"?"Testni boshlash":"Пройти тест"}
                 </button>
             </div>
-        `,(a=document.getElementById("btnStartTest"))==null||a.addEventListener("click",()=>{k.navigate("/student/subjects")})}async function ge(){const e=z.getState(),t=e.language;if(!e.isAuthenticated||!e.user||e.user.role!=="admin"){console.log("❌ Unauthorized access to admin dashboard"),k.navigate("/login");return}try{const i=`
+        `,(a=document.getElementById("btnStartTest"))==null||a.addEventListener("click",()=>{k.navigate("/student/subjects")})}async function ge(){const e=z.getState(),t=e.language,i=e.user;if(!e.isAuthenticated||!i||i.role!=="admin"){console.log("❌ Unauthorized access to admin dashboard"),k.navigate("/login");return}try{const s=`
         <style>
             @media (max-width: 768px) {
                 #adminHeader { flex-direction: column; align-items: flex-start; gap: 1rem; }
@@ -961,15 +961,15 @@ var _r=Object.defineProperty;var $r=(e,t,i)=>t in e?_r(e,t,{enumerable:!0,config
                     </div>
                     <div style="flex: 1; min-width: 200px;">
                         <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 0.25rem; font-weight: 600;">${t==="uz"?"Administrator":"Администратор"}</div>
-                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${user.firstName||user.name||""} ${user.lastName||""}</h2>
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${i.firstName||i.name||""} ${i.lastName||""}</h2>
                         <div style="display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap;">
                             <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
                                 <i class="fas fa-envelope" style="color: #6366f1;"></i>
-                                <span>${user.email||user.username}</span>
+                                <span>${i.email||i.username}</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
                                 <i class="fas fa-user-tag" style="color: #8b5cf6;"></i>
-                                <span>@${user.username}</span>
+                                <span>@${i.username}</span>
                             </div>
                         </div>
                     </div>
@@ -1047,7 +1047,7 @@ var _r=Object.defineProperty;var $r=(e,t,i)=>t in e?_r(e,t,{enumerable:!0,config
 
 
                 </div>
-        `;R(i,"admin"),ne()}catch(i){console.error("Error loading admin dashboard:",i),j("Ошибка при загрузке панели","error")}}async function Gu(){var i;const e=z.getState(),t=e.language;if(!e.isAuthenticated||!e.user||e.user.role!=="admin"){k.navigate("/login");return}try{const s=await L("/api/users"),n=s.success?(s.data||[]).filter(o=>o.role==="teacher"):[],a=`
+        `;R(s,"admin"),ne()}catch(s){console.error("Error loading admin dashboard:",s),j("Ошибка при загрузке панели","error")}}async function Gu(){var i;const e=z.getState(),t=e.language;if(!e.isAuthenticated||!e.user||e.user.role!=="admin"){k.navigate("/login");return}try{const s=await L("/api/users"),n=s.success?(s.data||[]).filter(o=>o.role==="teacher"):[],a=`
             <style>
                 .teachers-hero {
                     background: linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(16, 185, 129, 0.12) 100%);

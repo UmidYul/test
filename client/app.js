@@ -3539,9 +3539,10 @@ async function renderTestHistoryPage() {
 async function renderAdminDashboard() {
     const state = store.getState();
     const lang = state.language;
+    const user = state.user;
 
     // Check authentication
-    if (!state.isAuthenticated || !state.user || state.user.role !== 'admin') {
+    if (!state.isAuthenticated || !user || user.role !== 'admin') {
         console.log('❌ Unauthorized access to admin dashboard');
         router.navigate('/login');
         return;
