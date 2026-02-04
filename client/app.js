@@ -4883,10 +4883,9 @@ async function renderAdminStudentDetail(studentId) {
 async function loadStudentDetail(studentId) {
     const lang = store.getState().language;
 
-    // Загружаем данные с обработкой ошибок для каждого запроса
-    const [userRes, resultsRes, subjectsRes] = await Promise.all([
+    // Загружаем только основные данные ученика и предметы
+    const [userRes, subjectsRes] = await Promise.all([
         apiRequest(`/api/users/${studentId}`).catch(err => ({ success: false, error: err })),
-        apiRequest('/api/test-attempts').catch(err => ({ success: false, data: [] })),
         apiRequest('/api/subjects').catch(err => ({ success: false, data: [] }))
     ]);
 
@@ -4902,7 +4901,6 @@ async function loadStudentDetail(studentId) {
     }
 
     const student = userRes.data;
-    const allResults = resultsRes.success ? (resultsRes.data || []) : [];
     const subjects = subjectsRes.success ? (subjectsRes.data || []) : [];
 
     console.log('👤 Student info:', {
@@ -4914,19 +4912,12 @@ async function loadStudentDetail(studentId) {
         email: student.email
     });
 
-    const studentResults = allResults.filter(r => r.userId === studentId || r.userId === student._id || r.userId === student.id)
-        .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
-    const lastResults = studentResults.slice(0, 5);
-
-    const avgScore = studentResults.length > 0
-        ? Math.round(studentResults.reduce((sum, r) => sum + (r.correctCount / r.totalCount * 100), 0) / studentResults.length)
-        : 0;
-
-    const bestScore = studentResults.length > 0
-        ? Math.max(...studentResults.map(r => Math.round((r.correctCount / r.totalCount) * 100)))
-        : 0;
-
-    const passedTests = studentResults.filter(r => Math.round((r.correctCount / r.totalCount) * 100) >= 70).length;
+    // Пока нет результатов тестов на сервере - используем заглушки
+    const studentResults = [];
+    const lastResults = [];
+    const avgScore = 0;
+    const bestScore = 0;
+    const passedTests = 0;
 
     const scoreColor = avgScore >= 80 ? '#10b981' : avgScore >= 50 ? '#f59e0b' : '#ef4444';
     const fullName = `${student.firstName || 'Без имени'} ${student.lastName || ''}`.trim();
@@ -5152,10 +5143,11 @@ async function loadStudentDetail(studentId) {
 
     document.getElementById('studentDetailContainer').innerHTML = html;
 
-    if (timelineRes.success) {
-        const barData = buildSubjectAverageChart(timelineRes.data, lang === 'uz' ? 'O\'rtacha ball' : 'Средний балл');
-        renderBarChart('adminStudentAnalyticsChart', 'adminStudentAnalyticsEmpty', barData);
-    }
+    // График пока отключен, т.к. нет API для результатов тестов
+    // if (timelineRes.success) {
+    //     const barData = buildSubjectAverageChart(timelineRes.data, lang === 'uz' ? 'O\'rtacha ball' : 'Средний балл');
+    //     renderBarChart('adminStudentAnalyticsChart', 'adminStudentAnalyticsEmpty', barData);
+    // }
 }
 
 async function viewTeacherDetails(teacherId) {
