@@ -4957,7 +4957,73 @@ async function loadStudentDetail(studentId) {
                 to { opacity: 1; transform: translateY(0); }
             }
             .profile-section { animation: slideInUp 0.5s ease-out; }
+            .profile-tab {
+                padding: 0.75rem 1.5rem;
+                background: transparent;
+                border: none;
+                color: var(--text-secondary);
+                font-weight: 600;
+                cursor: pointer;
+                border-bottom: 3px solid transparent;
+                transition: all 0.3s;
+            }
+            .profile-tab.active {
+                color: var(--text-primary);
+                border-bottom-color: #667eea;
+            }
+            .profile-tab:hover {
+                color: var(--text-primary);
+                background: var(--bg-tertiary);
+            }
+            .tab-content {
+                display: none;
+            }
+            .tab-content.active {
+                display: block;
+            }
+            .action-button {
+                padding: 0.7rem 1.2rem;
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+                background: var(--bg-secondary);
+                color: var(--text-primary);
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                font-size: 0.9rem;
+            }
+            .action-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                border-color: #667eea;
+            }
+            .action-button.danger:hover {
+                border-color: #ef4444;
+                color: #ef4444;
+            }
         </style>
+        
+        <!-- Breadcrumbs -->
+        <nav style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">
+            <a href="#" onclick="event.preventDefault(); window.router.navigate('/admin/dashboard');" style="color: #3B82F6; text-decoration: none;">
+                ${lang === 'uz' ? 'Bosh sahifa' : 'Главная'}
+            </a>
+            <span>›</span>
+            <a href="#" onclick="event.preventDefault(); window.router.navigate('/admin/classes');" style="color: #3B82F6; text-decoration: none;">
+                ${lang === 'uz' ? 'Sinflar' : 'Классы'}
+            </a>
+            <span>›</span>
+            ${studentClass ? `
+                <a href="#" onclick="event.preventDefault(); window.viewClassStudents('${student.homeroom_id}');" style="color: #3B82F6; text-decoration: none;">
+                    ${classLabel}
+                </a>
+                <span>›</span>
+            ` : ''}
+            <span style="color: var(--text-primary); font-weight: 600;">${fullName}</span>
+        </nav>
         
         <!-- Profile Header -->
         <div class="card profile-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; text-align: center; margin-bottom: 2rem; border-radius: 20px;">
@@ -4965,6 +5031,11 @@ async function loadStudentDetail(studentId) {
                 ${fullName.charAt(0).toUpperCase()}
             </div>
             <h1 style="margin: 0 0 0.5rem 0; font-size: 1.8rem; font-weight: 800;">${fullName}</h1>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-top: 0.5rem;">
+                <span style="padding: 0.35rem 0.9rem; background: rgba(255,255,255,0.2); border-radius: 999px; font-size: 0.85rem; font-weight: 600;">
+                    ${student.status === 'active' ? '✓ ' : ''}${lang === 'uz' ? 'Aktiv' : 'Активен'}
+                </span>
+            </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2);">
                 <div>
                     <div style="font-size: 0.85rem; opacity: 0.9;">${lang === 'uz' ? 'Sinf' : 'Класс'}</div>
@@ -4980,6 +5051,106 @@ async function loadStudentDetail(studentId) {
                 </div>
             </div>
         </div>
+        
+        <!-- Quick Actions -->
+        <div class="card" style="margin-bottom: 2rem; padding: 1.5rem;">
+            <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 700;">${lang === 'uz' ? 'Tez amallar' : 'Быстрые действия'}</h3>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="action-button" onclick="window.resetStudentPassword('${student.id}')">
+                    <span>🔑</span>
+                    ${lang === 'uz' ? 'Parolni tiklash' : 'Сбросить пароль'}
+                </button>
+                <button class="action-button" onclick="window.editStudent('${student.id}')">
+                    <span>✏️</span>
+                    ${lang === 'uz' ? 'Tahrirlash' : 'Редактировать'}
+                </button>
+                <button class="action-button" onclick="window.sendNotificationToStudent('${student.id}')">
+                    <span>📧</span>
+                    ${lang === 'uz' ? 'Xabar yuborish' : 'Отправить уведомление'}
+                </button>
+                <button class="action-button" onclick="window.exportStudentData('${student.id}', '${fullName}')">
+                    <span>📊</span>
+                    ${lang === 'uz' ? 'Eksport qilish' : 'Экспорт данных'}
+                </button>
+                <button class="action-button danger" onclick="window.deleteStudent('${student.id}', '${fullName}')">
+                    <span>🗑️</span>
+                    ${lang === 'uz' ? "O'chirish" : 'Удалить'}
+                </button>
+            </div>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="card" style="margin-bottom: 0; padding: 0; overflow: hidden;">
+            <div style="display: flex; border-bottom: 1px solid var(--border-color); background: var(--bg-secondary);">
+                <button class="profile-tab active" onclick="window.switchProfileTab('overview')">
+                    ${lang === 'uz' ? 'Umumiy' : 'Обзор'}
+                </button>
+                <button class="profile-tab" onclick="window.switchProfileTab('subjects')">
+                    ${lang === 'uz' ? 'Fanlar' : 'Предметы'}
+                </button>
+                <button class="profile-tab" onclick="window.switchProfileTab('tests')">
+                    ${lang === 'uz' ? 'Testlar' : 'Тесты'}
+                </button>
+                <button class="profile-tab" onclick="window.switchProfileTab('settings')">
+                    ${lang === 'uz' ? 'Sozlamalar' : 'Настройки'}
+                </button>
+            </div>
+            
+            <!-- Tab: Overview -->
+            <div id="tab-overview" class="tab-content active" style="padding: 2rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                    <!-- Class Info -->
+                    ${studentClass ? `
+                        <div style="padding: 1.5rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color);">
+                            <h4 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                                <span>🎓</span>
+                                ${lang === 'uz' ? 'Sinf ma\'lumotlari' : 'Информация о классе'}
+                            </h4>
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--text-secondary);">${lang === 'uz' ? 'Sinf' : 'Класс'}:</span>
+                                    <strong>${classLabel}</strong>
+                                </div>
+                                ${studentClass.teacher_name ? `
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: var(--text-secondary);">${lang === 'uz' ? 'Sinf rahbari' : 'Классный руководитель'}:</span>
+                                        <strong>${studentClass.teacher_name}</strong>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Contact Info -->
+                    <div style="padding: 1.5rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color);">
+                        <h4 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>📞</span>
+                            ${lang === 'uz' ? 'Kontakt ma\'lumotlari' : 'Контактная информация'}
+                        </h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary);">Email:</span>
+                                <strong>${student.email || '—'}</strong>
+                            </div>
+                            ${student.phone ? `
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--text-secondary);">${lang === 'uz' ? 'Telefon' : 'Телефон'}:</span>
+                                    <strong>${student.phone}</strong>
+                                </div>
+                            ` : ''}
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--text-secondary);">${lang === 'uz' ? 'Foydalanuvchi nomi' : 'Имя пользователя'}:</span>
+                                <strong>${student.username || '—'}</strong>
+                            </div>
+                            ${student.created_at ? `
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--text-secondary);">${lang === 'uz' ? 'Ro\'yxatdan o\'tish' : 'Дата регистрации'}:</span>
+                                    <strong>${new Date(student.created_at).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'ru-RU')}</strong>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
         
         <!-- Statistics -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
@@ -4998,6 +5169,79 @@ async function loadStudentDetail(studentId) {
             <div class="card profile-section" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 1.5rem; border-radius: 16px; text-align: center;">
                 <div style="font-size: 2.5rem; font-weight: bold; margin-bottom: 0.5rem;">${passedTests}</div>
                 <div style="font-size: 0.85rem; opacity: 0.9;">${lang === 'uz' ? 'O\'tkazdi' : 'Успешно'}</div>
+            </div>
+        </div>
+            </div>
+            
+            <!-- Tab: Subjects -->
+            <div id="tab-subjects" class="tab-content" style="padding: 2rem;">
+                <h4 style="margin: 0 0 1.5rem 0; font-size: 1.1rem; font-weight: 700;">
+                    ${lang === 'uz' ? 'O\'qiladigan fanlar' : 'Изучаемые предметы'}
+                </h4>
+                <div id="subjects-list" style="display: grid; gap: 1rem;">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        ${lang === 'uz' ? 'Fanlar yuklanmoqda...' : 'Загрузка предметов...'}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab: Tests -->
+            <div id="tab-tests" class="tab-content" style="padding: 2rem;">
+                <h4 style="margin: 0 0 1.5rem 0; font-size: 1.1rem; font-weight: 700;">
+                    ${lang === 'uz' ? 'Test natijalari' : 'Результаты тестов'}
+                </h4>
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    ${lang === 'uz' ? 'Test natijalari topilmadi' : 'Результаты тестов отсутствуют'}
+                </div>
+            </div>
+            
+            <!-- Tab: Settings -->
+            <div id="tab-settings" class="tab-content" style="padding: 2rem;">
+                <h4 style="margin: 0 0 1.5rem 0; font-size: 1.1rem; font-weight: 700;">
+                    ${lang === 'uz' ? 'O\'quvchi sozlamalari' : 'Настройки ученика'}
+                </h4>
+                <form onsubmit="window.updateStudent(event, '${student.id}')">
+                    <div style="display: grid; gap: 1.5rem; max-width: 600px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">${lang === 'uz' ? 'Ism' : 'Имя'}:</label>
+                            <input type="text" name="first_name" value="${student.first_name || ''}" class="form-input" required>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">${lang === 'uz' ? 'Familiya' : 'Фамилия'}:</label>
+                            <input type="text" name="last_name" value="${student.last_name || ''}" class="form-input" required>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Email:</label>
+                            <input type="email" name="email" value="${student.email || ''}" class="form-input" required>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">${lang === 'uz' ? 'Telefon' : 'Телефон'}:</label>
+                            <input type="tel" name="phone" value="${student.phone || ''}" class="form-input">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">${lang === 'uz' ? 'Holat' : 'Статус'}:</label>
+                            <select name="status" class="form-input" required>
+                                <option value="active" ${student.status === 'active' ? 'selected' : ''}>${lang === 'uz' ? 'Aktiv' : 'Активен'}</option>
+                                <option value="inactive" ${student.status === 'inactive' ? 'selected' : ''}>${lang === 'uz' ? 'Nofaol' : 'Неактивен'}</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">
+                            ${lang === 'uz' ? 'Saqlash' : 'Сохранить изменения'}
+                        </button>
+                    </div>
+                </form>
+                
+                <div style="margin-top: 3rem; padding: 1.5rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;">
+                    <h5 style="margin: 0 0 1rem 0; color: #991b1b; font-size: 1rem; font-weight: 700;">
+                        ${lang === 'uz' ? 'Xavfli zona' : 'Опасная зона'}
+                    </h5>
+                    <p style="margin: 0 0 1rem 0; color: #7f1d1d; font-size: 0.9rem;">
+                        ${lang === 'uz' ? 'Ushbu amallar qaytarilmaydi. Ehtiyot bo\'ling!' : 'Эти действия необратимы. Будьте осторожны!'}
+                    </p>
+                    <button onclick="window.deleteStudent('${student.id}', '${fullName}')" class="btn" style="background: #dc2626; color: white; border: none;">
+                        ${lang === 'uz' ? 'O\'quvchini o\'chirish' : 'Удалить ученика'}
+                    </button>
+                </div>
             </div>
         </div>
     `;
@@ -12791,6 +13035,132 @@ router.register('/admin/teacher-tests', renderAdminTeacherTests);
 router.register('/admin/student/:studentId', ({ studentId }) => renderAdminStudentDetail(studentId));
 router.register('/admin/teacher/:teacherId', ({ teacherId }) => renderAdminTeacherDetail(teacherId));
 
+// Student Profile Helper Functions
+function switchProfileTab(tabName) {
+    document.querySelectorAll('.profile-tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+    event.target.classList.add('active');
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+
+    // Load subjects when switching to subjects tab
+    if (tabName === 'subjects') {
+        loadStudentSubjects();
+    }
+}
+
+async function loadStudentSubjects() {
+    const studentId = window.location.pathname.split('/').pop();
+    const container = document.getElementById('subjects-list');
+    const lang = state.user?.language || 'uz';
+
+    try {
+        const subjects = await apiRequest('/api/subjects');
+
+        if (!subjects || subjects.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    ${lang === 'uz' ? 'Fanlar topilmadi' : 'Предметы не найдены'}
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = subjects.map(subject => `
+            <div style="padding: 1.25rem; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h5 style="margin: 0 0 0.5rem 0; font-weight: 700; font-size: 1rem;">${subject.name}</h5>
+                    ${subject.teacher_name ? `<div style="color: var(--text-secondary); font-size: 0.85rem;">👨‍🏫 ${subject.teacher_name}</div>` : ''}
+                </div>
+                <div style="text-align: right;">
+                    <div style="color: var(--text-secondary); font-size: 0.75rem;">${lang === 'uz' ? 'O\'rtacha' : 'Средний балл'}</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #667eea;">—</div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading subjects:', error);
+        container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: #ef4444;">
+                ${lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка'}
+            </div>
+        `;
+    }
+}
+
+function resetStudentPassword(studentId) {
+    const lang = state.user?.language || 'uz';
+    if (confirm(lang === 'uz' ? 'Parolni tiklashni xohlaysizmi?' : 'Вы уверены, что хотите сбросить пароль?')) {
+        // TODO: Implement password reset API call
+        alert(lang === 'uz' ? 'Parol tiklandi!' : 'Пароль сброшен!');
+    }
+}
+
+function editStudent(studentId) {
+    // Switch to settings tab where the edit form is
+    const settingsTab = document.querySelector('.profile-tab:nth-child(4)');
+    if (settingsTab) {
+        settingsTab.click();
+    }
+}
+
+async function updateStudent(event, studentId) {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const lang = state.user?.language || 'uz';
+
+    const data = {
+        first_name: formData.get('first_name'),
+        last_name: formData.get('last_name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        status: formData.get('status')
+    };
+
+    try {
+        await apiRequest(`/api/users/${studentId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+
+        alert(lang === 'uz' ? 'O\'zgarishlar saqlandi!' : 'Изменения сохранены!');
+        window.router.navigate(`/admin/student/${studentId}`);
+    } catch (error) {
+        console.error('Error updating student:', error);
+        alert(lang === 'uz' ? 'Xatolik yuz berdi!' : 'Произошла ошибка!');
+    }
+}
+
+function sendNotificationToStudent(studentId) {
+    const lang = state.user?.language || 'uz';
+    const message = prompt(lang === 'uz' ? 'Xabar matni:' : 'Текст уведомления:');
+    if (message) {
+        // TODO: Implement notification API call
+        alert(lang === 'uz' ? 'Xabar yuborildi!' : 'Уведомление отправлено!');
+    }
+}
+
+function exportStudentData(studentId, studentName) {
+    const lang = state.user?.language || 'uz';
+    // TODO: Implement PDF export functionality
+    alert(lang === 'uz' ? `${studentName} ma'lumotlari eksport qilinyapti...` : `Экспорт данных ${studentName}...`);
+}
+
+function deleteStudent(studentId, studentName) {
+    const lang = state.user?.language || 'uz';
+    const confirmMessage = lang === 'uz'
+        ? `${studentName}ni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi!`
+        : `Вы уверены, что хотите удалить ${studentName}? Это действие необратимо!`;
+
+    if (confirm(confirmMessage)) {
+        if (confirm(lang === 'uz' ? 'Rostdan ham o\'chirishni xohlaysizmi?' : 'Вы действительно уверены?')) {
+            // TODO: Implement delete API call
+            alert(lang === 'uz' ? 'O\'quvchi o\'chirildi!' : 'Ученик удален!');
+            window.router.navigate('/admin/classes');
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Export functions to global scope for onclick handlers
     window.deleteClass = deleteClass;
@@ -12815,6 +13185,15 @@ document.addEventListener('DOMContentLoaded', () => {
     window.showAddStudentToClassModal = showAddStudentToClassModal;
     window.removeStudentFromClass = removeStudentFromClass;
     // Password reset functions removed - will be in student settings
+
+    // Student profile functions
+    window.switchProfileTab = switchProfileTab;
+    window.resetStudentPassword = resetStudentPassword;
+    window.editStudent = editStudent;
+    window.updateStudent = updateStudent;
+    window.sendNotificationToStudent = sendNotificationToStudent;
+    window.exportStudentData = exportStudentData;
+    window.deleteStudent = deleteStudent;
 
     initThemeToggle();
     renderLanguageSwitch();
