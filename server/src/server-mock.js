@@ -1851,25 +1851,27 @@ app.get('/api/teacher/control-tests/results', auth, async (req, res) => {
 // Get all classes/grades
 app.get('/api/classes', auth, async (req, res) => {
   try {
-    const { rows } = await pool.query(`
-      SELECT 
-        c.id, 
-        c.grade, 
-        c.section as name, 
-        c.created_at as "createdAt",
-        COUNT(DISTINCT cs.student_id) as "studentCount",
-        u.id as "teacherId",
-        u.first_name as "teacherFirstName",
-        u.last_name as "teacherLastName"
+    // Debug: проверим что в homeroom_assignments
+    const { rows: debugHA } = await pool.query('SELECT * FROM homeroom_assignments LIMIT 5');
+    console.log('🔍 homeroom_assignments содержит:', debugHA);
+
+    c.id,
+      c.grade,
+      c.section as name,
+      c.created_at as "createdAt",
+      COUNT(DISTINCT cs.student_id) as "studentCount",
+      u.id as "teacherId",
+      u.first_name as "teacherFirstName",
+      u.last_name as "teacherLastName"
       FROM classes c
       LEFT JOIN class_students cs ON c.id = cs.class_id AND cs.left_at IS NULL
       LEFT JOIN homeroom_assignments ha ON c.id = ha.class_id AND ha.end_at IS NULL
       LEFT JOIN users u ON ha.teacher_id = u.id
       GROUP BY c.id, c.grade, c.section, c.created_at, u.id, u.first_name, u.last_name
       ORDER BY c.grade, c.section
-    `);
+      `);
 
-    console.log(`📊 Raw query result (first class):`, rows[0]);
+    console.log(`📊 Raw query result(first class): `, rows[0]);
 
     // Format teacher info
     const formattedRows = rows.map(row => {
@@ -1883,14 +1885,14 @@ app.get('/api/classes', auth, async (req, res) => {
           id: row.teacherId,
           firstName: row.teacherFirstName,
           lastName: row.teacherLastName,
-          fullName: `${row.teacherFirstName} ${row.teacherLastName}`
+          fullName: `${ row.teacherFirstName } ${ row.teacherLastName } `
         } : null
       };
       return formatted;
     });
 
-    console.log(`📚 Загружено классов: ${formattedRows.length}`);
-    console.log(`📊 Formatted result (first class):`, formattedRows[0]);
+    console.log(`📚 Загружено классов: ${ formattedRows.length } `);
+    console.log(`📊 Formatted result(first class): `, formattedRows[0]);
 
     res.json({ success: true, data: formattedRows });
   } catch (error) {
@@ -1912,7 +1914,7 @@ app.get('/api/classes/:classId', auth, async (req, res) => {
       SELECT c.id, c.grade, c.section as name, c.created_at as "createdAt"
       FROM classes c
       WHERE c.id = $1
-    `, [classId]);
+      `, [classId]);
     if (rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
@@ -1924,7 +1926,7 @@ app.get('/api/classes/:classId', auth, async (req, res) => {
       FROM homeroom_assignments ha
       JOIN users u ON ha.teacher_id = u.id
       WHERE ha.class_id = $1 AND ha.end_at IS NULL
-    `, [classId]);
+      `, [classId]);
     const homeroomTeacher = homeroomQuery.rows[0] || null;
 
     // Получаем студентов этого класса из class_students
@@ -1933,7 +1935,7 @@ app.get('/api/classes/:classId', auth, async (req, res) => {
       FROM class_students cs
       JOIN users u ON cs.student_id = u.id
       WHERE cs.class_id = $1 AND cs.left_at IS NULL
-    `, [classId]);
+      `, [classId]);
     const studentData = studentsQuery.rows;
 
     res.json({
@@ -1960,7 +1962,7 @@ app.get('/api/classes/:classId/students', auth, async (req, res) => {
       JOIN users u ON cs.student_id = u.id
       WHERE cs.class_id = $1 AND cs.left_at IS NULL
       ORDER BY u.last_name, u.first_name
-    `, [classId]);
+      `, [classId]);
     res.json({ success: true, data: studentsQuery.rows });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке студентов класса' });
@@ -1991,7 +1993,7 @@ app.get('/api/classes/:grade/students', auth, async (req, res) => {
       JOIN users u ON cs.student_id = u.id
       WHERE cs.class_id = $1 AND cs.left_at IS NULL
       ORDER BY u.last_name, u.first_name
-    `, [classId]);
+      `, [classId]);
     res.json({ success: true, data: studentsQuery.rows });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке учеников' });
@@ -2041,7 +2043,7 @@ app.post('/api/classes', auth, async (req, res) => {
         'INSERT INTO homeroom_assignments (id, teacher_id, class_id, start_at, end_at) VALUES ($1, $2, $3, NOW(), NULL)',
         [assignmentId, actualTeacherId, classId]
       );
-      console.log(`✅ Homeroom assignment created: teacher ${actualTeacherId} -> class ${classId}`);
+      console.log(`✅ Homeroom assignment created: teacher ${ actualTeacherId } -> class $ { classId }`);
     } else {
       console.log('ℹ️ No teacher assigned to this class');
     }
@@ -2051,7 +2053,7 @@ app.post('/api/classes', auth, async (req, res) => {
     res.status(201).json({ success: true, data: newClass });
   } catch (error) {
     console.error('❌ Error creating class:', error);
-    res.status(500).json({ success: false, error: `Ошибка при создании класса: ${error.message}` });
+    res.status(500).json({ success: false, error: `Ошибка при создании класса: ${ error.message } ` });
   }
 });
 
@@ -2066,7 +2068,7 @@ app.delete('/api/classes/:classId', auth, async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
-    console.log(`🗑️ Класс удалён: ${classId}`);
+    console.log(`🗑️ Класс удалён: ${ classId } `);
     res.json({ success: true, message: 'Класс удален успешно' });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при удалении класса' });
@@ -2079,9 +2081,9 @@ app.delete('/api/classes/:classId', auth, async (req, res) => {
 
 function getClassLabel(classItem) {
   if (!classItem) return '';
-  if (classItem.name) return `${classItem.grade || ''}${classItem.name}`.trim();
-  if (classItem.sections?.length) return `${classItem.grade || ''}`.trim();
-  return `${classItem.grade || ''}`.trim();
+  if (classItem.name) return `${ classItem.grade || '' }${ classItem.name } `.trim();
+  if (classItem.sections?.length) return `${ classItem.grade || '' } `.trim();
+  return `${ classItem.grade || '' } `.trim();
 }
 
 function findClassByIdOrGrade(classId, section) {
@@ -2147,7 +2149,7 @@ app.get('/api/analytics/classes/:grade/timeline', auth, async (req, res) => {
           classId: grade,
           grade: grade,
           section: section || null,
-          classLabel: section ? `${grade}${section}` : grade
+          classLabel: section ? `${ grade }${ section } ` : grade
         }
       }
     });
@@ -2193,7 +2195,7 @@ app.get('/api/analytics/students/:studentId/timeline', auth, async (req, res) =>
         series,
         meta: {
           studentId: student.id,
-          studentName: `${student.first_name} ${student.last_name}`,
+          studentName: `${ student.first_name } ${ student.last_name } `,
           grade: null, // Add grade field to users table if needed
           section: null
         }
@@ -2301,11 +2303,11 @@ app.put('/api/classes/:classId', auth, async (req, res) => {
           'INSERT INTO homeroom_assignments (id, teacher_id, class_id, start_at, end_at) VALUES ($1, $2, $3, NOW(), NULL)',
           [assignmentId, homeroomTeacherId, classId]
         );
-        console.log(`🏫 Homeroom assignment updated for class ${classId}, new teacher ${homeroomTeacherId}`);
+        console.log(`🏫 Homeroom assignment updated for class $ { classId }, new teacher ${ homeroomTeacherId }`);
       }
     }
 
-    console.log(`✅ Класс обновлен: ${classId}`);
+    console.log(`✅ Класс обновлен: ${ classId } `);
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     console.error('❌ Ошибка обновления класса:', error);
@@ -2332,7 +2334,7 @@ app.put('/api/classes/:classId/students', auth, async (req, res) => {
     const classItem = classResult.rows[0];
     const classSection = section || classItem.section || null;
 
-    console.log(`✅ Студенты класса обновлены: ${classId}`);
+    console.log(`✅ Студенты класса обновлены: ${ classId } `);
     res.json({ success: true, message: 'Студенты класса обновлены' });
   } catch (error) {
     console.error('❌ Ошибка обновления студентов класса:', error);
@@ -2347,7 +2349,7 @@ app.delete('/api/classes/:classId/students/:studentId', auth, async (req, res) =
   }
   const { classId, studentId } = req.params;
   try {
-    console.log(`🗑️ Removing student ${studentId} from class ${classId}`);
+    console.log(`🗑️ Removing student ${ studentId } from class $ { classId } `);
 
     // Delete from class_students junction table
     const deleteResult = await pool.query(
@@ -2529,16 +2531,16 @@ app.put('/api/teacher-tests/:id', auth, async (req, res) => {
     const fields = [];
     const values = [];
     let idx = 1;
-    if (title !== undefined) { fields.push(`title = $${idx}`); values.push(title); idx++; }
-    if (description !== undefined) { fields.push(`description = $${idx}`); values.push(description); idx++; }
-    if (duration !== undefined) { fields.push(`duration = $${idx}`); values.push(duration); idx++; }
-    if (passingScore !== undefined) { fields.push(`passing_score = $${idx}`); values.push(passingScore); idx++; }
-    if (questions !== undefined) { fields.push(`questions = $${idx}`); values.push(JSON.stringify(questions)); idx++; }
+    if (title !== undefined) { fields.push(`title = $${ idx } `); values.push(title); idx++; }
+    if (description !== undefined) { fields.push(`description = $${ idx } `); values.push(description); idx++; }
+    if (duration !== undefined) { fields.push(`duration = $${ idx } `); values.push(duration); idx++; }
+    if (passingScore !== undefined) { fields.push(`passing_score = $${ idx } `); values.push(passingScore); idx++; }
+    if (questions !== undefined) { fields.push(`questions = $${ idx } `); values.push(JSON.stringify(questions)); idx++; }
     if (fields.length === 0) {
       return res.status(400).json({ success: false, error: 'Нет данных для обновления' });
     }
     fields.push(`updated_at = NOW()`);
-    const query = `UPDATE teacher_tests SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
+    const query = `UPDATE teacher_tests SET ${ fields.join(', ') } WHERE id = $${ idx } RETURNING * `;
     values.push(id);
     const result = await pool.query(query, values);
     if (result.rows.length === 0) {
@@ -2661,6 +2663,6 @@ app.post('/api/admin/reset-data', auth, async (req, res) => {
 });
 
 app.listen(PORT, async () => {
-  console.log(`🚀 Mock server running on port ${PORT}`);
+  console.log(`🚀 Mock server running on port ${ PORT } `);
   console.log('⚠️  Using PostgreSQL database');
 });
