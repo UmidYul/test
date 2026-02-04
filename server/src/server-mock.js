@@ -247,7 +247,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/users/:id/reset-password', auth, async (req, res) => {
   try {
     const userId = req.params.id;
-    const adminId = req.userId; // From JWT token
+    let adminId = req.userId; // From JWT token
 
     // Validate adminId
     if (!adminId) {
@@ -270,14 +270,21 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
     const newPassword = generateStrongPassword();
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Get admin info for email
+    // Get admin info for email - also verify admin exists
     const { rows: adminRows } = await pool.query(
-      'SELECT first_name, last_name, email FROM users WHERE id = $1',
+      'SELECT id, first_name, last_name, email FROM users WHERE id = $1',
       [adminId]
     );
+
+    // If admin doesn't exist, set adminId to NULL to avoid foreign key violation
+    if (adminRows.length === 0) {
+      console.warn(`⚠️ Admin user ${adminId} not found in database, setting password_reset_by_admin_id to NULL`);
+      adminId = null;
+    }
+
     const adminData = adminRows[0] || { first_name: 'Admin', last_name: '', email: '' };
 
-    // Update user - set password_reset_by_admin_id to NULL if it's invalid, otherwise set to adminId
+    // Update user - set password_reset_by_admin_id (may be NULL if admin doesn't exist)
     await pool.query(
       `UPDATE users SET 
         password_hash = $1,
@@ -285,7 +292,7 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
         password_reset_at = NOW(),
         password_reset_by_admin_id = $2
       WHERE id = $3`,
-      [hashedPassword, adminId || null, userId]
+      [hashedPassword, adminId, userId]
     );
 
     // Send email to student
