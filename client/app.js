@@ -282,6 +282,9 @@ class Store {
                     if (state.refreshToken) {
                         console.log('🔄 Starting token refresh timer...');
                         this.startTokenRefreshTimer(state.refreshToken);
+
+                        // Immediately try to refresh if token might be expired
+                        this.checkAndRefreshToken(state.refreshToken);
                     } else {
                         console.warn('⚠️ No refresh token found - cannot auto-refresh');
                     }
@@ -470,6 +473,33 @@ class Store {
             console.error('Token refresh error:', error);
             this._refreshing = false;
             return { success: false };
+        }
+    }
+
+    async checkAndRefreshToken(refreshToken) {
+        // Check if token needs refresh by trying a simple request
+        const token = this.getState().token;
+        if (!token) return;
+
+        try {
+            // Decode JWT to check expiry (without validation)
+            const parts = token.split('.');
+            if (parts.length !== 3) return;
+
+            const payload = JSON.parse(atob(parts[1]));
+            const expiryTime = payload.exp * 1000; // Convert to milliseconds
+            const now = Date.now();
+            const timeUntilExpiry = expiryTime - now;
+
+            console.log(`⏰ Token expires in ${Math.round(timeUntilExpiry / 1000 / 60)} minutes`);
+
+            // If token expires in less than 2 minutes, refresh immediately
+            if (timeUntilExpiry < 2 * 60 * 1000) {
+                console.log('🔄 Token expiring soon, refreshing now...');
+                await this.refreshAccessToken(refreshToken);
+            }
+        } catch (error) {
+            console.warn('Could not check token expiry:', error);
         }
     }
 
