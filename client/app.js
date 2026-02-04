@@ -12279,12 +12279,11 @@ async function editClass(classId) {
 
     try {
         console.log('✏️ Fetching class details for:', classId);
-        const [response, teachersRes, studentsRes] = await Promise.all([
+        const [response, teachersRes] = await Promise.all([
             fetch(`${API_BASE_URL}/api/classes/${classId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             }),
-            apiRequest('/api/users?role=teacher'),
-            apiRequest('/api/users?role=student')
+            apiRequest('/api/users?role=teacher')
         ]);
 
         console.log('✏️ Response status:', response.status);
@@ -12294,7 +12293,6 @@ async function editClass(classId) {
         console.log('✏️ Class data received:', result);
         const classData = result.data || result;
         const teachers = teachersRes.success ? teachersRes.data : [];
-        const students = studentsRes.success ? studentsRes.data : [];
         const hasSections = Array.isArray(classData.sections) && classData.sections.length > 0 && !classData.name;
         const defaultSection = classData.name || (hasSections ? classData.sections[0] : '');
 
@@ -12302,7 +12300,7 @@ async function editClass(classId) {
             <div class="admin-modal-overlay">
                 <div class="admin-modal-content" style="background: var(--bg-primary); border-radius: 14px; padding: 2rem; max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.2); border: 1px solid var(--border-color);">
                     <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">Редактировать класс</h2>
-                    <p style="margin: 0 0 1.5rem 0; color: var(--text-secondary); font-size: 0.9rem;">Измените параметры класса, руководителя и состав учеников</p>
+                    <p style="margin: 0 0 1.5rem 0; color: var(--text-secondary); font-size: 0.9rem;">Измените параметры класса и классного руководителя</p>
                     <input type="hidden" id="editClassGrade" value="${classData.grade || ''}">
                     <input type="hidden" id="editClassOriginalName" value="${classData.name || ''}">
 
@@ -12339,6 +12337,11 @@ async function editClass(classId) {
         `;
 
         document.body.insertAdjacentHTML('beforeend', content);
+
+        const sectionSelect = document.getElementById('editClassSection');
+        const studentsContainer = document.getElementById('editClassStudents');
+        const currentSection = () => sectionSelect?.value || classData.name || '';
+
     } catch (error) {
         console.error('Error loading class:', error);
         showAlert('Ошибка при загрузке класса', 'error');
@@ -12406,114 +12409,6 @@ async function deleteClass(classId) {
     } catch (error) {
         console.error('Error deleting class:', error);
         showAlert('Ошибка при удалении класса', 'error');
-    }
-}
-
-// Manage class students - Distribute unassigned students and transfer between classes
-async function manageClassStudents(classId) {
-    console.log('👥 manageClassStudents called with ID:', classId);
-    const lang = store.getState().language;
-    const token = store.getState().token;
-
-    try {
-        const [classRes, studentsRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/api/classes/${classId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            }),
-            apiRequest('/api/users?role=student')
-        ]);
-
-        if (!classRes.ok) throw new Error('Failed to fetch class');
-
-        const classResult = await classRes.json();
-        const classData = classResult.data || classResult;
-        const allStudents = studentsRes.success ? studentsRes.data : [];
-        const classLabel = classData.name ? `${classData.grade}${classData.name}` : (classData.sections?.length ? `${classData.grade} (${classData.sections.join(', ')})` : classData.grade);
-
-        // Filter students: show unassigned and current class students
-        const availableStudents = allStudents.filter(s => {
-            const hasClass = s.classId || s.class_id;
-            return !hasClass || hasClass === classId;
-        });
-
-        const content = `
-            <div class="admin-modal-overlay">
-                <div class="admin-modal-content" style="background: var(--bg-primary); border-radius: 14px; padding: 2rem; max-width: 680px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.2); border: 1px solid var(--border-color);">
-                    <h2 style="margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">Управление учениками</h2>
-                    <p style="margin: 0 0 1.5rem 0; color: var(--text-secondary); font-size: 0.9rem;">Класс: <strong>${classLabel}</strong></p>
-
-                    ${availableStudents.length === 0 ? `
-                        <div style="text-align: center; padding: 3rem 1rem; color: var(--text-secondary);">
-                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
-                            <div>Все ученики уже распределены по классам</div>
-                        </div>
-                    ` : `
-                        <div style="margin-bottom: 1.5rem;">
-                            <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; color: var(--text-primary); font-size: 0.9rem;">Выберите учеников</label>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Отмеченные ученики будут зачислены в этот класс</div>
-                            <div id="manageClassStudentsList" style="max-height: 380px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; background: var(--bg-secondary);"></div>
-                        </div>
-                    `}
-
-                    <div style="display: flex; gap: 0.8rem; justify-content: flex-end;">
-                        <button onclick="closeModal()" style="padding: 0.75rem 1.5rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-primary); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s;">Отмена</button>
-                        <button onclick="saveClassStudents('${classId}')" style="padding: 0.75rem 1.5rem; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s;">Сохранить</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.insertAdjacentHTML('beforeend', content);
-
-        if (availableStudents.length > 0) {
-            const studentsList = document.getElementById('manageClassStudentsList');
-            studentsList.innerHTML = availableStudents.map(student => {
-                const studentClassId = student.classId || student.class_id;
-                const isInClass = studentClassId === classId;
-                const currentClass = student.grade ? `${student.grade}${student.className || ''}` : '—';
-
-                return `
-                    <label style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0.5rem; border-radius: 8px; cursor: pointer; transition: background 0.2s;">
-                        <input type="checkbox" name="manageClassStudent" value="${student.id}" ${isInClass ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: #10b981; margin-top: 0.15rem;">
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: var(--text-primary);">${student.firstName} ${student.lastName}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">
-                                @${student.username} ${isInClass ? `• сейчас в ${classLabel}` : currentClass !== '—' ? `• текущий: ${currentClass}` : '• не в классе'}
-                            </div>
-                        </div>
-                    </label>
-                `;
-            }).join('');
-        }
-    } catch (error) {
-        console.error('Error loading class students:', error);
-        showAlert('Ошибка при загрузке данных класса', 'error');
-    }
-}
-
-// Save changes to class students
-async function saveClassStudents(classId) {
-    const token = store.getState().token;
-    const selectedStudentIds = Array.from(document.querySelectorAll('input[name="manageClassStudent"]:checked')).map(el => el.value);
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/classes/${classId}/students`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ studentIds: selectedStudentIds })
-        });
-
-        if (!response.ok) throw new Error('Failed to update class students');
-
-        showAlert('Ученики успешно распределены', 'success');
-        closeModal();
-        renderAdminClasses();
-    } catch (error) {
-        console.error('Error updating class students:', error);
-        showAlert('Ошибка при обновлении учеников', 'error');
     }
 }
 
@@ -12899,7 +12794,6 @@ async function renderAdminClasses() {
                                             <td style="padding: 1rem; text-align: right;">
                                                 <div class="class-actions" style="display: flex; gap: 0.4rem; justify-content: flex-end;">
                                                     <button onclick="viewClassStudents('${classId}')" style="padding: 0.5rem 0.9rem; font-size: 0.8rem; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); cursor: pointer; transition: all 0.2s; font-weight: 500;">Просмотр</button>
-                                                    <button onclick="manageClassStudents('${classId}')" style="padding: 0.5rem 0.9rem; font-size: 0.8rem; background: transparent; border: 1px solid #10b981; border-radius: 6px; color: #10b981; cursor: pointer; transition: all 0.2s; font-weight: 500;">👥 Ученики</button>
                                                     <button onclick="editClass('${classId}')" style="padding: 0.5rem 0.9rem; font-size: 0.8rem; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); cursor: pointer; transition: all 0.2s; font-weight: 500;">Редакт.</button>
                                                     <button onclick="deleteClass('${classId}')" style="padding: 0.5rem 0.9rem; font-size: 0.8rem; background: transparent; border: 1px solid #ef4444; border-radius: 6px; color: #ef4444; cursor: pointer; transition: all 0.2s; font-weight: 500;">Удалить</button>
                                                 </div>
