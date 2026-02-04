@@ -516,6 +516,55 @@ async function apiRequest(url, methodOrOptions = 'GET', body = null) {
 }
 
 // ========================================
+// CLIPBOARD UTILITIES
+// ========================================
+window.copyToClipboard = function(text, button) {
+    const lang = store.getState().user?.language || 'ru';
+    try {
+        // Try modern API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                const origText = button.innerHTML;
+                button.innerHTML = '✅ ' + (lang === 'uz' ? 'Nusxa olindi!' : 'Скопировано!');
+                button.style.background = '#10b981';
+                setTimeout(() => {
+                    button.innerHTML = origText;
+                    button.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+                }, 2000);
+            }).catch(() => window.fallbackCopy(text, button));
+        } else {
+            window.fallbackCopy(text, button);
+        }
+    } catch (err) {
+        window.fallbackCopy(text, button);
+    }
+};
+
+// Fallback copy method using textarea
+window.fallbackCopy = function(text, button) {
+    const lang = store.getState().user?.language || 'ru';
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        const origText = button.innerHTML;
+        button.innerHTML = '✅ ' + (lang === 'uz' ? 'Nusxa olindi!' : 'Скопировано!');
+        button.style.background = '#10b981';
+        setTimeout(() => {
+            button.innerHTML = origText;
+            button.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+        }, 2000);
+    } catch (err) {
+        alert(lang === 'uz' ? 'Nusxa olish muvaffaq bo\'lmadi' : 'Ошибка при копировании');
+    }
+    document.body.removeChild(textarea);
+};
+
+// ========================================
 // CUSTOM ALERTS
 // ========================================
 function showAlert(message, type = 'info', duration = 4000) {
