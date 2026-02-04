@@ -4884,9 +4884,10 @@ async function loadStudentDetail(studentId) {
     const lang = store.getState().language;
 
     // Загружаем только основные данные ученика и предметы
-    const [userRes, subjectsRes] = await Promise.all([
+    const [userRes, subjectsRes, classesRes] = await Promise.all([
         apiRequest(`/api/users/${studentId}`).catch(err => ({ success: false, error: err })),
-        apiRequest('/api/subjects').catch(err => ({ success: false, data: [] }))
+        apiRequest('/api/subjects').catch(err => ({ success: false, data: [] })),
+        apiRequest('/api/classes').catch(err => ({ success: false, data: [] }))
     ]);
 
     console.log('📊 Student data loaded:', { userRes, student: userRes?.data });
@@ -4902,6 +4903,7 @@ async function loadStudentDetail(studentId) {
 
     const student = userRes.data;
     const subjects = subjectsRes.success ? (subjectsRes.data || []) : [];
+    const classes = classesRes.success ? (classesRes.data || []) : [];
 
     console.log('👤 Full Student Object:', student);
     console.log('👤 Student info:', {
@@ -4909,10 +4911,20 @@ async function loadStudentDetail(studentId) {
         last_name: student.last_name,
         name: student.name,
         grade: student.grade,
+        homeroom_id: student.homeroom_id,
+        class_id: student.class_id,
         username: student.username,
         email: student.email,
         allKeys: Object.keys(student)
     });
+
+    // Найти класс ученика
+    const studentClass = classes.find(c => c.id === student.homeroom_id || c._id === student.homeroom_id);
+    const classLabel = studentClass
+        ? (studentClass.name ? `${studentClass.grade || ''}${studentClass.name}` : studentClass.grade || '—')
+        : (student.grade || '—');
+
+    console.log('📚 Class info:', { studentClass, classLabel });
 
     // Пока нет результатов тестов на сервере - используем заглушки
     const studentResults = [];
@@ -4956,7 +4968,7 @@ async function loadStudentDetail(studentId) {
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.2);">
                 <div>
                     <div style="font-size: 0.85rem; opacity: 0.9;">${lang === 'uz' ? 'Sinf' : 'Класс'}</div>
-                    <div style="font-size: 1.5rem; font-weight: bold; margin-top: 0.25rem;">${student.grade ? `${student.grade}${student.className || ''}` : '—'}</div>
+                    <div style="font-size: 1.5rem; font-weight: bold; margin-top: 0.25rem;">${classLabel}</div>
                 </div>
                 <div>
                     <div style="font-size: 0.85rem; opacity: 0.9;">ID</div>
