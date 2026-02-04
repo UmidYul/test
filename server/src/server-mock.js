@@ -2030,6 +2030,115 @@ app.get('/api/classes/:grade/students', auth, async (req, res) => {
   }
 });
 
+// Update class (PUT /api/classes/:classId)
+app.put('/api/classes/:classId', auth, async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { name, teacherId } = req.body;
+
+    // Check if class exists
+    const classExists = await pool.query('SELECT id FROM classes WHERE id = $1', [classId]);
+    if (classExists.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Класс не найден' });
+    }
+
+    // Update class name if provided
+    if (name) {
+      await pool.query('UPDATE classes SET section = $1 WHERE id = $2', [name, classId]);
+    }
+
+    // Update teacher (homeroom_assignments) if provided
+    if (teacherId !== undefined) {
+      // End current assignment
+      await pool.query(
+        'UPDATE homeroom_assignments SET end_at = NOW() WHERE class_id = $1 AND end_at IS NULL',
+        [classId]
+      );
+
+      // Create new assignment if teacherId provided
+      if (teacherId) {
+        const teacherCheck = await pool.query('SELECT id FROM users WHERE id = $1 AND role = $2', [teacherId, 'teacher']);
+        if (teacherCheck.rows.length === 0) {
+          return res.status(400).json({ success: false, error: 'Учитель не найден' });
+        }
+
+        await pool.query(
+          `INSERT INTO homeroom_assignments (teacher_id, class_id, start_at) 
+           VALUES ($1, $2, NOW())`,
+          [teacherId, classId]
+        );
+      }
+    }
+
+    res.json({ success: true, message: 'Класс обновлен' });
+  } catch (error) {
+    console.error('❌ Error updating class:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при обновлении класса' });
+  }
+});
+
+// Update class students (PUT /api/classes/:classId/students)
+app.put('/api/classes/:classId/students', auth, async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { studentIds = [] } = req.body;
+
+    // Check if class exists
+    const classExists = await pool.query('SELECT id FROM classes WHERE id = $1', [classId]);
+    if (classExists.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Класс не найден' });
+    }
+
+    // Remove all current students from class
+    await pool.query('UPDATE class_students SET left_at = NOW() WHERE class_id = $1 AND left_at IS NULL', [classId]);
+
+    // Add new students
+    if (studentIds.length > 0) {
+      for (const studentId of studentIds) {
+        await pool.query(
+          `INSERT INTO class_students (student_id, class_id, joined_at) 
+           VALUES ($1, $2, NOW())
+           ON CONFLICT (student_id, class_id) DO UPDATE 
+           SET left_at = NULL`,
+          [studentId, classId]
+        );
+      }
+    }
+
+    res.json({ success: true, message: 'Ученики класса обновлены' });
+  } catch (error) {
+    console.error('❌ Error updating class students:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при обновлении учеников' });
+  }
+});
+
+// Delete class (DELETE /api/classes/:classId)
+app.delete('/api/classes/:classId', auth, async (req, res) => {
+  try {
+    const { classId } = req.params;
+
+    // Check if class exists
+    const classExists = await pool.query('SELECT id FROM classes WHERE id = $1', [classId]);
+    if (classExists.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Класс не найден' });
+    }
+
+    // Remove students from class
+    await pool.query('UPDATE class_students SET left_at = NOW() WHERE class_id = $1', [classId]);
+
+    // End homeroom assignments
+    await pool.query('UPDATE homeroom_assignments SET end_at = NOW() WHERE class_id = $1', [classId]);
+
+    // Delete class
+    await pool.query('DELETE FROM classes WHERE id = $1', [classId]);
+
+    res.json({ success: true, message: 'Класс удален' });
+  } catch (error) {
+    console.error('❌ Error deleting class:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при удалении класса' });
+  }
+});
+
 // Create new class
 app.post('/api/classes', auth, async (req, res) => {
   try {
