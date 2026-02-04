@@ -11314,14 +11314,28 @@ async function viewClassStudents(classId) {
 
                     <!-- Actions Bar -->
                     <div class="class-actions-bar">
-                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; flex: 1;">
                             <button onclick="showAddStudentToClassModal('${classId}', '${classLabel}')" class="btn-primary" style="padding: 0.75rem 1.5rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
                                 <span style="font-size: 1.2rem;">+</span>
                                 <span>${lang === 'uz' ? 'O\'quvchi qo\'shish' : 'Добавить ученика'}</span>
                             </button>
+                            
+                            <!-- Search Bar -->
+                            <div style="position: relative; flex: 1; min-width: 250px; max-width: 400px;">
+                                <input 
+                                    type="text" 
+                                    id="studentSearchInput"
+                                    placeholder="${lang === 'uz' ? 'Qidirish (FIO, email, login)...' : 'Поиск (ФИО, email, логин)...'}"
+                                    style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.9rem; transition: all 0.2s;"
+                                    onfocus="this.style.borderColor='#3B82F6'; this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)';"
+                                    onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none';"
+                                    oninput="filterStudents()"
+                                >
+                                <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 1.1rem;">🔍</span>
+                            </div>
                         </div>
-                        <div style="color: var(--text-secondary); font-size: 0.9rem;">
-                            ${lang === 'uz' ? 'Jami' : 'Всего'}: <strong style="color: var(--text-primary);">${students.length}</strong>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap;">
+                            <span id="filteredCount">${students.length}</span> / <strong style="color: var(--text-primary);">${students.length}</strong>
                         </div>
                     </div>
 
@@ -11338,20 +11352,49 @@ async function viewClassStudents(classId) {
                         </div>
                     ` : `
                         <div style="background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden;">
+                            <!-- Bulk Actions Panel (hidden by default) -->
+                            <div id="bulkActionsPanel" style="display: none; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%); border-bottom: 2px solid rgba(59, 130, 246, 0.3); padding: 1rem 1.5rem; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <span style="font-weight: 600; color: var(--text-primary);">
+                                        ${lang === 'uz' ? 'Tanlangan' : 'Выбрано'}: <span id="selectedCount" style="color: #3B82F6;">0</span>
+                                    </span>
+                                    <button onclick="clearSelection()" style="padding: 0.5rem 1rem; font-size: 0.85rem; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); cursor: pointer; transition: all 0.2s; font-weight: 500;">
+                                        ${lang === 'uz' ? 'Tozalash' : 'Снять выделение'}
+                                    </button>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button onclick="bulkRemoveStudents('${classId}')" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; background: #ef4444; border: none; border-radius: 6px; color: white; cursor: pointer; transition: all 0.2s; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                                        <span>🗑️</span>
+                                        <span>${lang === 'uz' ? 'O\'chirish' : 'Удалить выбранных'}</span>
+                                    </button>
+                                    <button onclick="exportSelectedToExcel()" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; background: #10b981; border: none; border-radius: 6px; color: white; cursor: pointer; transition: all 0.2s; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                                        <span>📥</span>
+                                        <span>${lang === 'uz' ? 'Excel' : 'Excel'}</span>
+                                    </button>
+                                </div>
+                            </div>
+
                             <table style="width: 100%; border-collapse: collapse;">
                                 <thead>
                                     <tr style="background: var(--bg-tertiary);">
+                                        <th style="padding: 1rem; text-align: center; width: 50px;">
+                                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" style="width: 18px; height: 18px; cursor: pointer; accent-color: #3B82F6;">
+                                        </th>
                                         <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">${lang === 'uz' ? 'F.I.SH' : 'ФИО'}</th>
                                         <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Email</th>
                                         <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">${lang === 'uz' ? 'Login' : 'Логин'}</th>
                                         <th style="padding: 1rem; text-align: right; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">${lang === 'uz' ? 'Harakatlar' : 'Действия'}</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="studentsTableBody">
                                     ${students.map(student => {
             const studentId = student.id || student._id;
+            const searchText = `${student.firstName} ${student.lastName} ${student.email || ''} ${student.username || ''}`.toLowerCase();
             return `
-                                        <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s;" onmouseenter="this.style.background='var(--bg-tertiary)'" onmouseleave="this.style.background='transparent'">
+                                        <tr class="student-row" data-student-id="${studentId}" data-search="${searchText}" style="border-bottom: 1px solid var(--border-color); transition: background 0.2s;" onmouseenter="this.style.background='var(--bg-tertiary)'" onmouseleave="this.style.background='transparent'">
+                                            <td style="padding: 1rem; text-align: center;">
+                                                <input type="checkbox" class="student-checkbox" data-student-id="${studentId}" onchange="updateBulkPanel()" style="width: 18px; height: 18px; cursor: pointer; accent-color: #3B82F6;">
+                                            </td>
                                             <td style="padding: 1rem; font-weight: 600; color: var(--text-primary);">${student.firstName} ${student.lastName}</td>
                                             <td style="padding: 1rem; color: var(--text-secondary); font-size: 0.9rem;">${student.email || '—'}</td>
                                             <td style="padding: 1rem; color: var(--text-secondary); font-family: monospace; font-size: 0.85rem;">@${student.username || '—'}</td>
@@ -11379,6 +11422,222 @@ async function viewClassStudents(classId) {
         console.error('Error loading class:', error);
         showAlert(lang === 'uz' ? 'Sinf yuklashda xatolik' : 'Ошибка при загрузке класса', 'error');
     }
+}
+
+// Filter students in real-time
+function filterStudents() {
+    const searchInput = document.getElementById('studentSearchInput');
+    const filteredCount = document.getElementById('filteredCount');
+    const studentRows = document.querySelectorAll('.student-row');
+
+    if (!searchInput || !filteredCount || !studentRows.length) return;
+
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    let visibleCount = 0;
+
+    studentRows.forEach(row => {
+        const searchData = row.getAttribute('data-search') || '';
+        const isVisible = searchData.includes(searchTerm);
+
+        row.style.display = isVisible ? '' : 'none';
+        if (isVisible) visibleCount++;
+    });
+
+    filteredCount.textContent = visibleCount;
+
+    // Show "no results" message if needed
+    const tbody = document.getElementById('studentsTableBody');
+    const noResultsRow = tbody?.querySelector('.no-results-row');
+
+    if (visibleCount === 0 && searchTerm) {
+        if (!noResultsRow) {
+            const lang = store.getState().language;
+            const tr = document.createElement('tr');
+            tr.className = 'no-results-row';
+            tr.innerHTML = `
+                <td colspan="5" style="padding: 3rem; text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+                    <p style="color: var(--text-secondary); font-size: 1rem; margin: 0;">
+                        ${lang === 'uz' ? 'Hech narsa topilmadi' : 'Ничего не найдено'}
+                    </p>
+                </td>
+            `;
+            tbody?.appendChild(tr);
+        }
+    } else if (noResultsRow) {
+        noResultsRow.remove();
+    }
+}
+
+// Toggle select all checkboxes
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+
+    if (!selectAllCheckbox) return;
+
+    const isChecked = selectAllCheckbox.checked;
+
+    studentCheckboxes.forEach(checkbox => {
+        const row = checkbox.closest('.student-row');
+        if (row && row.style.display !== 'none') {
+            checkbox.checked = isChecked;
+        }
+    });
+
+    updateBulkPanel();
+}
+
+// Update bulk actions panel visibility and count
+function updateBulkPanel() {
+    const bulkPanel = document.getElementById('bulkActionsPanel');
+    const selectedCount = document.getElementById('selectedCount');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+    const visibleCheckboxes = Array.from(document.querySelectorAll('.student-checkbox')).filter(cb => {
+        const row = cb.closest('.student-row');
+        return row && row.style.display !== 'none';
+    });
+
+    if (!bulkPanel || !selectedCount) return;
+
+    const count = checkedBoxes.length;
+
+    if (count > 0) {
+        bulkPanel.style.display = 'flex';
+        selectedCount.textContent = count;
+    } else {
+        bulkPanel.style.display = 'none';
+    }
+
+    // Update "select all" checkbox state
+    if (selectAllCheckbox) {
+        const allVisibleChecked = visibleCheckboxes.length > 0 &&
+            visibleCheckboxes.every(cb => cb.checked);
+        selectAllCheckbox.checked = allVisibleChecked;
+        selectAllCheckbox.indeterminate = count > 0 && !allVisibleChecked;
+    }
+}
+
+// Clear all selections
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.student-checkbox, #selectAllCheckbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    updateBulkPanel();
+}
+
+// Bulk remove selected students
+async function bulkRemoveStudents(classId) {
+    const lang = store.getState().language;
+    const token = store.getState().token;
+    const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+    const studentIds = Array.from(checkedBoxes).map(cb => cb.getAttribute('data-student-id'));
+
+    if (studentIds.length === 0) {
+        showAlert(lang === 'uz' ? 'Hech narsa tanlanmagan' : 'Ничего не выбрано', 'warning');
+        return;
+    }
+
+    const confirm = await showConfirm(
+        lang === 'uz' ? `${studentIds.length} ta o'quvchini o'chirish?` : `Удалить ${studentIds.length} учеников из класса?`,
+        lang === 'uz' ? 'Ushbu harakat qaytarilmaydi' : 'Это действие необратимо'
+    );
+
+    if (!confirm) return;
+
+    try {
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const studentId of studentIds) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/classes/${classId}/students/${studentId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                }
+            } catch (error) {
+                console.error('Error removing student:', studentId, error);
+                errorCount++;
+            }
+        }
+
+        if (successCount > 0) {
+            showAlert(
+                lang === 'uz'
+                    ? `${successCount} ta o'quvchi o'chirildi`
+                    : `Удалено учеников: ${successCount}`,
+                'success'
+            );
+        }
+
+        if (errorCount > 0) {
+            showAlert(
+                lang === 'uz'
+                    ? `${errorCount} ta xatolik`
+                    : `Ошибок: ${errorCount}`,
+                'error'
+            );
+        }
+
+        // Refresh the class view
+        viewClassStudents(classId);
+    } catch (error) {
+        console.error('Error in bulk remove:', error);
+        showAlert(lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка', 'error');
+    }
+}
+
+// Export selected students to Excel
+function exportSelectedToExcel() {
+    const lang = store.getState().language;
+    const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+
+    if (checkedBoxes.length === 0) {
+        showAlert(lang === 'uz' ? 'Hech narsa tanlanmagan' : 'Ничего не выбрано', 'warning');
+        return;
+    }
+
+    const students = [];
+    checkedBoxes.forEach(checkbox => {
+        const row = checkbox.closest('tr');
+        if (row) {
+            const cells = row.querySelectorAll('td');
+            students.push({
+                name: cells[1]?.textContent.trim() || '',
+                email: cells[2]?.textContent.trim() || '',
+                username: cells[3]?.textContent.trim() || ''
+            });
+        }
+    });
+
+    // Create CSV
+    const headers = lang === 'uz'
+        ? ['F.I.SH', 'Email', 'Login']
+        : ['ФИО', 'Email', 'Логин'];
+
+    let csv = headers.join(',') + '\n';
+    students.forEach(student => {
+        csv += `"${student.name}","${student.email}","${student.username}"\n`;
+    });
+
+    // Download
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `students_${new Date().getTime()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showAlert(lang === 'uz' ? 'Export qilindi' : 'Экспортировано успешно', 'success');
 }
 
 async function editClass(classId) {
@@ -12597,6 +12856,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.deleteClass = deleteClass;
     window.editClass = editClass;
     window.viewClassStudents = viewClassStudents;
+    window.filterStudents = filterStudents;
+    window.toggleSelectAll = toggleSelectAll;
+    window.updateBulkPanel = updateBulkPanel;
+    window.clearSelection = clearSelection;
+    window.bulkRemoveStudents = bulkRemoveStudents;
+    window.exportSelectedToExcel = exportSelectedToExcel;
     window.saveClassEdit = saveClassEdit;
     window.showCreateClassModal = showCreateClassModal;
     window.createClass = createClass;
