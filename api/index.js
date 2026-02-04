@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 
 const app = express();
 
@@ -14,6 +15,173 @@ app.use((req, res, next) => {
     console.log(`🌐 ${req.method} ${req.url}`);
     next();
 });
+
+// Email Configuration
+const emailTransporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: process.env.SMTP_PORT || 587,
+    secure: false,
+    auth: {
+        user: process.env.SMTP_USER || 'your-email@gmail.com',
+        pass: process.env.SMTP_PASS || 'your-app-password'
+    }
+});
+
+// Send OTP email
+async function sendOTPEmail(email, username, otp, firstName, lastName) {
+    try {
+        const mailOptions = {
+            from: process.env.SMTP_FROM || '"ZEDLY Platform" <noreply@zedly.edu>',
+            to: email,
+            subject: 'Ваш временный пароль (OTP) - ZEDLY',
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
+                        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+                        .header { background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; padding: 30px; text-align: center; }
+                        .header h1 { margin: 0; font-size: 24px; }
+                        .content { padding: 30px; }
+                        .otp-box { background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); border: 3px dashed #3b82f6; border-radius: 12px; padding: 25px; text-align: center; margin: 25px 0; }
+                        .otp-code { font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1e40af; font-family: 'Courier New', monospace; }
+                        .credentials { background: #f9fafb; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0; border-radius: 6px; }
+                        .credentials p { margin: 8px 0; }
+                        .credentials strong { color: #1e40af; }
+                        .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 6px; }
+                        .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>🔑 Добро пожаловать в ZEDLY!</h1>
+                        </div>
+                        <div class="content">
+                            <p>Здравствуйте, <strong>${firstName} ${lastName}</strong>!</p>
+                            <p>Для вас был создан аккаунт в образовательной платформе ZEDLY.</p>
+                            
+                            <div class="credentials">
+                                <p><strong>Ваш логин:</strong> ${username}</p>
+                                <p><strong>Временный пароль (OTP):</strong></p>
+                            </div>
+                            
+                            <div class="otp-box">
+                                <div class="otp-code">${otp}</div>
+                            </div>
+                            
+                            <div class="warning">
+                                <p><strong>⚠️ Важно:</strong></p>
+                                <ul style="margin: 10px 0; padding-left: 20px;">
+                                    <li>Этот пароль действителен только для первого входа</li>
+                                    <li>После входа вы должны будете изменить пароль</li>
+                                    <li>Срок действия: ${OTP_EXPIRY_MINUTES / 60} часов</li>
+                                    <li>Не передавайте этот пароль никому</li>
+                                </ul>
+                            </div>
+                            
+                            <p style="text-align: center; margin-top: 30px;">
+                                <a href="${process.env.APP_URL || 'http://localhost:5000'}" 
+                                   style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); 
+                                          color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; 
+                                          font-weight: bold;">
+                                    Войти в систему
+                                </a>
+                            </p>
+                        </div>
+                        <div class="footer">
+                            <p>Это автоматическое письмо, пожалуйста, не отвечайте на него.</p>
+                            <p>© 2026 ZEDLY Platform. Все права защищены.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `
+        };
+
+        await emailTransporter.sendMail(mailOptions);
+        console.log(`✅ Email sent to ${email}`);
+        return true;
+    } catch (error) {
+        console.error('❌ Error sending email:', error);
+        return false;
+    }
+}
+
+// Username generation functions
+function transliterate(text) {
+    const map = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+        'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+        'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+        'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+        'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+        'ў': 'u', 'қ': 'q', 'ғ': 'g', 'ҳ': 'h', 'ӯ': 'u'
+    };
+
+    return text.toLowerCase().split('').map(char => map[char] || char).join('');
+}
+
+function generateStudentUsername(grade, section, firstName, lastName) {
+    // Format: {grade}{section}.{lastName_transliterated}.{firstName_first_letter}
+    // Example: 9A.Petrov.A
+    const gradeStr = grade.toString().trim();
+    const sectionStr = section.toString().trim().toUpperCase();
+    const lastNameTranslit = transliterate(lastName).replace(/[^a-z]/g, '');
+    const firstNameInitial = transliterate(firstName.charAt(0));
+
+    let baseUsername = `${gradeStr}${sectionStr}.${lastNameTranslit}.${firstNameInitial}`;
+    let username = baseUsername;
+    let counter = 1;
+
+    // Check for duplicates and add number if needed
+    while (users.find(u => u.username === username)) {
+        username = `${baseUsername}${counter}`;
+        counter++;
+    }
+
+    return username;
+}
+
+function generateTeacherUsername(firstName, lastName) {
+    // Format: T.{lastName_transliterated}.{firstName_first_letter}
+    // Example: T.Ivanova.M
+    const lastNameTranslit = transliterate(lastName).replace(/[^a-z]/g, '');
+    const firstNameInitial = transliterate(firstName.charAt(0));
+
+    let baseUsername = `T.${lastNameTranslit}.${firstNameInitial}`;
+    let username = baseUsername;
+    let counter = 1;
+
+    // Check for duplicates and add number if needed
+    while (users.find(u => u.username === username)) {
+        username = `T.${lastNameTranslit}.${firstNameInitial}${counter}`;
+        counter++;
+    }
+
+    return username;
+}
+
+function generateAdminUsername(firstName, lastName) {
+    // Format: A.{lastName_transliterated}.{firstName_first_letter}
+    // Example: A.Ivanov.I
+    const lastNameTranslit = transliterate(lastName).replace(/[^a-z]/g, '');
+    const firstNameInitial = transliterate(firstName.charAt(0));
+
+    let baseUsername = `A.${lastNameTranslit}.${firstNameInitial}`;
+    let username = baseUsername;
+    let counter = 1;
+
+    // Check for duplicates and add number if needed
+    while (users.find(u => u.username === username)) {
+        username = `A.${lastNameTranslit}.${firstNameInitial}${counter}`;
+        counter++;
+    }
+
+    return username;
+}
 
 // In-memory database
 const users = [];
@@ -773,16 +941,39 @@ app.get('/api/teachers/students/:studentId', auth, (req, res) => {
 app.post('/api/users/register', async (req, res) => {
     try {
         const body = req.body || {};
-        const { username, role, firstName, lastName, grade, gradeSection, subjects, homeroomClassId, classTeacherId } = body;
+        const { role, firstName, lastName, grade, gradeSection, subjects, homeroomClassId, classTeacherId, email, phone } = body;
 
-        if (!username || !role || !firstName || !lastName) {
+        // Validate required fields
+        if (!role || !firstName || !lastName) {
             return res.status(400).json({ success: false, error: 'Заполните обязательные поля' });
         }
 
-        // Check if user exists
-        if (users.find(u => u.username === username)) {
-            return res.status(400).json({ success: false, error: 'Пользователь уже существует' });
+        // Email is required for sending OTP
+        if (!email) {
+            return res.status(400).json({ success: false, error: 'Email обязателен для отправки пароля' });
         }
+
+        // Check if email already exists
+        if (users.find(u => u.email === email)) {
+            return res.status(400).json({ success: false, error: 'Пользователь с таким email уже существует' });
+        }
+
+        // Auto-generate username based on role
+        let username;
+        if (role === 'student') {
+            if (!grade || !gradeSection) {
+                return res.status(400).json({ success: false, error: 'Для ученика необходимо указать класс и секцию' });
+            }
+            username = generateStudentUsername(grade, gradeSection, firstName, lastName);
+        } else if (role === 'teacher') {
+            username = generateTeacherUsername(firstName, lastName);
+        } else if (role === 'admin') {
+            username = generateAdminUsername(firstName, lastName);
+        } else {
+            return res.status(400).json({ success: false, error: 'Неверная роль пользователя' });
+        }
+
+        console.log(`🔑 Generated username: ${username} for ${firstName} ${lastName}`);
 
         // Generate OTP for new user
         const otp = generateOTP();
@@ -796,6 +987,8 @@ app.post('/api/users/register', async (req, res) => {
             role,
             firstName,
             lastName,
+            email,
+            phone: phone || null,
             isTemporaryPassword: true,
             requirePasswordChange: true
         };
@@ -870,14 +1063,20 @@ app.post('/api/users/register', async (req, res) => {
 
         users.push(newUser);
 
+        // Send OTP via email
+        const emailSent = await sendOTPEmail(email, username, otp, firstName, lastName);
+
         console.log(`🔑 OTP generated for ${username}: ${otp} (expires: ${otpExpiry.toISOString()})`);
+        console.log(`📧 Email sent: ${emailSent ? 'Yes' : 'Failed'}`);
 
         const { password: _, ...userWithoutPassword } = newUser;
         res.status(201).json({
             success: true,
             data: {
                 ...userWithoutPassword,
-                otp: otp, // Return OTP to admin
+                emailSent,
+                // Only return OTP if email failed to send (fallback)
+                otp: emailSent ? undefined : otp,
                 otpExpiresAt: otpExpiry
             }
         });

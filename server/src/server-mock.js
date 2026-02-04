@@ -6,6 +6,8 @@ import jwt from 'jsonwebtoken';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import dotenv from 'dotenv';
+import nodemailer from 'nodemailer';
 
 import pool from './db.js';
 
@@ -18,6 +20,10 @@ app.use(express.json());
 
 // Статика фронта
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load environment variables
+dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 app.use(express.static(path.join(__dirname, '../../client/dist')));
 
 // Log all incoming requests
@@ -45,6 +51,99 @@ function generateOTP() {
 
 // OTP expiry time in minutes
 const OTP_EXPIRY_MINUTES = 15;
+
+// Email Configuration
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const emailTransporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: smtpPort,
+  secure: smtpPort === 465,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+});
+
+async function sendOTPEmail(email, username, otp, firstName, lastName) {
+  try {
+    const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
+    await emailTransporter.sendMail({
+      from: fromAddress,
+      to: email,
+      subject: 'Ваш временный пароль (OTP) - ZEDLY',
+      text: `Здравствуйте, ${firstName} ${lastName}!\n\nВаш логин: ${username}\nВременный пароль (OTP): ${otp}\n\nПри первом входе смените пароль.\n`,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>🔑 Добро пожаловать в ZEDLY!</h2>
+          <p>Здравствуйте, <strong>${firstName} ${lastName}</strong>!</p>
+          <p><strong>Ваш логин:</strong> ${username}</p>
+          <p><strong>Временный пароль (OTP):</strong> <span style="font-size:18px; font-weight:bold;">${otp}</span></p>
+          <p>⚠️ При первом входе смените пароль.</p>
+        </div>
+      `
+    });
+    console.log(`✅ Email sent to ${email}`);
+    return true;
+  } catch (error) {
+    console.error('❌ Error sending email:', error);
+    return false;
+  }
+}
+
+// Username generation helpers
+function transliterate(text = '') {
+  const map = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'e',
+    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+    'ф': 'f', 'х': 'h', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+    'ў': 'u', 'қ': 'q', 'ғ': 'g', 'ҳ': 'h', 'ӯ': 'u'
+  };
+  return text
+    .toLowerCase()
+    .split('')
+    .map(char => map[char] || char)
+    .join('')
+    .replace(/[^a-z0-9.]/g, '');
+}
+
+async function generateUniqueUsername(baseUsername) {
+  let username = baseUsername;
+  let counter = 1;
+  while (true) {
+    const exists = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
+    if (exists.rowCount === 0) return username;
+    username = `${baseUsername}${counter}`;
+    counter += 1;
+  }
+}
+
+async function generateStudentUsername(classId, firstName, lastName) {
+  const classResult = await pool.query('SELECT grade, section FROM classes WHERE id = $1', [classId]);
+  if (classResult.rowCount === 0) {
+    throw new Error('Класс не найден');
+  }
+  const { grade, section } = classResult.rows[0];
+  const lastNameTranslit = transliterate(lastName);
+  const firstInitial = transliterate(firstName?.charAt(0) || '');
+  const base = `${grade}${section}.${lastNameTranslit}.${firstInitial}`;
+  return generateUniqueUsername(base);
+}
+
+async function generateTeacherUsername(firstName, lastName) {
+  const lastNameTranslit = transliterate(lastName);
+  const firstInitial = transliterate(firstName?.charAt(0) || '');
+  const base = `T.${lastNameTranslit}.${firstInitial}`;
+  return generateUniqueUsername(base);
+}
+
+async function generateAdminUsername(firstName, lastName) {
+  const lastNameTranslit = transliterate(lastName);
+  const firstInitial = transliterate(firstName?.charAt(0) || '');
+  const base = `A.${lastNameTranslit}.${firstInitial}`;
+  return generateUniqueUsername(base);
+}
 
 // Auth middleware
 const auth = (req, res, next) => {
@@ -435,14 +534,13 @@ app.get('/api/teacher/test-results', auth, async (req, res) => {
 app.post('/api/users/register', async (req, res) => {
   try {
     const body = req.body || {};
-    const { username, role, firstName, lastName, classId, email, phone } = body;
-    if (!username || !role || !firstName || !lastName) {
+    const { role, firstName, lastName, classId, email, phone } = body;
+    if (!role || !firstName || !lastName) {
       return res.status(400).json({ success: false, error: 'Заполните обязательные поля' });
     }
 
-    // Check that at least email or phone is provided
-    if (!email && !phone) {
-      return res.status(400).json({ success: false, error: 'Необходимо указать email или телефон' });
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Email обязателен для отправки пароля' });
     }
 
     // Для учеников обязательно указывать класс
@@ -450,10 +548,22 @@ app.post('/api/users/register', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Для ученика необходимо выбрать класс' });
     }
 
-    // Check if user exists
-    const exists = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
-    if (exists.rowCount > 0) {
-      return res.status(400).json({ success: false, error: 'Пользователь уже существует' });
+    // Check if email exists
+    const emailExists = await pool.query('SELECT 1 FROM users WHERE email = $1', [email]);
+    if (emailExists.rowCount > 0) {
+      return res.status(400).json({ success: false, error: 'Пользователь с таким email уже существует' });
+    }
+
+    // Generate username based on role
+    let username;
+    if (role === 'student') {
+      username = await generateStudentUsername(classId, firstName, lastName);
+    } else if (role === 'teacher') {
+      username = await generateTeacherUsername(firstName, lastName);
+    } else if (role === 'admin') {
+      username = await generateAdminUsername(firstName, lastName);
+    } else {
+      return res.status(400).json({ success: false, error: 'Неверная роль пользователя' });
     }
 
     // Генерируем временный пароль (OTP)
@@ -476,16 +586,17 @@ app.post('/api/users/register', async (req, res) => {
       console.log(`[REGISTER] Added student ${username} to class ${classId}`);
     }
 
-    // Для учителей: больше не создаём teacher_profiles
-
     const user = result.rows[0];
     console.log(`[REGISTER] User created: ${username} (${role})`);
+
+    const emailSent = await sendOTPEmail(email, username, otp, firstName, lastName);
 
     res.status(201).json({
       success: true,
       data: {
         ...user,
-        otp: otp, // Return OTP to admin
+        emailSent,
+        otp: emailSent ? undefined : otp,
         otpExpiresAt: otpExpiresAt.toISOString()
       }
     });

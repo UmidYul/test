@@ -4322,34 +4322,31 @@ async function showAddUserModal() {
                     </div>
                 </div>
                 
-                <div>
-                    <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                        ${lang === 'uz' ? 'Foydalanuvchi nomi' : 'Имя пользователя'}
-                    </label>
-                    <input id="userUsername" type="text" placeholder="${lang === 'uz' ? 'username' : 'username'}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
-                </div>
-                
                 <div class="add-user-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                            Email
+                            Email <span style="color: #ef4444;">*</span>
                         </label>
-                        <input id="userEmail" type="email" placeholder="user@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
-                        <script>console.log('EMAIL FIELD RENDERED');</script>
+                        <input id="userEmail" type="email" placeholder="user@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
                     </div>
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
                             ${lang === 'uz' ? 'Telefon' : 'Телефон'}
                         </label>
                         <input id="userPhone" type="tel" placeholder="+998901234567" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
-                        <script>console.log('PHONE FIELD RENDERED');</script>
                     </div>
+                </div>
+                
+                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: #3b82f6;">
+                    ${lang === 'uz'
+            ? '✨ Логин автоматически генерируется системой. Временный пароль будет отправлен на указанный email.'
+            : '✨ Логин автоматически создается системой. Временный пароль будет отправлен на указанный email.'}
                 </div>
                 
                 <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: #ef4444;">
                     ${lang === 'uz'
-            ? '⚠️ Email yoki telefon raqamini kiritish majburiy!'
-            : '⚠️ Обязательно укажите email или телефон!'}
+            ? '⚠️ Email kiritish majburiy!'
+            : '⚠️ Email обязателен!'}
                 </div>
                 
                 <!-- STUDENT FIELDS -->
@@ -4448,26 +4445,24 @@ async function showAddUserModal() {
         const role = document.getElementById('userRole').value;
         const firstName = document.getElementById('userFirstName').value.trim();
         const lastName = document.getElementById('userLastName').value.trim();
-        const username = document.getElementById('userUsername').value.trim();
         const email = document.getElementById('userEmail').value.trim();
         const phone = document.getElementById('userPhone').value.trim();
 
-        if (!firstName || !lastName || !username) {
+        if (!firstName || !lastName) {
             showAddUserAlert(lang === 'uz' ? 'Barcha maydonlarni to\'ldiring' : 'Заполните все обязательные поля', 'warning');
             return;
         }
 
-        if (!email && !phone) {
-            showAddUserAlert(lang === 'uz' ? 'Email yoki telefon raqamini kiriting' : 'Укажите email или телефон', 'warning');
+        if (!email) {
+            showAddUserAlert(lang === 'uz' ? 'Email majburiy' : 'Email обязателен', 'warning');
             return;
         }
 
         const userData = {
-            username,
             role,
             firstName,
             lastName,
-            email: email || null,
+            email,
             phone: phone || null
         };
 
@@ -4498,52 +4493,74 @@ async function showAddUserModal() {
             });
 
             if (response.success) {
-                // Show OTP to admin
-                if (response.data.otp) {
-                    const otpModal = document.createElement('div');
-                    otpModal.className = 'modal show';
-                    otpModal.style.zIndex = '10001';
+                // Show success message with email notification
+                const successModal = document.createElement('div');
+                successModal.className = 'modal show';
+                successModal.style.zIndex = '10001';
 
-                    otpModal.innerHTML = `
-                        <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white;">
-                            <div style="text-align: center; padding: 2rem;">
-                                <div style="font-size: 3rem; margin-bottom: 1rem;">🔑</div>
-                                <h2 style="margin: 0 0 1rem 0; font-size: 1.5rem;">${lang === 'uz' ? 'OTP Parol Yaratildi' : 'OTP Пароль Создан'}</h2>
-                                <p style="margin: 0 0 1.5rem 0; opacity: 0.9;">
-                                    ${lang === 'uz' ? 'Foydalanuvchiga quyidagi ma\'lumotlarni bering:' : 'Передайте пользователю следующие данные:'}
-                                </p>
-                                
-                                <div style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; backdrop-filter: blur(10px);">
-                                    <div style="margin-bottom: 1rem;">
-                                        <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">${lang === 'uz' ? 'Login' : 'Логин'}:</div>
-                                        <div style="font-size: 1.3rem; font-weight: 700; font-family: monospace; letter-spacing: 1px;">${response.data.username}</div>
+                const emailSent = response.data.emailSent;
+                const username = response.data.username;
+                const userEmail = response.data.email;
+
+                successModal.innerHTML = `
+                    <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                        <div style="text-align: center; padding: 2rem;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">${emailSent ? '✅' : '⚠️'}</div>
+                            <h2 style="margin: 0 0 1rem 0; font-size: 1.5rem;">
+                                ${lang === 'uz' ? 'Foydalanuvchi yaratildi' : 'Пользователь создан'}
+                            </h2>
+                            
+                            <div style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; backdrop-filter: blur(10px);">
+                                <div style="margin-bottom: 1rem;">
+                                    <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">
+                                        ${lang === 'uz' ? 'Login' : 'Логин'}:
                                     </div>
-                                    <div>
-                                        <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">${lang === 'uz' ? 'Bir martalik parol (OTP)' : 'Одноразовый пароль (OTP)'}:</div>
-                                        <div style="font-size: 1.8rem; font-weight: 700; font-family: monospace; letter-spacing: 3px; background: rgba(255,255,255,0.2); padding: 0.7rem; border-radius: 8px;">${response.data.otp}</div>
-                                    </div>
+                                    <div style="font-size: 1.3rem; font-weight: 700; font-family: monospace; letter-spacing: 1px;">${username}</div>
                                 </div>
-                                
+                                <div>
+                                    <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">Email:</div>
+                                    <div style="font-size: 1.1rem; font-weight: 600;">${userEmail}</div>
+                                </div>
+                            </div>
+                            
+                            ${emailSent ? `
                                 <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; text-align: left;">
-                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ ${lang === 'uz' ? 'Muhim' : 'Важно'}:</div>
+                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">📧 ${lang === 'uz' ? 'Email yuborildi' : 'Email отправлен'}</div>
                                     <ul style="margin: 0; padding-left: 1.2rem; line-height: 1.6;">
-                                        <li>${lang === 'uz' ? 'Parol faqat bir marta ishlatiladi' : 'Пароль используется только один раз'}</li>
-                                        <li>${lang === 'uz'
-                            ? `Amal qilish muddati: ${new Date(response.data.otpExpiresAt).toLocaleString('uz-UZ')}`
-                            : `Срок действия: ${new Date(response.data.otpExpiresAt).toLocaleString('ru-RU')}`}</li>
-                                        <li>${lang === 'uz' ? 'Foydalanuvchi birinchi kirishda parolni o\'zgartirishi kerak' : 'При первом входе пользователь должен сменить пароль'}</li>
+                                        <li>${lang === 'uz' ? 'Temporary parol yuborildi' : 'Временный пароль отправлен на email'}</li>
+                                        <li>${lang === 'uz' ? 'Foydalanuvchi emailini tekshirishi kerak' : 'Пользователь должен проверить email'}</li>
+                                        <li>${lang === 'uz' ? 'Birinchi kirishda parolni o\'zgartirishi kerak' : 'При первом входе нужно сменить пароль'}</li>
                                     </ul>
                                 </div>
-                                
-                                <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 0.9rem; background: white; color: #1e40af; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
-                                    ${lang === 'uz' ? 'Yopish' : 'Закрыть'}
-                                </button>
-                            </div>
+                            ` : `
+                                <div style="background: rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem;">
+                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ ${lang === 'uz' ? 'Email yuborilmadi' : 'Email не отправлен'}</div>
+                                    <p style="margin: 0;">
+                                        ${lang === 'uz'
+                        ? 'Parolni qo\'lda berish kerak. Server loglarini tekshiring.'
+                        : 'Необходимо передать пароль вручную. Проверьте логи сервера.'}
+                                    </p>
+                                    ${response.data.otp ? `
+                                        <div style="margin-top: 1rem;">
+                                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">
+                                                ${lang === 'uz' ? 'Bir martalik parol (OTP)' : 'Одноразовый пароль (OTP)'}:
+                                            </div>
+                                            <div style="font-size: 1.5rem; font-weight: 700; font-family: monospace; letter-spacing: 3px; background: rgba(255,255,255,0.2); padding: 0.7rem; border-radius: 8px;">
+                                                ${response.data.otp}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `}
+                            
+                            <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 0.9rem; background: white; color: #059669; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
+                                ${lang === 'uz' ? 'Yopish' : 'Закрыть'}
+                            </button>
                         </div>
-                    `;
+                    </div>
+                `;
 
-                    document.body.appendChild(otpModal);
-                }
+                document.body.appendChild(successModal);
 
                 showAlert(
                     lang === 'uz' ? 'Foydalanuvchi muvaffaqiyatli qo\'shildi' : 'Пользователь успешно добавлен',
