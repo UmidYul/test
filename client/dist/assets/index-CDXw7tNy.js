@@ -5199,11 +5199,11 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${r.map(l=>{var m,p;const d=l.studentCount??((m=l.students)==null?void 0:m.length)??0,c=l.createdAt?new Date(l.createdAt).toLocaleDateString("ru-RU",{year:"numeric",month:"short",day:"numeric"}):"—",u=l._id||l.id,h=l.name?`${l.grade||""}${l.name}`:(p=l.sections)!=null&&p.length?`${l.grade||""} (${l.sections.join(", ")})`:l.grade||"—",g=l.teacherFirstName&&l.teacherLastName?`${l.teacherFirstName} ${l.teacherLastName}`:"—";return`
+                                    ${r.map(l=>{var m,p,f,y;const d=l.studentCount??((m=l.students)==null?void 0:m.length)??0,c=l.createdAt?new Date(l.createdAt).toLocaleDateString("ru-RU",{year:"numeric",month:"short",day:"numeric"}):"—",u=l._id||l.id,h=l.name?`${l.grade||""}${l.name}`:(p=l.sections)!=null&&p.length?`${l.grade||""} (${l.sections.join(", ")})`:l.grade||"—";let g="—";return l.teacher&&l.teacher.fullName?g=l.teacher.fullName.trim():(f=l.teacher)!=null&&f.firstName&&((y=l.teacher)!=null&&y.lastName)?g=`${l.teacher.firstName} ${l.teacher.lastName}`.trim():l.teacherFirstName&&l.teacherLastName&&(g=`${l.teacherFirstName} ${l.teacherLastName}`.trim()),`
                                         <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s;">
                                             <td style="padding: 1rem; font-weight: 600; color: var(--text-primary);">${h}</td>
                                             <td style="padding: 1rem; text-align: center; color: #3B82F6; font-weight: 600;">${d}</td>
-                                            <td style="padding: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">${g}</td>
+                                            <td style="padding: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;">${g}</td>
                                             <td style="padding: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">${c}</td>
                                             <td style="padding: 1rem; text-align: right;">
                                                 <div class="class-actions" style="display: flex; gap: 0.4rem; justify-content: flex-end;">

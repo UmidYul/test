@@ -12789,14 +12789,22 @@ async function renderAdminClasses() {
             const classLabel = classItem.name
                 ? `${classItem.grade || ''}${classItem.name}`
                 : (classItem.sections?.length ? `${classItem.grade || ''} (${classItem.sections.join(', ')})` : (classItem.grade || '—'));
-            const teacherName = classItem.teacherFirstName && classItem.teacherLastName
-                ? `${classItem.teacherFirstName} ${classItem.teacherLastName}`
-                : '—';
+
+            // Handle both old format (teacherFirstName/Last) and new format (teacher object)
+            let teacherName = '—';
+            if (classItem.teacher && classItem.teacher.fullName) {
+                teacherName = classItem.teacher.fullName.trim();
+            } else if (classItem.teacher?.firstName && classItem.teacher?.lastName) {
+                teacherName = `${classItem.teacher.firstName} ${classItem.teacher.lastName}`.trim();
+            } else if (classItem.teacherFirstName && classItem.teacherLastName) {
+                teacherName = `${classItem.teacherFirstName} ${classItem.teacherLastName}`.trim();
+            }
+
             return `
                                         <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s;">
                                             <td style="padding: 1rem; font-weight: 600; color: var(--text-primary);">${classLabel}</td>
                                             <td style="padding: 1rem; text-align: center; color: #3B82F6; font-weight: 600;">${studentCount}</td>
-                                            <td style="padding: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">${teacherName}</td>
+                                            <td style="padding: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500;">${teacherName}</td>
                                             <td style="padding: 1rem; text-align: center; color: var(--text-secondary); font-size: 0.9rem;">${createdDate}</td>
                                             <td style="padding: 1rem; text-align: right;">
                                                 <div class="class-actions" style="display: flex; gap: 0.4rem; justify-content: flex-end;">
