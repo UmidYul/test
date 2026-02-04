@@ -1892,6 +1892,17 @@ app.get('/api/classes', auth, async (req, res) => {
 
     console.log(`📊 Raw query results (all):`, rows.map(r => ({ id: r.id, section: r.name, teacherId: r.teacherId, teacherName: r.teacherFirstName })));
 
+    // Debug: проверим для каждого класса, есть ли учителя в homeroom_assignments
+    for (const row of rows.slice(0, 2)) {
+      const { rows: checkTeacher } = await pool.query(
+        `SELECT u.id, u.first_name FROM users u 
+         INNER JOIN homeroom_assignments ha ON ha.teacher_id = u.id 
+         WHERE ha.class_id = $1 AND ha.end_at IS NULL`,
+        [row.id]
+      );
+      console.log(`🔍 Class ${row.name} (${row.id.slice(0, 8)}): teachers =`, checkTeacher);
+    }
+
     // Format teacher info
     const formattedRows = rows.map(row => {
       const formatted = {
