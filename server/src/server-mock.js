@@ -642,17 +642,12 @@ app.put('/api/users/:id', async (req, res) => {
        RETURNING id, username, first_name, last_name, email, phone, role`,
       [username, firstName, lastName, email, phone, id]
     );
-  } else if (role === 'admin') {
-    // Remove both grade and subjects for admin
-    delete users[userIndex].grade;
-    delete users[userIndex].subjects;
-  }
 
-  const { password: _, ...userWithoutPassword } = users[userIndex];
-  res.json({ success: true, data: userWithoutPassword });
-} catch (error) {
-  res.status(500).json({ success: false, error: 'Ошибка при обновлении пользователя' });
-}
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при обновлении пользователя' });
+  }
 });
 
 // Delete user (admin only)
