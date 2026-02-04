@@ -1343,19 +1343,27 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                 </div>
                 
                 <!-- TEACHER FIELDS -->
-                <div id="teacherFields" class="teacher-fields" style="border: 2px solid rgba(139, 92, 246, 0.3); padding: 1rem; border-radius: 8px; overflow: auto;">
-                    ${console.log("📚 subjectsList перед рендерингом teacher fields:",t)}
-                    <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; font-size: 0.9rem;">
-                        ${e==="uz"?"Predmetlar":"Предметы"}
-                    </label>
-                    <div class="teacher-subjects-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto;">
+                <div id="teacherFields" class="teacher-fields" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.05) 100%); border: 2px solid rgba(139, 92, 246, 0.3); padding: 1.2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem;">
+                        <span style="font-size: 1.2rem;">📚</span>
+                        <label style="display: block; font-weight: 700; font-size: 1rem; color: var(--text-primary);">
+                            ${e==="uz"?"Predmetlar":"Предметы"}
+                        </label>
+                    </div>
+                    <div class="teacher-subjects-list" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 220px; overflow-y: auto; padding: 0.5rem;">
                         
                     ${t&&t.length>0?t.map((a,r)=>`
-                            <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(139, 92, 246, 0.1)'" onmouseout="this.style.background='transparent'">
-                                <input type="checkbox" class="teacherSubject" value="${a&&a.id?a.id:"undefined-"+r}" data-name="${a&&a.name?a.name:"undefined-"+r}" style="width: 18px; height: 18px; cursor: pointer;">
-                                <span style="flex: 1; font-size: 0.95rem;">${a&&a.name?a.name:"undefined-"+r}</span>
+                            <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.7rem; padding: 0.75rem 0.9rem; cursor: pointer; border-radius: 8px; background: var(--bg-secondary); border: 2px solid transparent; transition: all 0.2s ease;" 
+                                onmouseover="this.style.background='rgba(139, 92, 246, 0.12)'; this.style.borderColor='rgba(139, 92, 246, 0.4)'; this.style.transform='translateX(3px)'" 
+                                onmouseout="this.style.background='var(--bg-secondary)'; this.style.borderColor='transparent'; this.style.transform='translateX(0)'">
+                                <input type="checkbox" class="teacherSubject" 
+                                    value="${a&&a.id?a.id:"undefined-"+r}" 
+                                    data-name="${a&&a.name?a.name:"undefined-"+r}" 
+                                    style="width: 20px; height: 20px; cursor: pointer; accent-color: #8b5cf6; border-radius: 4px;">
+                                <span style="flex: 1; font-size: 0.95rem; font-weight: 500; color: var(--text-primary);">${a&&a.name?a.name:"undefined-"+r}</span>
+                                <span style="font-size: 0.75rem; opacity: 0; transition: opacity 0.2s;">✓</span>
                             </label>
-                        `).join(""):'<p style="color: var(--text-muted); text-align: center;">Предметы не загружены или пустой список</p>'}
+                        `).join(""):'<p style="color: var(--text-muted); text-align: center; padding: 2rem; font-size: 0.9rem;">📭 Предметы не загружены или пустой список</p>'}
                     </div>
                 </div>
                 
@@ -1369,7 +1377,7 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                 </div>
             </form>
         </div>
-    `,document.body.appendChild(i),setTimeout(()=>i.classList.add("show"),10);const s=document.getElementById("addUserAlert"),n=(a,r="info")=>{if(!s)return;const o={success:"✅",error:"❌",warning:"⚠️",info:"ℹ️"};s.className=`inline-alert inline-alert--${r}`,s.innerHTML=`
+    `,document.body.appendChild(i),setTimeout(()=>i.classList.add("show"),10),setTimeout(()=>{document.querySelectorAll(".teacherSubject").forEach(a=>{a.addEventListener("change",r=>{const o=r.target.closest(".teacher-subject-item"),l=o.querySelector("span:last-child");r.target.checked?(o.style.background="rgba(139, 92, 246, 0.18)",o.style.borderColor="#8b5cf6",o.style.boxShadow="0 2px 8px rgba(139, 92, 246, 0.25)",l&&(l.style.opacity="1")):(o.style.background="var(--bg-secondary)",o.style.borderColor="transparent",o.style.boxShadow="none",l&&(l.style.opacity="0"))})})},50);const s=document.getElementById("addUserAlert"),n=(a,r="info")=>{if(!s)return;const o={success:"✅",error:"❌",warning:"⚠️",info:"ℹ️"};s.className=`inline-alert inline-alert--${r}`,s.innerHTML=`
             <span style="font-size: 1.1rem;">${o[r]||o.info}</span>
             <span>${a}</span>
         `,s.style.display="flex"};document.getElementById("closeAddUserBtn").addEventListener("click",()=>{i.classList.remove("show"),setTimeout(()=>i.remove(),300)}),document.getElementById("addUserForm").addEventListener("submit",async a=>{a.preventDefault();const r=document.getElementById("userFirstName").value.trim(),o=document.getElementById("userLastName").value.trim(),l=document.getElementById("userEmail").value.trim(),d=document.getElementById("userPhone").value.trim();if(!r||!o){n(e==="uz"?"Barcha maydonlarni to'ldiring":"Заполните все обязательные поля","warning");return}if(!l){n(e==="uz"?"Email majburiy":"Email обязателен","warning");return}const c=Array.from(document.querySelectorAll(".teacherSubject:checked")).map(h=>({id:h.value,name:h.dataset.name}));if(c.length===0){n(e==="uz"?"Kamida bitta predmet tanlang":"Выберите хотя бы один предмет","warning");return}const u={role:"teacher",firstName:r,lastName:o,email:l,phone:d||null,subjects:c};try{const h=await A("/api/users/register",{method:"POST",body:JSON.stringify(u)});if(h.success){const m=document.createElement("div");m.className="modal show",m.style.zIndex="10001";const g=h.data.emailSent,p=h.data.username,f=h.data.email;m.innerHTML=`

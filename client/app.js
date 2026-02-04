@@ -4285,19 +4285,27 @@ async function showAddUserModal() {
                 </div>
                 
                 <!-- TEACHER FIELDS -->
-                <div id="teacherFields" class="teacher-fields" style="border: 2px solid rgba(139, 92, 246, 0.3); padding: 1rem; border-radius: 8px; overflow: auto;">
-                    ${console.log('📚 subjectsList перед рендерингом teacher fields:', subjectsList)}
-                    <label style="display: block; font-weight: 600; margin-bottom: 0.6rem; font-size: 0.9rem;">
-                        ${lang === 'uz' ? 'Predmetlar' : 'Предметы'}
-                    </label>
-                    <div class="teacher-subjects-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto;">
+                <div id="teacherFields" class="teacher-fields" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.05) 100%); border: 2px solid rgba(139, 92, 246, 0.3); padding: 1.2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem;">
+                        <span style="font-size: 1.2rem;">📚</span>
+                        <label style="display: block; font-weight: 700; font-size: 1rem; color: var(--text-primary);">
+                            ${lang === 'uz' ? 'Predmetlar' : 'Предметы'}
+                        </label>
+                    </div>
+                    <div class="teacher-subjects-list" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 220px; overflow-y: auto; padding: 0.5rem;">
                         
                     ${subjectsList && subjectsList.length > 0 ? subjectsList.map((subject, index) => `
-                            <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(139, 92, 246, 0.1)'" onmouseout="this.style.background='transparent'">
-                                <input type="checkbox" class="teacherSubject" value="${subject && subject.id ? subject.id : 'undefined-' + index}" data-name="${subject && subject.name ? subject.name : 'undefined-' + index}" style="width: 18px; height: 18px; cursor: pointer;">
-                                <span style="flex: 1; font-size: 0.95rem;">${subject && subject.name ? subject.name : 'undefined-' + index}</span>
+                            <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.7rem; padding: 0.75rem 0.9rem; cursor: pointer; border-radius: 8px; background: var(--bg-secondary); border: 2px solid transparent; transition: all 0.2s ease;" 
+                                onmouseover="this.style.background='rgba(139, 92, 246, 0.12)'; this.style.borderColor='rgba(139, 92, 246, 0.4)'; this.style.transform='translateX(3px)'" 
+                                onmouseout="this.style.background='var(--bg-secondary)'; this.style.borderColor='transparent'; this.style.transform='translateX(0)'">
+                                <input type="checkbox" class="teacherSubject" 
+                                    value="${subject && subject.id ? subject.id : 'undefined-' + index}" 
+                                    data-name="${subject && subject.name ? subject.name : 'undefined-' + index}" 
+                                    style="width: 20px; height: 20px; cursor: pointer; accent-color: #8b5cf6; border-radius: 4px;">
+                                <span style="flex: 1; font-size: 0.95rem; font-weight: 500; color: var(--text-primary);">${subject && subject.name ? subject.name : 'undefined-' + index}</span>
+                                <span style="font-size: 0.75rem; opacity: 0; transition: opacity 0.2s;">✓</span>
                             </label>
-                        `).join('') : '<p style="color: var(--text-muted); text-align: center;">Предметы не загружены или пустой список</p>'}
+                        `).join('') : '<p style="color: var(--text-muted); text-align: center; padding: 2rem; font-size: 0.9rem;">📭 Предметы не загружены или пустой список</p>'}
                     </div>
                 </div>
                 
@@ -4315,6 +4323,27 @@ async function showAddUserModal() {
 
     document.body.appendChild(modal);
     setTimeout(() => modal.classList.add('show'), 10);
+
+    // Add checkbox interaction effects
+    setTimeout(() => {
+        document.querySelectorAll('.teacherSubject').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const label = e.target.closest('.teacher-subject-item');
+                const checkmark = label.querySelector('span:last-child');
+                if (e.target.checked) {
+                    label.style.background = 'rgba(139, 92, 246, 0.18)';
+                    label.style.borderColor = '#8b5cf6';
+                    label.style.boxShadow = '0 2px 8px rgba(139, 92, 246, 0.25)';
+                    if (checkmark) checkmark.style.opacity = '1';
+                } else {
+                    label.style.background = 'var(--bg-secondary)';
+                    label.style.borderColor = 'transparent';
+                    label.style.boxShadow = 'none';
+                    if (checkmark) checkmark.style.opacity = '0';
+                }
+            });
+        });
+    }, 50);
 
     const addUserAlert = document.getElementById('addUserAlert');
 
