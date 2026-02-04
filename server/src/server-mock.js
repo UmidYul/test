@@ -1852,15 +1852,40 @@ app.get('/api/teacher/control-tests/results', auth, async (req, res) => {
 app.get('/api/classes', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(`
-      SELECT c.id, c.grade, c.section as name, c.created_at as "createdAt",
-             COUNT(cs.student_id) as "studentCount"
+      SELECT 
+        c.id, 
+        c.grade, 
+        c.section as name, 
+        c.created_at as "createdAt",
+        COUNT(DISTINCT cs.student_id) as "studentCount",
+        u.id as "teacherId",
+        u.first_name as "teacherFirstName",
+        u.last_name as "teacherLastName"
       FROM classes c
       LEFT JOIN class_students cs ON c.id = cs.class_id AND cs.left_at IS NULL
-      GROUP BY c.id, c.grade, c.section, c.created_at
+      LEFT JOIN homeroom_assignments ha ON c.id = ha.class_id AND ha.end_at IS NULL
+      LEFT JOIN users u ON ha.teacher_id = u.id
+      GROUP BY c.id, c.grade, c.section, c.created_at, u.id, u.first_name, u.last_name
       ORDER BY c.grade, c.section
     `);
-    console.log(`📚 Загружено классов: ${rows.length}`);
-    res.json({ success: true, data: rows });
+
+    // Format teacher info
+    const formattedRows = rows.map(row => ({
+      ...row,
+      teacher: row.teacherId ? {
+        id: row.teacherId,
+        firstName: row.teacherFirstName,
+        lastName: row.teacherLastName,
+        fullName: `${row.teacherFirstName} ${row.teacherLastName}`
+      } : null,
+      // Remove teacher fields from root
+      teacherId: undefined,
+      teacherFirstName: undefined,
+      teacherLastName: undefined
+    }));
+
+    console.log(`📚 Загружено классов: ${formattedRows.length}`);
+    res.json({ success: true, data: formattedRows });
   } catch (error) {
     console.error('❌ Ошибка при загрузке классов:', error);
     res.status(500).json({ success: false, error: error && error.message ? error.message : 'Ошибка при загрузке классов' });
