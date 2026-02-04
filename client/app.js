@@ -12292,7 +12292,19 @@ async function editClass(classId) {
         const result = await response.json();
         console.log('✏️ Class data received:', result);
         const classData = result.data || result;
-        const teachers = teachersRes.success ? teachersRes.data : [];
+
+        // Дедуплицируем список учителей по ID
+        const uniqueTeachers = [];
+        const teacherIds = new Set();
+        (teachersRes.success ? teachersRes.data : []).forEach(t => {
+            const id = t._id || t.id;
+            if (!teacherIds.has(id)) {
+                teacherIds.add(id);
+                uniqueTeachers.push(t);
+            }
+        });
+        const teachers = uniqueTeachers;
+
         const hasSections = Array.isArray(classData.sections) && classData.sections.length > 0 && !classData.name;
         const defaultSection = classData.name || (hasSections ? classData.sections[0] : '');
 
