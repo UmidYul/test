@@ -11498,7 +11498,11 @@ async function viewClassStudents(classId) {
                                             <td style="padding: 1rem; text-align: center;">
                                                 <input type="checkbox" class="student-checkbox" data-student-id="${studentId}" onchange="updateBulkPanel()" style="width: 18px; height: 18px; cursor: pointer; accent-color: #3B82F6;">
                                             </td>
-                                            <td style="padding: 1rem; font-weight: 600; color: var(--text-primary);">${student.firstName} ${student.lastName}</td>
+                                            <td style="padding: 1rem;">
+                                                <a href="#" onclick="event.preventDefault(); window.router.navigate('/admin/student/${studentId}');" style="font-weight: 600; color: #3B82F6; text-decoration: none; transition: color 0.2s; cursor: pointer;" onmouseenter="this.style.color='#2563EB'; this.style.textDecoration='underline';" onmouseleave="this.style.color='#3B82F6'; this.style.textDecoration='none';">
+                                                    ${student.firstName} ${student.lastName}
+                                                </a>
+                                            </td>
                                             <td style="padding: 1rem; color: var(--text-secondary); font-size: 0.9rem;">${student.email || '—'}</td>
                                             <td style="padding: 1rem; color: var(--text-secondary); font-family: monospace; font-size: 0.85rem;">@${student.username || '—'}</td>
                                             <td style="padding: 1rem; text-align: right;">
