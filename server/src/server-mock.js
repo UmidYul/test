@@ -1875,14 +1875,18 @@ app.get('/api/classes', auth, async (req, res) => {
         c.section as name,
         c.created_at as "createdAt",
         COUNT(DISTINCT cs.student_id) as "studentCount",
-        u.id as "teacherId",
-        u.first_name as "teacherFirstName",
-        u.last_name as "teacherLastName"
+        (SELECT u.id FROM users u 
+         INNER JOIN homeroom_assignments ha2 ON ha2.teacher_id = u.id 
+         WHERE ha2.class_id = c.id AND ha2.end_at IS NULL LIMIT 1) as "teacherId",
+        (SELECT u.first_name FROM users u 
+         INNER JOIN homeroom_assignments ha2 ON ha2.teacher_id = u.id 
+         WHERE ha2.class_id = c.id AND ha2.end_at IS NULL LIMIT 1) as "teacherFirstName",
+        (SELECT u.last_name FROM users u 
+         INNER JOIN homeroom_assignments ha2 ON ha2.teacher_id = u.id 
+         WHERE ha2.class_id = c.id AND ha2.end_at IS NULL LIMIT 1) as "teacherLastName"
       FROM classes c
       LEFT JOIN class_students cs ON c.id = cs.class_id AND cs.left_at IS NULL
-      LEFT JOIN homeroom_assignments ha ON c.id = ha.class_id AND ha.end_at IS NULL
-      LEFT JOIN users u ON ha.teacher_id = u.id
-      GROUP BY c.id, c.grade, c.section, c.created_at, u.id, u.first_name, u.last_name
+      GROUP BY c.id, c.grade, c.section, c.created_at
       ORDER BY c.grade, c.section
     `);
 
