@@ -8,6 +8,8 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
 
 import pool from './db.js';
 import { generateStrongPassword } from './utils/passwordGenerator.js';
@@ -15,9 +17,25 @@ import { generateStrongPassword } from './utils/passwordGenerator.js';
 
 const app = express();
 
+// Security Middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Отключаем CSP для простоты (можно настроить позже)
+  crossOriginEmbedderPolicy: false
+}));
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Rate limiting for login endpoint
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 минут
+  max: 5, // максимум 5 попыток
+  message: { error: 'Слишком много попыток входа. Попробуйте через 15 минут.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.ip === '127.0.0.1' || req.ip === '::1' // Не ограничивать localhost для разработки
+});
 
 // Статика фронта
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -25,6 +43,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Load environment variables
 dotenv.config();
 dotenv.config({ path: path.join(__dirname, '../../.env') });
+
+// Validate critical environment variables
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'your-super-secret-jwt-key') {
+  console.error('❌ FATAL ERROR: JWT_SECRET must be set in .env file and not use default value!');
+  console.error('Generate a strong secret: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))"');
+  process.exit(1);
+}
+
+const JWT_SECRET = process.env.JWT_SECRET;
+console.log('✅ JWT_SECRET loaded from environment');
+
 app.use(express.static(path.join(__dirname, '../../client/dist')));
 
 // Log all incoming requests
@@ -159,7 +188,7 @@ const auth = (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-super-secret-jwt-key');
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.userId = decoded.userId;
     req.userRole = decoded.role;
     console.log('✅ Token valid:', { userId: req.userId, role: req.userRole });
@@ -172,15 +201,21 @@ const auth = (req, res, next) => {
 
 // Routes
 
-// Login (PostgreSQL)
-app.post('/api/auth/login', async (req, res) => {
+// Login (PostgreSQL) with rate limiting
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   try {
     const { username, password, role } = req.body;
+    console.log(`[LOGIN] Attempting login with:`, { username, role });
+
     const { rows } = await pool.query(`SELECT u.* FROM users u 
                                        WHERE u.username = $1 AND u.role = $2`, [username, role]);
+
+    console.log(`[LOGIN] Database query result:`, { found: rows.length > 0, userId: rows[0]?.id || 'N/A' });
+
     const user = rows[0];
     if (!user) {
-      console.log(`[LOGIN] Failed login for ${username} (user not found)`);
+      console.log(`[LOGIN] Failed login for ${username} (user not found in DB)`);
+      console.log(`[LOGIN] This should NOT trigger user registration!`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     const isMatch = await bcrypt.compare(password, user.password_hash);
@@ -198,7 +233,7 @@ app.post('/api/auth/login', async (req, res) => {
           role: user.role,
           forcePasswordChange: true
         },
-        process.env.JWT_SECRET || 'your-super-secret-jwt-key',
+        JWT_SECRET,
         { expiresIn: '1h' }  // Short expiry for security
       );
 
@@ -220,7 +255,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     const token = jwt.sign(
       { userId: user.id, role: user.role },
-      process.env.JWT_SECRET || 'your-super-secret-jwt-key',
+      JWT_SECRET,
       { expiresIn: '7d' }
     );
     console.log(`[LOGIN] Success for ${username} (role: ${user.role})`);
