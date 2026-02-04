@@ -11240,40 +11240,132 @@ async function viewClassStudents(classId) {
         console.log('👁️ Students count:', students.length);
 
         const content = `
+            <style>
+                .breadcrumbs {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    margin-bottom: 1.5rem;
+                    font-size: 0.9rem;
+                    color: var(--text-secondary);
+                }
+                .breadcrumb-link {
+                    color: #3B82F6;
+                    text-decoration: none;
+                    transition: color 0.2s;
+                }
+                .breadcrumb-link:hover {
+                    color: #2563EB;
+                }
+                .breadcrumb-separator {
+                    color: var(--text-secondary);
+                }
+                .breadcrumb-current {
+                    color: var(--text-primary);
+                    font-weight: 600;
+                }
+                .class-details-hero {
+                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(59, 130, 246, 0.12) 100%);
+                    border: 1px solid rgba(16, 185, 129, 0.28);
+                    border-radius: 18px;
+                    padding: 1.5rem;
+                    margin-bottom: 2rem;
+                }
+                .class-actions-bar {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 1rem;
+                    margin-bottom: 1.5rem;
+                    flex-wrap: wrap;
+                }
+                @media (max-width: 768px) {
+                    .class-actions-bar {
+                        flex-direction: column;
+                        align-items: stretch;
+                    }
+                }
+            </style>
             <div style="background: var(--bg-primary); min-height: 100vh; padding: 2rem 1.5rem;">
-                <div style="max-width: 1000px; margin: 0 auto;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2.5rem;">
-                        <div>
-                            <h1 style="margin: 0; font-size: 2.25rem; font-weight: 700; color: var(--text-primary);">${classLabel}</h1>
-                            <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.95rem;">
-                                ${students.length} учен${students.length === 1 ? 'ик' : 'иков'} в классе
-                            </p>
+                <div style="max-width: 1200px; margin: 0 auto;">
+                    <!-- Breadcrumbs -->
+                    <nav class="breadcrumbs">
+                        <a href="#" onclick="event.preventDefault(); window.router.navigate('/admin/dashboard');" class="breadcrumb-link">${lang === 'uz' ? 'Bosh sahifa' : 'Главная'}</a>
+                        <span class="breadcrumb-separator">›</span>
+                        <a href="#" onclick="event.preventDefault(); window.router.navigate('/admin/classes');" class="breadcrumb-link">${lang === 'uz' ? 'Sinflar' : 'Классы'}</a>
+                        <span class="breadcrumb-separator">›</span>
+                        <span class="breadcrumb-current">${classLabel}</span>
+                    </nav>
+
+                    <!-- Class Info Hero -->
+                    <div class="class-details-hero">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                            <div>
+                                <h1 style="margin: 0; font-size: 2.25rem; font-weight: 800; color: var(--text-primary);">${classLabel}</h1>
+                                <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.95rem;">
+                                    ${students.length} ${lang === 'uz' ? 'o\'quvchi' : 'учен'}${students.length === 1 ? lang === 'uz' ? '' : 'ик' : lang === 'uz' ? '' : 'иков'} ${lang === 'uz' ? 'sinfda' : 'в классе'}
+                                </p>
+                            </div>
+                            <button onclick="window.router.navigate('/admin/classes')" class="btn-secondary" style="padding: 0.7rem 1.2rem; font-size: 0.9rem; border: 1px solid var(--border-color);">
+                                ← ${lang === 'uz' ? 'Ortga' : 'Назад'}
+                            </button>
                         </div>
-                        <button onclick="window.router.navigate('/admin/classes')" style="padding: 0.75rem 1.5rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-primary); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.9rem;">← Назад</button>
                     </div>
 
+                    <!-- Actions Bar -->
+                    <div class="class-actions-bar">
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <button onclick="showAddStudentToClassModal('${classId}', '${classLabel}')" class="btn-primary" style="padding: 0.75rem 1.5rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 1.2rem;">+</span>
+                                <span>${lang === 'uz' ? 'O\'quvchi qo\'shish' : 'Добавить ученика'}</span>
+                            </button>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                            ${lang === 'uz' ? 'Jami' : 'Всего'}: <strong style="color: var(--text-primary);">${students.length}</strong>
+                        </div>
+                    </div>
+
+                    <!-- Students Table -->
                     ${students.length === 0 ? `
                         <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 3rem; text-align: center;">
-                            <p style="color: var(--text-secondary); font-size: 1rem; margin: 0;">В этом классе пока нет учеников</p>
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📚</div>
+                            <p style="color: var(--text-secondary); font-size: 1rem; margin: 0 0 1rem 0;">
+                                ${lang === 'uz' ? 'Bu sinfda hali o\'quvchilar yo\'q' : 'В этом классе пока нет учеников'}
+                            </p>
+                            <button onclick="showAddStudentToClassModal('${classId}', '${classLabel}')" class="btn-primary" style="padding: 0.75rem 1.5rem; font-size: 0.9rem;">
+                                + ${lang === 'uz' ? 'Birinchi o\'quvchini qo\'shish' : 'Добавить первого ученика'}
+                            </button>
                         </div>
                     ` : `
-                        <div style="background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); overflow-x: auto;">
+                        <div style="background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden;">
                             <table style="width: 100%; border-collapse: collapse;">
                                 <thead>
                                     <tr style="background: var(--bg-tertiary);">
-                                        <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">ФИО</th>
+                                        <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">${lang === 'uz' ? 'F.I.SH' : 'ФИО'}</th>
                                         <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Email</th>
-                                        <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Логин</th>
+                                        <th style="padding: 1rem; text-align: left; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">${lang === 'uz' ? 'Login' : 'Логин'}</th>
+                                        <th style="padding: 1rem; text-align: right; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">${lang === 'uz' ? 'Harakatlar' : 'Действия'}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${students.map(student => `
-                                        <tr style="border-bottom: 1px solid var(--border-color);">
+                                    ${students.map(student => {
+            const studentId = student.id || student._id;
+            return `
+                                        <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s;" onmouseenter="this.style.background='var(--bg-tertiary)'" onmouseleave="this.style.background='transparent'">
                                             <td style="padding: 1rem; font-weight: 600; color: var(--text-primary);">${student.firstName} ${student.lastName}</td>
                                             <td style="padding: 1rem; color: var(--text-secondary); font-size: 0.9rem;">${student.email || '—'}</td>
                                             <td style="padding: 1rem; color: var(--text-secondary); font-family: monospace; font-size: 0.85rem;">@${student.username || '—'}</td>
+                                            <td style="padding: 1rem; text-align: right;">
+                                                <button onclick="removeStudentFromClass('${classId}', '${studentId}', '${student.firstName} ${student.lastName}')" 
+                                                    style="padding: 0.5rem 0.9rem; font-size: 0.8rem; background: transparent; border: 1px solid #ef4444; border-radius: 6px; color: #ef4444; cursor: pointer; transition: all 0.2s; font-weight: 500;"
+                                                    onmouseenter="this.style.background='#ef4444'; this.style.color='white';"
+                                                    onmouseleave="this.style.background='transparent'; this.style.color='#ef4444';">
+                                                    ${lang === 'uz' ? 'O\'chirish' : 'Удалить'}
+                                                </button>
+                                            </td>
                                         </tr>
-                                    `).join('')}
+                                    `;
+        }).join('')}
                                 </tbody>
                             </table>
                         </div>
@@ -11285,7 +11377,7 @@ async function viewClassStudents(classId) {
         renderLayout(content, 'admin');
     } catch (error) {
         console.error('Error loading class:', error);
-        showAlert('Ошибка при загрузке класса', 'error');
+        showAlert(lang === 'uz' ? 'Sinf yuklashda xatolik' : 'Ошибка при загрузке класса', 'error');
     }
 }
 
@@ -11471,6 +11563,247 @@ async function deleteClass(classId) {
     } catch (error) {
         console.error('Error deleting class:', error);
         showAlert('Ошибка при удалении класса', 'error');
+    }
+}
+
+// New function: Add student to specific class
+async function showAddStudentToClassModal(classId, classLabel) {
+    console.log('🎓 showAddStudentToClassModal called with classId:', classId, 'classLabel:', classLabel);
+    const lang = store.getState().language;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px;">
+            <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(59, 130, 246, 0.15) 100%); border: 1px solid rgba(16, 185, 129, 0.35); color: var(--text-primary); padding: 1.25rem; border-radius: 14px; margin-bottom: 1.25rem;">
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem;">${classLabel}</div>
+                <h2 style="margin: 0; font-size: 1.35rem; font-weight: 800;">${lang === 'uz' ? 'O\'quvchi qo\'shish' : 'Добавить ученика'}</h2>
+                <p style="margin: 0.4rem 0 0 0; color: var(--text-secondary); font-size: 0.9rem;">${lang === 'uz' ? 'Yangi o\'quvchi yaratish' : 'Создать нового ученика в этом классе'}</p>
+            </div>
+            
+            <form id="addStudentToClassForm" class="add-user-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div id="addStudentAlert" class="inline-alert" style="display: none;"></div>
+                
+                <div class="add-user-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
+                            ${lang === 'uz' ? 'Ism' : 'Имя'} <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input id="studentFirstName" type="text" placeholder="${lang === 'uz' ? 'Ism' : 'Имя'}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
+                            ${lang === 'uz' ? 'Familiya' : 'Фамилия'} <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input id="studentLastName" type="text" placeholder="${lang === 'uz' ? 'Familiya' : 'Фамилия'}" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
+                    </div>
+                </div>
+                
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
+                        Email <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input id="studentEmail" type="email" placeholder="student@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
+                </div>
+                
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
+                        ${lang === 'uz' ? 'Telefon' : 'Телефон'}
+                    </label>
+                    <input id="studentPhone" type="tel" placeholder="+998901234567" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
+                </div>
+                
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: #10b981;">
+                    ✅ ${lang === 'uz' ? `Ushbu o'quvchi avtomatik ravishda ${classLabel} sinfiga qo'shiladi` : `Ученик будет автоматически добавлен в класс ${classLabel}`}
+                </div>
+                
+                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: #3b82f6;">
+                    ${lang === 'uz'
+            ? '✨ Login avtomatik yaratiladi. Vaqtinchalik parol emailga yuboriladi.'
+            : '✨ Логин создается автоматически. Временный пароль будет отправлен на email.'}
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button type="button" class="button button-secondary" id="closeAddStudentBtn" style="flex: 1;">
+                        ${lang === 'uz' ? 'Bekor qilish' : 'Отмена'}
+                    </button>
+                    <button type="submit" class="button button-primary" style="flex: 1; background: #10b981;">
+                        ✅ ${lang === 'uz' ? 'Qo\'shish' : 'Добавить'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('show'), 10);
+
+    const addStudentAlert = document.getElementById('addStudentAlert');
+
+    const showAlert = (message, type = 'info') => {
+        if (!addStudentAlert) return;
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+        addStudentAlert.className = `inline-alert inline-alert--${type}`;
+        addStudentAlert.innerHTML = `
+            <span style="font-size: 1.1rem;">${icons[type] || icons.info}</span>
+            <span>${message}</span>
+        `;
+        addStudentAlert.style.display = 'flex';
+    };
+
+    // Close button
+    document.getElementById('closeAddStudentBtn').addEventListener('click', () => {
+        modal.classList.remove('show');
+        setTimeout(() => modal.remove(), 300);
+    });
+
+    // Form submission
+    document.getElementById('addStudentToClassForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const firstName = document.getElementById('studentFirstName').value.trim();
+        const lastName = document.getElementById('studentLastName').value.trim();
+        const email = document.getElementById('studentEmail').value.trim();
+        const phone = document.getElementById('studentPhone').value.trim();
+
+        if (!firstName || !lastName || !email) {
+            showAlert(lang === 'uz' ? 'Barcha majburiy maydonlarni to\'ldiring' : 'Заполните все обязательные поля', 'warning');
+            return;
+        }
+
+        const userData = {
+            role: 'student',
+            firstName,
+            lastName,
+            email,
+            phone: phone || null,
+            classId: classId
+        };
+
+        try {
+            const response = await apiRequest('/api/users/register', {
+                method: 'POST',
+                body: JSON.stringify(userData)
+            });
+
+            if (response.success) {
+                // Show success notification
+                const successModal = document.createElement('div');
+                successModal.className = 'modal show';
+                successModal.style.zIndex = '10001';
+
+                const emailSent = response.data.emailSent;
+                const username = response.data.username;
+                const userEmail = response.data.email;
+
+                successModal.innerHTML = `
+                    <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
+                        <div style="text-align: center; padding: 2rem;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">${emailSent ? '✅' : '⚠️'}</div>
+                            <h2 style="margin: 0 0 1rem 0; font-size: 1.5rem;">
+                                ${lang === 'uz' ? 'O\'quvchi qo\'shildi' : 'Ученик добавлен'}
+                            </h2>
+                            
+                            <div style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; backdrop-filter: blur(10px);">
+                                <div style="margin-bottom: 1rem;">
+                                    <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">
+                                        ${lang === 'uz' ? 'Sinf' : 'Класс'}:
+                                    </div>
+                                    <div style="font-size: 1.3rem; font-weight: 700;">${classLabel}</div>
+                                </div>
+                                <div style="margin-bottom: 1rem;">
+                                    <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">
+                                        ${lang === 'uz' ? 'Login' : 'Логин'}:
+                                    </div>
+                                    <div style="font-size: 1.1rem; font-weight: 600; font-family: monospace;">${username}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">Email:</div>
+                                    <div style="font-size: 1rem; font-weight: 500;">${userEmail}</div>
+                                </div>
+                            </div>
+                            
+                            ${emailSent ? `
+                                <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; text-align: left;">
+                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">📧 ${lang === 'uz' ? 'Email yuborildi' : 'Email отправлен'}</div>
+                                    <p style="margin: 0; line-height: 1.6;">
+                                        ${lang === 'uz' ? 'Vaqtinchalik parol emailga yuborildi' : 'Временный пароль отправлен на email'}
+                                    </p>
+                                </div>
+                            ` : `
+                                <div style="background: rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem;">
+                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ ${lang === 'uz' ? 'Email yuborilmadi' : 'Email не отправлен'}</div>
+                                    ${response.data.otp ? `
+                                        <div style="margin-top: 0.5rem;">
+                                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">OTP:</div>
+                                            <div style="font-size: 1.3rem; font-weight: 700; font-family: monospace; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 0.5rem; border-radius: 6px;">
+                                                ${response.data.otp}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `}
+                            
+                            <button onclick="this.closest('.modal').remove(); window.viewClassStudents('${classId}')" style="width: 100%; padding: 0.9rem; background: white; color: #059669; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
+                                ${lang === 'uz' ? 'Yopish' : 'Закрыть'}
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(successModal);
+
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.remove();
+                    // Refresh class students view
+                    viewClassStudents(classId);
+                }, 300);
+            } else {
+                showAlert(response.error || (lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка'), 'error');
+            }
+        } catch (error) {
+            console.error('Error creating student:', error);
+            showAlert(lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка', 'error');
+        }
+    });
+}
+
+// New function: Remove student from class
+async function removeStudentFromClass(classId, studentId, studentName) {
+    const lang = store.getState().language;
+    const token = store.getState().token;
+
+    const confirm = await showConfirm(
+        lang === 'uz' ? 'O\'quvchini o\'chirish?' : 'Удалить ученика из класса?',
+        `${studentName}`
+    );
+
+    if (!confirm) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/classes/${classId}/students/${studentId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to remove student');
+        }
+
+        showAlert(lang === 'uz' ? 'O\'quvchi o\'chirildi' : 'Ученик удален из класса', 'success');
+        // Refresh the class view
+        viewClassStudents(classId);
+    } catch (error) {
+        console.error('Error removing student from class:', error);
+        showAlert(lang === 'uz' ? 'Xatolik yuz berdi' : 'Ошибка при удалении ученика', 'error');
     }
 }
 
@@ -12269,6 +12602,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.createClass = createClass;
     window.closeModal = closeModal;
     window.showAddUserModal = showAddUserModal;
+    window.showAddStudentToClassModal = showAddStudentToClassModal;
+    window.removeStudentFromClass = removeStudentFromClass;
     window.showResetPasswordModal = showResetPasswordModal;
     window.resetUserPassword = resetUserPassword;
     window.renderAdminPasswords = renderAdminPasswords;

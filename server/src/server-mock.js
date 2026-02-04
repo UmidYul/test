@@ -1897,6 +1897,42 @@ app.put('/api/classes/:classId/students', auth, async (req, res) => {
   }
 });
 
+// Delete student from class
+app.delete('/api/classes/:classId/students/:studentId', auth, async (req, res) => {
+  if (req.userRole !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Только администратор может удалять учеников из класса' });
+  }
+  const { classId, studentId } = req.params;
+  try {
+    console.log(`🗑️ Removing student ${studentId} from class ${classId}`);
+
+    // Delete from class_students junction table
+    const deleteResult = await pool.query(
+      'DELETE FROM class_students WHERE class_id = $1 AND student_id = $2',
+      [classId, studentId]
+    );
+
+    if (deleteResult.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Ученик не найден в этом классе'
+      });
+    }
+
+    console.log(`✅ Student removed from class successfully`);
+    res.json({
+      success: true,
+      message: 'Ученик успешно удален из класса'
+    });
+  } catch (error) {
+    console.error('❌ Error removing student from class:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Ошибка при удалении ученика из класса'
+    });
+  }
+});
+
 // Get tests available for student's grade
 app.get('/api/modules/:moduleId/tests/available', auth, async (req, res) => {
   try {
