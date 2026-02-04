@@ -12353,23 +12353,37 @@ async function editClass(classId) {
         const renderStudents = () => {
             const sectionValue = currentSection();
             const classLabel = `${classData.grade || ''}${sectionValue || classData.name || ''}`.trim();
-            studentsContainer.innerHTML = students.map(student => {
+
+            // Фильтруем: показываем только учеников без класса или учеников текущего класса
+            const availableStudents = students.filter(student => {
+                const studentClassId = student.classId || student.class_id;
+                return !studentClassId || studentClassId === classId;
+            });
+
+            if (availableStudents.length === 0) {
+                studentsContainer.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+                        <div>Все ученики уже распределены по классам</div>
+                    </div>
+                `;
+                return;
+            }
+
+            studentsContainer.innerHTML = availableStudents.map(student => {
                 const studentClassId = student.classId || student.class_id;
                 const isInClass = studentClassId === classId;
-                const hasOtherClass = studentClassId && !isInClass;
                 const currentClass = student.grade ? `${student.grade}${student.className || ''}` : '—';
 
                 return `
-                    <label style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0.5rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; ${hasOtherClass ? 'background: rgba(251, 191, 36, 0.1);' : ''}">
+                    <label style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.6rem 0.5rem; border-radius: 8px; cursor: pointer; transition: background 0.2s; hover:background: var(--bg-tertiary);">
                         <input type="checkbox" name="editClassStudent" value="${student.id}" ${isInClass ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--primary); margin-top: 0.15rem;">
                         <div style="flex: 1;">
                             <div style="font-weight: 600; color: var(--text-primary);">${student.firstName} ${student.lastName}</div>
                             <div style="font-size: 0.8rem; color: var(--text-muted);">
-                                @${student.username} 
-                                ${hasOtherClass ? `• <span style="color: #f59e0b; font-weight: 600;">сейчас в ${currentClass}</span>` : `• ${currentClass === '—' ? 'не в классе' : 'текущий: ' + currentClass}`}
+                                @${student.username}${isInClass ? ` • сейчас в ${classLabel}` : ' • не в классе'}
                             </div>
                         </div>
-                        ${hasOtherClass ? `<span style="font-size: 0.75rem; color: #f59e0b; font-weight: 600;">⚠️ перевод</span>` : ''}
                     </label>
                 `;
             }).join('');
@@ -12390,28 +12404,6 @@ async function saveClassEdit(classId) {
     const teacherId = document.getElementById('editClassTeacher')?.value || null;
     const sectionValue = document.getElementById('editClassSection')?.value || document.getElementById('editClassOriginalName')?.value || '';
     const selectedStudentIds = Array.from(document.querySelectorAll('input[name="editClassStudent"]:checked')).map(el => el.value);
-
-    // Проверка: есть ли ученики из других классов
-    const studentsRes = await apiRequest('/api/users?role=student');
-    const allStudents = studentsRes.success ? studentsRes.data : [];
-    const transferStudents = selectedStudentIds.filter(studentId => {
-        const student = allStudents.find(s => s.id === studentId);
-        return student && student.classId && student.classId !== classId;
-    });
-
-    if (transferStudents.length > 0) {
-        const studentNames = transferStudents.map(studentId => {
-            const student = allStudents.find(s => s.id === studentId);
-            return `${student.firstName} ${student.lastName} (${student.grade}${student.className || ''})`;
-        }).join(', ');
-
-        const confirmed = await showConfirm(
-            `⚠️ Перевод учеников`,
-            `Следующие ученики будут переведены из других классов:\n\n${studentNames}\n\nПродолжить?`
-        );
-
-        if (!confirmed) return;
-    }
 
     try {
         const body = {};
