@@ -358,13 +358,19 @@ class Store {
                 return { success: false, error: data.message || 'Login failed' };
             }
 
-            this.setAuthHeader(data.token);
+            // Set access token for API calls
+            this.setAuthHeader(data.accessToken);
+
+            // Store refresh token in state (will be saved to localStorage)
+            this.setState({
+                refreshToken: data.refreshToken
+            });
 
             // Check if password reset is required
             if (data.forcePasswordChange) {
                 this.setState({
                     user: data.user,
-                    token: data.token,
+                    token: data.accessToken,
                     isAuthenticated: true,
                     forcePasswordChange: true
                 });
@@ -379,9 +385,12 @@ class Store {
 
             this.setState({
                 user: data.user,
-                token: data.token,
+                token: data.accessToken,
                 isAuthenticated: true
             });
+
+            // Start token refresh timer (refresh 1 minute before expiry = 14 minutes)
+            this.startTokenRefreshTimer(data.refreshToken);
 
             return {
                 success: true,
@@ -393,6 +402,53 @@ class Store {
             console.error('Login error:', error);
             return { success: false, error: 'Network error' };
         }
+    }
+
+    async refreshAccessToken(refreshToken) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ refreshToken })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // Refresh token expired or invalid - logout
+                console.warn('🔄 Refresh token invalid, logging out');
+                this.logout();
+                return { success: false };
+            }
+
+            // Update access token
+            this.setAuthHeader(data.accessToken);
+            this.setState({
+                token: data.accessToken
+            });
+
+            console.log('✅ Access token refreshed');
+            return { success: true };
+        } catch (error) {
+            console.error('Token refresh error:', error);
+            return { success: false };
+        }
+    }
+
+    startTokenRefreshTimer(refreshToken) {
+        // Refresh access token every 14 minutes (1 minute before 15-minute expiry)
+        if (this.tokenRefreshInterval) {
+            clearInterval(this.tokenRefreshInterval);
+        }
+
+        this.tokenRefreshInterval = setInterval(() => {
+            console.log('🔄 Auto-refreshing access token...');
+            this.refreshAccessToken(refreshToken);
+        }, 14 * 60 * 1000);
+
+        console.log('⏱️ Token refresh timer started (14 minutes)');
     }
 
     async changePassword(currentPassword, newPassword) {
@@ -425,9 +481,28 @@ class Store {
 
     logout() {
         console.log('🔐 Logging out...');
+
+        // Revoke refresh token on server
+        if (this.state.refreshToken) {
+            fetch(`${API_BASE_URL}/api/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.state.token}`
+                },
+                body: JSON.stringify({ refreshToken: this.state.refreshToken })
+            }).catch(err => console.error('Error revoking token:', err));
+        }
+
+        // Clear token refresh timer
+        if (this.tokenRefreshInterval) {
+            clearInterval(this.tokenRefreshInterval);
+        }
+
         this.setState({
             user: null,
             token: null,
+            refreshToken: null,
             isAuthenticated: false
         });
         this.authToken = null;

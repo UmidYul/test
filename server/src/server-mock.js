@@ -253,15 +253,39 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
       });
     }
 
-    const token = jwt.sign(
-      { userId: user.id, role: user.role },
+    // Generate access token (short-lived - 15 minutes)
+    const accessToken = jwt.sign(
+      { userId: user.id, role: user.role, type: 'access' },
+      JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    // Generate refresh token (long-lived - 7 days)
+    const refreshToken = jwt.sign(
+      { userId: user.id, type: 'refresh' },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
-    console.log(`[LOGIN] Success for ${username} (role: ${user.role})`);
+
+    // Store refresh token in database
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await pool.query(
+      `INSERT INTO refresh_tokens (user_id, token, expires_at, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        user.id,
+        refreshToken,
+        expiresAt,
+        req.ip || null,
+        req.headers['user-agent'] || null
+      ]
+    );
+
+    console.log(`[LOGIN] Success for ${username} (role: ${user.role}) - tokens issued`);
     res.json({
       success: true,
-      token,
+      accessToken,
+      refreshToken,
       user: {
         id: user.id,
         username: user.username,
@@ -273,6 +297,107 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   } catch (error) {
     console.error('[LOGIN] Error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// ==================== REFRESH TOKEN ====================
+
+// Refresh access token using refresh token
+app.post('/api/auth/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'Refresh token required' });
+    }
+
+    // Verify refresh token signature
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, JWT_SECRET);
+    } catch (error) {
+      return res.status(401).json({ error: 'Invalid refresh token' });
+    }
+
+    if (decoded.type !== 'refresh') {
+      return res.status(401).json({ error: 'Invalid token type' });
+    }
+
+    // Check if token exists in database and not revoked
+    const { rows } = await pool.query(
+      `SELECT * FROM refresh_tokens 
+       WHERE token = $1 AND expires_at > NOW() AND revoked_at IS NULL`,
+      [refreshToken]
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({ error: 'Refresh token not found or expired' });
+    }
+
+    const tokenRecord = rows[0];
+
+    // Get user info
+    const { rows: userRows } = await pool.query(
+      'SELECT id, username, role, first_name, last_name FROM users WHERE id = $1',
+      [decoded.userId]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = userRows[0];
+
+    // Generate new access token
+    const newAccessToken = jwt.sign(
+      { userId: user.id, role: user.role, type: 'access' },
+      JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    // Update last_used_at
+    await pool.query(
+      'UPDATE refresh_tokens SET last_used_at = NOW() WHERE id = $1',
+      [tokenRecord.id]
+    );
+
+    console.log(`[REFRESH] New access token issued for user ${user.username}`);
+
+    res.json({
+      success: true,
+      accessToken: newAccessToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        firstName: user.first_name,
+        lastName: user.last_name
+      }
+    });
+  } catch (error) {
+    console.error('[REFRESH] Error:', error);
+    res.status(500).json({ error: 'Token refresh failed', message: error.message });
+  }
+});
+
+// Logout - revoke refresh token
+app.post('/api/auth/logout', auth, async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (refreshToken) {
+      // Revoke the refresh token
+      await pool.query(
+        'UPDATE refresh_tokens SET revoked_at = NOW() WHERE token = $1',
+        [refreshToken]
+      );
+      console.log(`[LOGOUT] Refresh token revoked for user ${req.userId}`);
+    }
+
+    res.json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('[LOGOUT] Error:', error);
+    res.status(500).json({ error: 'Logout failed' });
   }
 });
 
