@@ -10,6 +10,7 @@ import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 
 import pool from './db.js';
+import { generateStrongPassword } from './utils/passwordGenerator.js';
 
 
 const app = express();
@@ -187,6 +188,36 @@ app.post('/api/auth/login', async (req, res) => {
       console.log(`[LOGIN] Failed login for ${username} (wrong password)`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    // Check if password reset is required
+    if (user.password_reset_required) {
+      // Return special token for forced password change
+      const resetToken = jwt.sign(
+        {
+          userId: user.id,
+          role: user.role,
+          forcePasswordChange: true
+        },
+        process.env.JWT_SECRET || 'your-super-secret-jwt-key',
+        { expiresIn: '1h' }  // Short expiry for security
+      );
+
+      console.log(`[LOGIN] Success for ${username} (FORCE PASSWORD CHANGE)`);
+      return res.json({
+        success: true,
+        forcePasswordChange: true,
+        token: resetToken,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          firstName: user.first_name,
+          lastName: user.last_name
+        },
+        message: 'Password change required'
+      });
+    }
+
     const token = jwt.sign(
       { userId: user.id, role: user.role },
       process.env.JWT_SECRET || 'your-super-secret-jwt-key',
@@ -194,6 +225,7 @@ app.post('/api/auth/login', async (req, res) => {
     );
     console.log(`[LOGIN] Success for ${username} (role: ${user.role})`);
     res.json({
+      success: true,
       token,
       user: {
         id: user.id,
@@ -208,6 +240,199 @@ app.post('/api/auth/login', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
+// ==================== PASSWORD RESET ====================
+
+// Admin resets student password
+app.post('/api/users/:id/reset-password', auth, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const adminId = req.userId; // From JWT token
+
+    // Get the user being reset
+    const { rows: userRows } = await pool.query(
+      'SELECT id, first_name, last_name, email, username FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userRows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userData = userRows[0];
+
+    // Generate strong password
+    const newPassword = generateStrongPassword();
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Get admin info for email
+    const { rows: adminRows } = await pool.query(
+      'SELECT first_name, last_name, email FROM users WHERE id = $1',
+      [adminId]
+    );
+    const adminData = adminRows[0] || { first_name: 'Admin', last_name: '', email: '' };
+
+    // Update user
+    await pool.query(
+      `UPDATE users SET 
+        password_hash = $1,
+        password_reset_required = true,
+        password_reset_at = NOW(),
+        password_reset_by_admin_id = $2
+      WHERE id = $3`,
+      [hashedPassword, adminId, userId]
+    );
+
+    // Send email to student
+    const resetTime = new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Tashkent' });
+    const emailHTML = `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2 style="color: #667eea;">🔐 Parol Tiklandi / Ваш пароль был сброшен</h2>
+        
+        <div style="margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+          <h3 style="margin-top: 0; color: #667eea;">O'zbek tilida:</h3>
+          <p><strong>Assalomu alaykum, ${userData.first_name}!</strong></p>
+          <p>Sizning parolingiz administratori tomonidan tiklandi.</p>
+          
+          <div style="margin: 15px 0; padding: 15px; background: white; border-left: 4px solid #667eea; border-radius: 4px;">
+            <p><strong>Foydalanuvchi nomi:</strong> ${userData.username}</p>
+            <p><strong>Vaqtinchalik parol:</strong></p>
+            <p style="font-family: monospace; font-size: 18px; font-weight: bold; letter-spacing: 2px; color: #10b981; background: #f0f0f0; padding: 10px; border-radius: 4px;">${newPassword}</p>
+          </div>
+          
+          <p><strong>Tiklagan admin:</strong> ${adminData.first_name} ${adminData.last_name}</p>
+          <p><strong>Email:</strong> ${adminData.email}</p>
+          <p><strong>Vaqt:</strong> ${resetTime}</p>
+          
+          <h4 style="color: #f59e0b;">⚠️ Muhim:</h4>
+          <ol>
+            <li>Yuqoridagi vaqtinchalik parol bilan tizimga kirish</li>
+            <li>Kirgach, yangi xavfsiz parol o'rnatish zarur</li>
+            <li>Yangi parol faqat sizga ma'lum bo'lishi kerak</li>
+          </ol>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+        
+        <div style="margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+          <h3 style="margin-top: 0; color: #667eea;">На русском языке:</h3>
+          <p><strong>Здравствуйте, ${userData.first_name}!</strong></p>
+          <p>Ваш пароль был сброшен администратором системы.</p>
+          
+          <div style="margin: 15px 0; padding: 15px; background: white; border-left: 4px solid #667eea; border-radius: 4px;">
+            <p><strong>Имя пользователя:</strong> ${userData.username}</p>
+            <p><strong>Временный пароль:</strong></p>
+            <p style="font-family: monospace; font-size: 18px; font-weight: bold; letter-spacing: 2px; color: #10b981; background: #f0f0f0; padding: 10px; border-radius: 4px;">${newPassword}</p>
+          </div>
+          
+          <p><strong>Сброс выполнил:</strong> ${adminData.first_name} ${adminData.last_name}</p>
+          <p><strong>Email:</strong> ${adminData.email}</p>
+          <p><strong>Время:</strong> ${resetTime}</p>
+          
+          <h4 style="color: #f59e0b;">⚠️ Важно:</h4>
+          <ol>
+            <li>Войдите в систему с временным паролем</li>
+            <li>После входа вам потребуется установить новый пароль</li>
+            <li>Новый пароль должен быть известен только вам</li>
+          </ol>
+        </div>
+        
+        <p style="color: #999; font-size: 12px; margin-top: 30px;">Это автоматическое письмо, пожалуйста, не отвечайте на него.</p>
+      </div>
+    `;
+
+    // Send email
+    try {
+      await emailTransporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: userData.email,
+        subject: '🔐 Parol Tiklandi / Пароль был сброшен',
+        html: emailHTML
+      });
+      console.log(`✅ Password reset email sent to ${userData.email}`);
+    } catch (emailError) {
+      console.error('❌ Error sending email:', emailError);
+      // Don't fail the request if email fails, just log it
+    }
+
+    // Return the password to admin (only for display in modal)
+    res.json({
+      success: true,
+      message: 'Password reset successful. Email sent to student.',
+      password: newPassword,
+      student: {
+        name: `${userData.first_name} ${userData.last_name}`,
+        email: userData.email
+      }
+    });
+
+    console.log(`✅ Password reset for user ${userData.username} by admin ${adminData.first_name}`);
+
+  } catch (error) {
+    console.error('Password reset error:', error);
+    res.status(500).json({ error: 'Failed to reset password', message: error.message });
+  }
+});
+
+// Student sets new password after reset
+app.post('/api/auth/set-new-password', auth, async (req, res) => {
+  try {
+    const userId = req.userId; // From JWT
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    const { rows } = await pool.query(
+      'SELECT password_hash FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify current password
+    const passwordValid = await bcrypt.compare(currentPassword, rows[0].password_hash);
+
+    if (!passwordValid) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clear reset flag
+    await pool.query(
+      `UPDATE users SET 
+        password_hash = $1,
+        password_reset_required = false
+      WHERE id = $2`,
+      [hashedPassword, userId]
+    );
+
+    console.log(`✅ New password set for user: ${userId}`);
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+
+  } catch (error) {
+    console.error('Set password error:', error);
+    res.status(500).json({ error: 'Failed to set password', message: error.message });
+  }
+});
+
+// ==================== END PASSWORD RESET ====================
 
 // Change password
 app.post('/api/auth/change-password', auth, async (req, res) => {
