@@ -2095,11 +2095,20 @@ app.put('/api/classes/:classId/students', auth, async (req, res) => {
     // Add new students
     if (studentIds.length > 0) {
       for (const studentId of studentIds) {
+        // Сначала удаляем ученика из всех других классов (перевод)
+        await pool.query(
+          `UPDATE class_students 
+           SET left_at = NOW() 
+           WHERE student_id = $1 AND class_id != $2 AND left_at IS NULL`,
+          [studentId, classId]
+        );
+
+        // Затем добавляем в новый класс
         await pool.query(
           `INSERT INTO class_students (student_id, class_id, joined_at) 
            VALUES ($1, $2, NOW())
            ON CONFLICT (student_id, class_id) DO UPDATE 
-           SET left_at = NULL`,
+           SET left_at = NULL, joined_at = NOW()`,
           [studentId, classId]
         );
       }
