@@ -284,7 +284,8 @@ class Store {
                         this.startTokenRefreshTimer(state.refreshToken);
 
                         // Immediately try to refresh if token might be expired
-                        this.checkAndRefreshToken(state.refreshToken);
+                        // Use setTimeout to ensure state is fully loaded first
+                        setTimeout(() => this.checkAndRefreshToken(state.token, state.refreshToken), 100);
                     } else {
                         console.warn('⚠️ No refresh token found - cannot auto-refresh');
                     }
@@ -476,9 +477,8 @@ class Store {
         }
     }
 
-    async checkAndRefreshToken(refreshToken) {
+    async checkAndRefreshToken(token, refreshToken) {
         // Check if token needs refresh by trying a simple request
-        const token = this.getState().token;
         if (!token) return;
 
         try {
