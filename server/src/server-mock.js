@@ -1890,7 +1890,7 @@ app.get('/api/classes', auth, async (req, res) => {
       ORDER BY c.grade, c.section
     `);
 
-    console.log(`📊 Raw query result(first class): `, rows[0]);
+    console.log(`📊 Raw query results (all):`, rows.map(r => ({ id: r.id, section: r.name, teacherId: r.teacherId, teacherName: r.teacherFirstName })));
 
     // Format teacher info
     const formattedRows = rows.map(row => {
@@ -1904,14 +1904,14 @@ app.get('/api/classes', auth, async (req, res) => {
           id: row.teacherId,
           firstName: row.teacherFirstName,
           lastName: row.teacherLastName,
-          fullName: `${row.teacherFirstName} ${row.teacherLastName} `
+          fullName: `${row.teacherFirstName} ${row.teacherLastName}`
         } : null
       };
       return formatted;
     });
 
     console.log(`📚 Загружено классов: ${formattedRows.length} `);
-    console.log(`📊 Formatted result(first class): `, formattedRows[0]);
+    console.log(`✅ Formatted classes:`, formattedRows.map(r => ({ name: r.name, teacher: r.teacher?.fullName || 'none' })));
 
     res.json({ success: true, data: formattedRows });
   } catch (error) {
