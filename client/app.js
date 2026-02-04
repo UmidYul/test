@@ -3541,12 +3541,26 @@ async function renderAdminDashboard() {
     const lang = state.language;
     const user = state.user;
 
+    console.log('🔍 [renderAdminDashboard] Debug Info:');
+    console.log('  - state:', state);
+    console.log('  - isAuthenticated:', state.isAuthenticated);
+    console.log('  - user:', user);
+    console.log('  - user.role:', user?.role);
+    console.log('  - lang:', lang);
+
     // Check authentication
     if (!state.isAuthenticated || !user || user.role !== 'admin') {
         console.log('❌ Unauthorized access to admin dashboard');
         router.navigate('/login');
         return;
     }
+
+    console.log('✅ Admin dashboard rendering...');
+    console.log('  - user.firstName:', user.firstName);
+    console.log('  - user.lastName:', user.lastName);
+    console.log('  - user.name:', user.name);
+    console.log('  - user.email:', user.email);
+    console.log('  - user.username:', user.username);
 
     try {
         const content = `

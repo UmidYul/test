@@ -938,7 +938,7 @@ var _r=Object.defineProperty;var $r=(e,t,i)=>t in e?_r(e,t,{enumerable:!0,config
                     ${e==="uz"?"Testni boshlash":"Пройти тест"}
                 </button>
             </div>
-        `,(a=document.getElementById("btnStartTest"))==null||a.addEventListener("click",()=>{k.navigate("/student/subjects")})}async function ge(){const e=z.getState(),t=e.language,i=e.user;if(!e.isAuthenticated||!i||i.role!=="admin"){console.log("❌ Unauthorized access to admin dashboard"),k.navigate("/login");return}try{const s=`
+        `,(a=document.getElementById("btnStartTest"))==null||a.addEventListener("click",()=>{k.navigate("/student/subjects")})}async function ge(){const e=z.getState(),t=e.language,i=e.user;if(console.log("🔍 [renderAdminDashboard] Debug Info:"),console.log("  - state:",e),console.log("  - isAuthenticated:",e.isAuthenticated),console.log("  - user:",i),console.log("  - user.role:",i==null?void 0:i.role),console.log("  - lang:",t),!e.isAuthenticated||!i||i.role!=="admin"){console.log("❌ Unauthorized access to admin dashboard"),k.navigate("/login");return}console.log("✅ Admin dashboard rendering..."),console.log("  - user.firstName:",i.firstName),console.log("  - user.lastName:",i.lastName),console.log("  - user.name:",i.name),console.log("  - user.email:",i.email),console.log("  - user.username:",i.username);try{const s=`
         <style>
             @media (max-width: 768px) {
                 #adminHeader { flex-direction: column; align-items: flex-start; gap: 1rem; }
