@@ -1587,7 +1587,7 @@ var $r=Object.defineProperty;var _r=(e,t,i)=>t in e?$r(e,t,{enumerable:!0,config
             <div class="card" style="text-align: center; padding: 3rem;">
                 <p style="color: #ef4444;">${t==="uz"?"O'quvchi topilmadi":"Ученик не найден"}</p>
             </div>
-        `;return}const n=i.data;s.success&&s.data,console.log("👤 Student info:",{firstName:n.firstName,lastName:n.lastName,grade:n.grade,className:n.className,username:n.username,email:n.email});const a=[],r=[],o=0,l=0,d=0,c=`${n.firstName||"Без имени"} ${n.lastName||""}`.trim(),u=((m=n.interestTestResults)==null?void 0:m.categories)||{};Object.entries(u).sort((g,p)=>p[1]-g[1]).slice(0,3).map(([g,p])=>({name:g,score:p}));let h=`
+        `;return}const n=i.data;s.success&&s.data,console.log("👤 Full Student Object:",n),console.log("👤 Student info:",{firstName:n.firstName,lastName:n.lastName,name:n.name,grade:n.grade,className:n.className,classId:n.classId,username:n.username,email:n.email,allKeys:Object.keys(n)});const a=[],r=[],o=0,l=0,d=0;let c="";n.firstName||n.lastName?c=`${n.firstName||""} ${n.lastName||""}`.trim():n.name?c=n.name:c="Без имени",console.log("📝 Full name resolved:",c);const u=((m=n.interestTestResults)==null?void 0:m.categories)||{};Object.entries(u).sort((g,p)=>p[1]-g[1]).slice(0,3).map(([g,p])=>({name:g,score:p}));let h=`
         <style>
             @keyframes slideInUp {
                 from { opacity: 0; transform: translateY(20px); }

@@ -4903,13 +4903,17 @@ async function loadStudentDetail(studentId) {
     const student = userRes.data;
     const subjects = subjectsRes.success ? (subjectsRes.data || []) : [];
 
+    console.log('👤 Full Student Object:', student);
     console.log('👤 Student info:', {
         firstName: student.firstName,
         lastName: student.lastName,
+        name: student.name,
         grade: student.grade,
         className: student.className,
+        classId: student.classId,
         username: student.username,
-        email: student.email
+        email: student.email,
+        allKeys: Object.keys(student)
     });
 
     // Пока нет результатов тестов на сервере - используем заглушки
@@ -4920,7 +4924,18 @@ async function loadStudentDetail(studentId) {
     const passedTests = 0;
 
     const scoreColor = avgScore >= 80 ? '#10b981' : avgScore >= 50 ? '#f59e0b' : '#ef4444';
-    const fullName = `${student.firstName || 'Без имени'} ${student.lastName || ''}`.trim();
+
+    // Пробуем разные варианты полей для имени
+    let fullName = '';
+    if (student.firstName || student.lastName) {
+        fullName = `${student.firstName || ''} ${student.lastName || ''}`.trim();
+    } else if (student.name) {
+        fullName = student.name;
+    } else {
+        fullName = 'Без имени';
+    }
+
+    console.log('📝 Full name resolved:', fullName);
     const interests = student.interestTestResults?.categories || {};
 
     // Get recommended subjects based on interests
