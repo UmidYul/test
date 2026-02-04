@@ -277,13 +277,22 @@ class Store {
                     // Set default authorization header
                     this.setAuthHeader(state.token);
                     console.log('🔑 Token loaded from localStorage');
+
+                    // Start token refresh timer if refresh token exists
+                    if (state.refreshToken) {
+                        console.log('🔄 Starting token refresh timer...');
+                        this.startTokenRefreshTimer(state.refreshToken);
+                    } else {
+                        console.warn('⚠️ No refresh token found - cannot auto-refresh');
+                    }
                 } else {
                     console.log('⚠️ No token in localStorage');
                 }
                 console.log('📦 State loaded:', {
                     isAuthenticated: state.isAuthenticated,
                     user: state.user?.username,
-                    hasToken: !!state.token
+                    hasToken: !!state.token,
+                    hasRefreshToken: !!state.refreshToken
                 });
                 return state;
             } else {
@@ -295,6 +304,7 @@ class Store {
         return {
             user: null,
             token: null,
+            refreshToken: null,
             isAuthenticated: false,
             language: 'ru'
         };
@@ -405,13 +415,36 @@ class Store {
     }
 
     async refreshAccessToken(refreshToken) {
+        // Проверка на повторные вызовы
+        if (this._refreshing) {
+            console.log('⏳ Token refresh already in progress...');
+            return new Promise((resolve) => {
+                const check = setInterval(() => {
+                    if (!this._refreshing) {
+                        clearInterval(check);
+                        resolve({ success: !!this.getState().token });
+                    }
+                }, 100);
+            });
+        }
+
+        this._refreshing = true;
+
         try {
+            const token = refreshToken || this.getState().refreshToken;
+
+            if (!token) {
+                console.warn('🔄 No refresh token available');
+                this._refreshing = false;
+                return { success: false };
+            }
+
             const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ refreshToken })
+                body: JSON.stringify({ refreshToken: token })
             });
 
             const data = await response.json();
@@ -419,6 +452,7 @@ class Store {
             if (!response.ok) {
                 // Refresh token expired or invalid - logout
                 console.warn('🔄 Refresh token invalid, logging out');
+                this._refreshing = false;
                 this.logout();
                 return { success: false };
             }
@@ -430,9 +464,11 @@ class Store {
             });
 
             console.log('✅ Access token refreshed');
+            this._refreshing = false;
             return { success: true };
         } catch (error) {
             console.error('Token refresh error:', error);
+            this._refreshing = false;
             return { success: false };
         }
     }
@@ -564,9 +600,39 @@ async function apiRequest(url, methodOrOptions = 'GET', body = null) {
 
         if (!response.ok) {
             console.error('❌ API Error:', response.status, data);
-            // Если 401/403 - проблема с авторизацией
-            if (response.status === 401 || response.status === 403) {
-                console.error('🚫 Authorization failed. Token:', store.getState().token ? 'exists' : 'missing');
+            // Если 401 - попробовать обновить токен
+            if (response.status === 401) {
+                console.warn('🔄 Access token expired, trying to refresh...');
+                const refreshToken = store.getState().refreshToken;
+
+                if (refreshToken && url !== `${API_BASE_URL}/api/auth/refresh`) {
+                    // Попытка обновить токен
+                    const refreshResult = await store.refreshAccessToken(refreshToken);
+
+                    if (refreshResult.success) {
+                        console.log('✅ Token refreshed, retrying request...');
+                        // Повторить запрос с новым токеном
+                        options.headers['Authorization'] = `Bearer ${store.getState().token}`;
+                        const retryResponse = await fetch(url, options);
+                        const retryData = await retryResponse.json();
+
+                        if (retryResponse.ok) {
+                            return retryData.success !== undefined ? retryData : { success: true, data: retryData };
+                        }
+                    }
+                }
+
+                // Если refresh не помог - logout
+                console.error('🚫 Cannot refresh token, logging out...');
+                store.logout();
+                if (window.location.pathname !== '/login') {
+                    router.navigate('/login');
+                }
+            }
+
+            // Если 403 - тоже logout
+            if (response.status === 403) {
+                console.error('🚫 Access forbidden. Token:', store.getState().token ? 'exists' : 'missing');
                 store.logout();
                 if (window.location.pathname !== '/login') {
                     router.navigate('/login');
