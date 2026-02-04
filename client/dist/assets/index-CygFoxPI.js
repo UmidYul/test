@@ -5374,79 +5374,211 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                 ${t==="uz"?"Xatolik yuz berdi":"Произошла ошибка"}
             </div>
         `}}async function am(e){var a;const t=((a=z.getState().user)==null?void 0:a.language)||"ru";let i="",s="";try{const r=await A(`/api/users/${e}`);i=`${r.first_name||""} ${r.last_name||""}`.trim(),s=r.email||""}catch(r){console.error("Error loading student:",r)}const n=`
-        <div class="admin-modal-overlay" onclick="if(event.target === this) window.closeModal()">
-            <div class="admin-modal" style="max-width: 500px;">
-                <div class="admin-modal-header">
-                    <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700;">
-                        ⚠️ ${t==="uz"?"Parolni tiklash":"Сброс пароля"}
-                    </h2>
-                    <button onclick="window.closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+        <div class="admin-modal-overlay" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999;" onclick="if(event.target === this) window.closeModal()">
+            <div class="admin-modal" style="max-width: 500px; background: var(--bg-primary); border-radius: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); animation: slideUp 0.3s ease-out;">
+                <div class="admin-modal-header" style="padding: 2rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                            🔐 ${t==="uz"?"Parolni tiklash":"Сброс пароля"}
+                        </h2>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.95rem;">
+                            ${t==="uz"?"Yangi xavfsiz parol yaratish":"Создать новый безопасный пароль"}
+                        </p>
+                    </div>
+                    <button onclick="window.closeModal()" style="background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-secondary); opacity: 0.6; transition: opacity 0.2s; hover: opacity: 1; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">&times;</button>
                 </div>
-                <div class="admin-modal-body">
+                <div class="admin-modal-body" style="padding: 2rem;">
                     ${i?`
-                        <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid #667eea;">
-                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
-                                ${t==="uz"?"O'quvchi":"Ученик"}:
+                        <div style="padding: 1.25rem; background: linear-gradient(135deg, #667eea15, #764ba215); border: 1px solid #667eea30; border-radius: 12px; margin-bottom: 1.5rem;">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                                👤 ${t==="uz"?"O'quvchi":"Ученик"}
                             </div>
-                            <div style="font-weight: 700; font-size: 1.1rem;">${i}</div>
-                            ${s?`<div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">📧 ${s}</div>`:""}
+                            <div style="font-weight: 700; font-size: 1.15rem; color: var(--text-primary);">${i}</div>
+                            ${s?`<div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.5rem;">📧 ${s}</div>`:""}
                         </div>
                     `:""}
-                    <div style="padding: 1rem; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px; margin-bottom: 1.5rem;">
-                        <div style="color: #92400e; font-size: 0.95rem; line-height: 1.5;">
-                            ${t==="uz"?"✓ Sistem avtomatik xavfsiz parol yaratadi<br>✓ Parol emailga yuboriladi<br>✓ O'quvchi yangi parol bilan kirganda, yangi parol o'rnatishi kerak bo'ladi":"✓ Система автоматически создаст безопасный пароль<br>✓ Пароль будет отправлен на email<br>✓ При входе с новым паролем ученик должен будет установить свой пароль"}
+                    <div style="padding: 1.25rem; background: linear-gradient(135deg, #fef3c7, #fef08a); border: 2px solid #fcd34d; border-radius: 12px; margin-bottom: 2rem;">
+                        <div style="color: #78350f; font-size: 1rem; line-height: 1.8; font-weight: 500;">
+                            ${t==="uz"?`<div style="margin-bottom: 0.75rem;">✓ <strong>Avtomatik parol</strong> - Tizim xavfsiz parol yaratadi</div><div style="margin-bottom: 0.75rem;">✓ <strong>Email yuborish</strong> - Parol emailga yuboriladi</div><div>✓ <strong>Yangi parol o'rnatish</strong> - O'quvchi kirgach o'zini parol tanladi</div>`:'<div style="margin-bottom: 0.75rem;">✓ <strong>Автоматический пароль</strong> - Система создаст безопасный пароль</div><div style="margin-bottom: 0.75rem;">✓ <strong>Отправка по email</strong> - Пароль будет отправлен на email</div><div>✓ <strong>Установка нового</strong> - При входе ученик установит свой пароль</div>'}
                         </div>
                     </div>
                     <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                        <button onclick="window.closeModal()" class="btn" style="background: var(--bg-secondary); color: var(--text-primary);">
+                        <button onclick="window.closeModal()" class="btn" style="padding: 0.75rem 1.5rem; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                             ${t==="uz"?"Bekor qilish":"Отмена"}
                         </button>
-                        <button onclick="window.confirmResetStudentPassword('${e}')" class="btn btn-primary" style="background: #f59e0b; border-color: #f59e0b;">
-                            ${t==="uz"?"Parolni tiklash":"Сбросить пароль"}
+                        <button onclick="window.confirmResetStudentPassword('${e}')" class="btn btn-primary" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #f59e0b, #f97316); border: none; color: white; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);">
+                            🔑 ${t==="uz"?"Parolni tiklash":"Сбросить пароль"}
                         </button>
                     </div>
                 </div>
             </div>
         </div>
+        <style>
+            @keyframes slideUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        </style>
     `;document.body.insertAdjacentHTML("beforeend",n)}async function $r(e){var i;const t=((i=z.getState().user)==null?void 0:i.language)||"ru";try{const s=await A(`/api/users/${e}/reset-password`,{method:"POST",body:JSON.stringify({})}),n=s.password||s.newPassword||"";window.closeModal();const a=`
-            <div class="admin-modal-overlay" onclick="if(event.target === this) window.closeModal()">
-                <div class="admin-modal" style="max-width: 500px;">
-                    <div class="admin-modal-header">
-                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #10b981;">
-                            ✅ ${t==="uz"?"Muvaffaqiyatli!":"Успешно!"}
-                        </h2>
-                        <button onclick="window.closeModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
-                    </div>
-                    <div class="admin-modal-body">
-                        <div style="padding: 1rem; background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px; margin-bottom: 1.5rem;">
-                            <div style="font-size: 0.95rem; color: #166534; margin-bottom: 0.75rem; font-weight: 600;">
-                                ${t==="uz"?"✓ Parol emailga yuborildi":"✓ Пароль отправлен на email"}
+            <div style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.6);
+                backdrop-filter: blur(4px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease-out;
+            " onclick="if(event.target === this) window.closeModal()">
+                <style>
+                    @keyframes fadeIn {
+                        from {
+                            opacity: 0;
+                        }
+                        to {
+                            opacity: 1;
+                        }
+                    }
+                    @keyframes slideUp {
+                        from {
+                            opacity: 0;
+                            transform: translateY(20px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+                </style>
+                <div style="
+                    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+                    border-radius: 16px;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                    max-width: 500px;
+                    width: 90%;
+                    overflow: hidden;
+                    animation: slideUp 0.3s ease-out;
+                " onclick="event.stopPropagation()">
+                    <div style="
+                        padding: 2rem;
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    ">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <h2 style="
+                                    margin: 0;
+                                    font-size: 1.75rem;
+                                    font-weight: 800;
+                                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                                    -webkit-background-clip: text;
+                                    -webkit-text-fill-color: transparent;
+                                    background-clip: text;
+                                ">
+                                    ✅ ${t==="uz"?"Muvaffaqiyatli!":"Успешно!"}
+                                </h2>
                             </div>
-                            <div style="font-size: 0.9rem; color: #166534; line-height: 1.5;">
+                            <button onclick="window.closeModal()" style="
+                                background: none;
+                                border: none;
+                                font-size: 2rem;
+                                cursor: pointer;
+                                color: rgba(255, 255, 255, 0.5);
+                                padding: 0;
+                                width: 40px;
+                                height: 40px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                border-radius: 8px;
+                                transition: all 0.2s ease;
+                            " onmouseover="this.style.background = 'rgba(255, 255, 255, 0.1); this.style.color = 'rgba(255, 255, 255, 0.8)'" onmouseout="this.style.background = 'none'; this.style.color = 'rgba(255, 255, 255, 0.5)'">&times;</button>
+                        </div>
+                    </div>
+
+                    <div style="padding: 2rem;">
+                        <div style="
+                            padding: 1.25rem;
+                            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+                            border: 1px solid rgba(16, 185, 129, 0.3);
+                            border-left: 4px solid #10b981;
+                            border-radius: 12px;
+                            margin-bottom: 2rem;
+                        ">
+                            <div style="font-size: 1rem; color: #10b981; margin-bottom: 0.75rem; font-weight: 700;">
+                                ✓ ${t==="uz"?"Parol emailga yuborildi":"✓ Пароль отправлен на email"}
+                            </div>
+                            <div style="font-size: 0.95rem; color: rgba(255, 255, 255, 0.8); line-height: 1.6;">
                                 ${t==="uz"?"• O'quvchi email orqali yangi parol oladi<br>• Parol bilan kirgach, yangi parol o'rnatishi kerak bo'ladi<br>• Elektron pochta: Email xabar va parol bilan yuboriladi":"• Ученик получит пароль по email<br>• При входе потребуется установить новый пароль<br>• Информация о сбросе и админ указаны в письме"}
                             </div>
                         </div>
                         
                         ${n?`
-                            <div style="margin-bottom: 1.5rem;">
-                                <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                                    ${t==="uz"?"Vaqtinchalik parol (faqat admin uchun):":"Временный пароль (только для админа):"}
+                            <div style="margin-bottom: 2rem;">
+                                <div style="font-size: 0.85rem; color: rgba(255, 255, 255, 0.6); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+                                    ${t==="uz"?"Vaqtinchalik parol (faqat admin uchun)":"Временный пароль (только для админа)"}
                                 </div>
-                                <div style="padding: 1rem; background: white; border: 2px solid #e5e7eb; border-radius: 8px; text-align: center;">
-                                    <div style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #15803d; letter-spacing: 0.1em;">
+                                <div style="
+                                    padding: 1rem;
+                                    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(249, 250, 251, 0.95) 100%);
+                                    border-radius: 12px;
+                                    text-align: center;
+                                    border: 1px solid rgba(255, 255, 255, 0.2);
+                                    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+                                ">
+                                    <div style="font-family: 'Monaco', 'Courier New', monospace; font-size: 1.4rem; font-weight: 800; color: #059669; letter-spacing: 0.15em; word-break: break-all;">
                                         ${n}
                                     </div>
                                 </div>
                                 <button 
-                                    onclick="navigator.clipboard.writeText('${n}'); this.innerHTML='✅ ${t==="uz"?"Nusxa olindi!":"Скопировано!"}';" 
-                                    style="margin-top: 0.75rem; width: 100%; padding: 0.75rem; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.95rem;"
+                                    onclick="navigator.clipboard.writeText('${n}'); const btn = this; const origText = btn.innerHTML; btn.innerHTML='✅ ${t==="uz"?"Nusxa olindi!":"Скопировано!"}'; btn.style.background = '#10b981'; setTimeout(() => { btn.innerHTML = origText; btn.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'; }, 2000);" 
+                                    style="
+                                        margin-top: 1rem;
+                                        width: 100%;
+                                        padding: 0.875rem;
+                                        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                                        color: white;
+                                        border: none;
+                                        border-radius: 10px;
+                                        cursor: pointer;
+                                        font-weight: 700;
+                                        font-size: 1rem;
+                                        transition: all 0.2s ease;
+                                        box-shadow: 0 4px 15px -3px rgba(59, 130, 246, 0.4);
+                                    "
+                                    onmouseover="this.style.transform = 'translateY(-2px)'; this.style.boxShadow = '0 6px 20px -3px rgba(59, 130, 246, 0.6)'"
+                                    onmouseout="this.style.transform = 'translateY(0)'; this.style.boxShadow = '0 4px 15px -3px rgba(59, 130, 246, 0.4)'"
                                 >
                                     📋 ${t==="uz"?"Nusxa olish":"Копировать"}
                                 </button>
                             </div>
                         `:""}
                         
-                        <button onclick="window.closeModal()" class="btn btn-primary" style="width: 100%;">
+                        <button onclick="window.closeModal()" style="
+                            width: 100%;
+                            padding: 0.875rem;
+                            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 10px;
+                            cursor: pointer;
+                            font-weight: 700;
+                            font-size: 1rem;
+                            transition: all 0.2s ease;
+                            box-shadow: 0 4px 15px -3px rgba(6, 182, 212, 0.4);
+                        "
+                        onmouseover="this.style.transform = 'translateY(-2px)'; this.style.boxShadow = '0 6px 20px -3px rgba(6, 182, 212, 0.6)'"
+                        onmouseout="this.style.transform = 'translateY(0)'; this.style.boxShadow = '0 4px 15px -3px rgba(6, 182, 212, 0.4)'"
+                        >
                             ${t==="uz"?"Yopish":"Закрыть"}
                         </button>
                     </div>
