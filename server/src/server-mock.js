@@ -2289,12 +2289,12 @@ app.put('/api/classes/:classId/students', auth, async (req, res) => {
   }
   try {
     // Get class info
-    const classResult = await pool.query('SELECT grade, name FROM classes WHERE id = $1', [classId]);
+    const classResult = await pool.query('SELECT grade, section FROM classes WHERE id = $1', [classId]);
     if (classResult.rowCount === 0) {
       return res.status(404).json({ success: false, error: 'Класс не найден' });
     }
     const classItem = classResult.rows[0];
-    const classSection = section || classItem.name || null;
+    const classSection = section || classItem.section || null;
 
     console.log(`✅ Студенты класса обновлены: ${classId}`);
     res.json({ success: true, message: 'Студенты класса обновлены' });
