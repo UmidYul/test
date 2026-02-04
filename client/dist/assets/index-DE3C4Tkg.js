@@ -1587,7 +1587,7 @@ var $r=Object.defineProperty;var _r=(e,t,i)=>t in e?$r(e,t,{enumerable:!0,config
             <div class="card" style="text-align: center; padding: 3rem;">
                 <p style="color: #ef4444;">${t==="uz"?"O'quvchi topilmadi":"Ученик не найден"}</p>
             </div>
-        `;return}const r=i.data,o=s.data||[];n.data;const l=o.filter(b=>b.userId===e).sort((b,y)=>new Date(y.completedAt)-new Date(b.completedAt)),d=l.slice(0,5),c=l.length>0?Math.round(l.reduce((b,y)=>b+y.correctCount/y.totalCount*100,0)/l.length):0,u=l.length>0?Math.max(...l.map(b=>Math.round(b.correctCount/b.totalCount*100))):0,h=l.filter(b=>Math.round(b.correctCount/b.totalCount*100)>=70).length,g=`${r.firstName} ${r.lastName}`,m=((f=r.interestTestResults)==null?void 0:f.categories)||{};Object.entries(m).sort((b,y)=>y[1]-b[1]).slice(0,3).map(([b,y])=>({name:b,score:y}));let p=`
+        `;return}const r=i.data,o=s.data||[];n.data;const l=o.filter(b=>b.userId===e).sort((b,y)=>new Date(y.completedAt)-new Date(b.completedAt)),d=l.slice(0,5),c=l.length>0?Math.round(l.reduce((b,y)=>b+y.correctCount/y.totalCount*100,0)/l.length):0,u=l.length>0?Math.max(...l.map(b=>Math.round(b.correctCount/b.totalCount*100))):0,h=l.filter(b=>Math.round(b.correctCount/b.totalCount*100)>=70).length,g=`${r.firstName||""} ${r.lastName||""}`,m=((f=r.interestTestResults)==null?void 0:f.categories)||{};Object.entries(m).sort((b,y)=>y[1]-b[1]).slice(0,3).map(([b,y])=>({name:b,score:y}));let p=`
         <style>
             @keyframes slideInUp {
                 from { opacity: 0; transform: translateY(20px); }
@@ -1609,7 +1609,11 @@ var $r=Object.defineProperty;var _r=(e,t,i)=>t in e?$r(e,t,{enumerable:!0,config
                 </div>
                 <div>
                     <div style="font-size: 0.85rem; opacity: 0.9;">ID</div>
-                    <div style="font-size: 1rem; font-weight: 600; margin-top: 0.25rem; font-family: monospace;">${r.username}</div>
+                    <div style="font-size: 1rem; font-weight: 600; margin-top: 0.25rem; font-family: monospace;">${r.username||"—"}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Email</div>
+                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 0.25rem;">${r.email||"—"}</div>
                 </div>
             </div>
         </div>

@@ -4917,7 +4917,7 @@ async function loadStudentDetail(studentId) {
     const passedTests = studentResults.filter(r => Math.round((r.correctCount / r.totalCount) * 100) >= 70).length;
 
     const scoreColor = avgScore >= 80 ? '#10b981' : avgScore >= 50 ? '#f59e0b' : '#ef4444';
-    const fullName = `${student.firstName} ${student.lastName}`;
+    const fullName = `${student.firstName || ''} ${student.lastName || ''}`;
     const interests = student.interestTestResults?.categories || {};
 
     // Get recommended subjects based on interests
@@ -4951,7 +4951,11 @@ async function loadStudentDetail(studentId) {
                 </div>
                 <div>
                     <div style="font-size: 0.85rem; opacity: 0.9;">ID</div>
-                    <div style="font-size: 1rem; font-weight: 600; margin-top: 0.25rem; font-family: monospace;">${student.username}</div>
+                    <div style="font-size: 1rem; font-weight: 600; margin-top: 0.25rem; font-family: monospace;">${student.username || '—'}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.85rem; opacity: 0.9;">Email</div>
+                    <div style="font-size: 0.9rem; font-weight: 600; margin-top: 0.25rem;">${student.email || '—'}</div>
                 </div>
             </div>
         </div>
