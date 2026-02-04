@@ -518,7 +518,7 @@ async function apiRequest(url, methodOrOptions = 'GET', body = null) {
 // ========================================
 // CLIPBOARD UTILITIES
 // ========================================
-window.copyToClipboard = function(text, button) {
+window.copyToClipboard = function (text, button) {
     const lang = store.getState().user?.language || 'ru';
     try {
         // Try modern API first
@@ -541,7 +541,7 @@ window.copyToClipboard = function(text, button) {
 };
 
 // Fallback copy method using textarea
-window.fallbackCopy = function(text, button) {
+window.fallbackCopy = function (text, button) {
     const lang = store.getState().user?.language || 'ru';
     const textarea = document.createElement('textarea');
     textarea.value = text;
@@ -13388,12 +13388,12 @@ async function confirmResetStudentPassword(studentId) {
                                     border: 1px solid rgba(255, 255, 255, 0.2);
                                     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
                                 ">
-                                    <div style="font-family: 'Monaco', 'Courier New', monospace; font-size: 1.4rem; font-weight: 800; color: #059669; letter-spacing: 0.15em; word-break: break-all;">
+                                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 1.3rem; font-weight: 700; color: #059669; letter-spacing: 0.05em; word-break: break-all;">
                                         ${newPassword}
                                     </div>
                                 </div>
                                 <button 
-                                    onclick="navigator.clipboard.writeText('${newPassword}'); const btn = this; const origText = btn.innerHTML; btn.innerHTML='✅ ${lang === 'uz' ? 'Nusxa olindi!' : 'Скопировано!'}'; btn.style.background = '#10b981'; setTimeout(() => { btn.innerHTML = origText; btn.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'; }, 2000);" 
+                                    onclick="window.copyToClipboard('${newPassword}', this)" 
                                     style="
                                         margin-top: 1rem;
                                         width: 100%;
