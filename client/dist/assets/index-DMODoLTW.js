@@ -5426,7 +5426,7 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
             }
         </style>
     `;document.body.insertAdjacentHTML("beforeend",n)}async function $r(e){var i;const t=((i=z.getState().user)==null?void 0:i.language)||"ru";try{const s=await A(`/api/users/${e}/reset-password`,{method:"POST",body:JSON.stringify({})}),n=s.password||s.newPassword||"";window.closeModal();const a=`
-            <div style="
+            <div class="admin-modal-overlay" style="
                 position: fixed;
                 top: 0;
                 left: 0;

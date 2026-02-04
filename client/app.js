@@ -13276,7 +13276,7 @@ async function confirmResetStudentPassword(studentId) {
 
         // Show success message with the new password
         const successModal = `
-            <div style="
+            <div class="admin-modal-overlay" style="
                 position: fixed;
                 top: 0;
                 left: 0;
