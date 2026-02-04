@@ -3614,6 +3614,16 @@ async function renderAdminDashboard() {
                         <div style="color: #7c3aed; font-size: 1.5rem; font-weight: 600; flex-shrink: 0;"><i class="fas fa-arrow-right"></i></div>
                     </div>
 
+                    <!-- Teachers -->
+                    <div onclick="window.router.navigate('/admin/teachers')" style="cursor: pointer; background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.02) 100%); border: 2px solid #8b5cf6; border-radius: 16px; padding: 1.75rem; transition: all 0.3s; display: flex; gap: 1rem; align-items: flex-start;" onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 32px rgba(139, 92, 246, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                        <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0; box-shadow: 0 8px 16px rgba(139, 92, 246, 0.3);"><i class="fas fa-chalkboard-user"></i></div>
+                        <div style="flex: 1;">
+                            <h3 style="margin: 0 0 0.4rem 0; font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">${t('teachers')}</h3>
+                            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">${lang === 'uz' ? "O'qituvchilarni boshqarish" : 'Управление учителями'}</p>
+                        </div>
+                        <div style="color: #8b5cf6; font-size: 1.5rem; font-weight: 600; flex-shrink: 0;"><i class="fas fa-arrow-right"></i></div>
+                    </div>
+
                     <!-- Add User -->
                     <div onclick="showAddUserModal()" style="cursor: pointer; background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.02) 100%); border: 2px solid #22c55e; border-radius: 16px; padding: 1.75rem; transition: all 0.3s; display: flex; gap: 1rem; align-items: flex-start;" onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 32px rgba(34, 197, 94, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                         <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0; box-shadow: 0 8px 16px rgba(34, 197, 94, 0.3);"><i class="fas fa-user-plus"></i></div>
@@ -3626,43 +3636,187 @@ async function renderAdminDashboard() {
 
 
                 </div>
-                
-                <!-- Tabs for Users -->
-                <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;">
-                    <div class="admin-tabs" style="display: flex; border-bottom: 2px solid var(--border-color); background: var(--bg-tertiary);">
-                        <button class="admin-tab active" data-tab="students" style="flex: 1; padding: 1rem; background: transparent; border: none; color: var(--text-primary); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.3s; border-bottom: 3px solid #3B82F6; margin-bottom: -2px;">
-                            ${t('students')}
-                        </button>
-                        <button class="admin-tab" data-tab="teachers" style="flex: 1; padding: 1rem; background: transparent; border: none; color: var(--text-secondary); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.3s; border-bottom: 3px solid transparent; margin-bottom: -2px;">
-                            ${t('teachers')}
-                        </button>
-                    </div>
-                    
-                    <!-- Students Tab Content -->
-                    <div class="admin-tab-content" data-content="students" style="padding: 1.5rem;">
-                        <div style="margin-bottom: 1.5rem;">
-                            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">${t('classFilter')}</label>
-                            <select id="adminClassFilter">
-                                <option value="">${t('allClasses')}</option>
-                            </select>
-                        </div>
-                        <div id="studentsList" style="color: var(--text-secondary); text-align: center; padding: 2rem;">${t('loading')}</div>
-                    </div>
-
-                    <!-- Teachers Tab Content -->
-                    <div class="admin-tab-content" data-content="teachers" style="padding: 1.5rem; display: none;">
-                        <div id="teachersList" style="color: var(--text-secondary); text-align: center; padding: 2rem;">${t('loading')}</div>
-                    </div>
         `;
 
         renderLayout(content, 'admin');
-        await loadAdminDashboardData();
-        setupAdminTabs();
-        setupAdminFilters();
         renderLanguageSwitch(); // Ensure language switch is properly initialized
     } catch (error) {
         console.error('Error loading admin dashboard:', error);
         showAlert('Ошибка при загрузке панели', 'error');
+    }
+}
+
+// ====== TEACHERS MANAGEMENT PAGE ======
+async function renderAdminTeachers() {
+    const state = store.getState();
+    const lang = state.language;
+
+    if (!state.isAuthenticated || !state.user || state.user.role !== 'admin') {
+        router.navigate('/login');
+        return;
+    }
+
+    try {
+        const response = await apiRequest('/api/users');
+        const teachers = response.success ? (response.data || []).filter(u => u.role === 'teacher') : [];
+
+        const content = `
+            <style>
+                .teachers-hero {
+                    background: linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(16, 185, 129, 0.12) 100%);
+                    border: 1px solid rgba(139, 92, 246, 0.28);
+                    border-radius: 18px;
+                    padding: 1.5rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 1rem;
+                    flex-wrap: wrap;
+                }
+                .teachers-hero__title {
+                    margin: 0;
+                    font-size: 2.1rem;
+                    font-weight: 800;
+                    color: var(--text-primary);
+                }
+                .teachers-hero__desc {
+                    margin: 0.5rem 0 0 0;
+                    color: var(--text-secondary);
+                    font-size: 0.95rem;
+                }
+                .teachers-hero__meta {
+                    display: flex;
+                    gap: 0.75rem;
+                    flex-wrap: wrap;
+                    align-items: center;
+                }
+                .teachers-pill {
+                    padding: 0.45rem 0.9rem;
+                    border-radius: 999px;
+                    background: rgba(139, 92, 246, 0.16);
+                    color: #c4b5fd;
+                    border: 1px solid rgba(139, 92, 246, 0.4);
+                    font-weight: 600;
+                    font-size: 0.8rem;
+                }
+                .teachers-panel {
+                    background: var(--bg-secondary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 16px;
+                    padding: 1.25rem;
+                    display: grid;
+                    gap: 1rem;
+                }
+                .teachers-search {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.6rem;
+                    padding: 0.65rem 0.9rem;
+                    background: var(--bg-tertiary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 12px;
+                }
+                .teachers-search input {
+                    background: transparent;
+                    border: none;
+                    outline: none;
+                    color: var(--text-primary);
+                    width: 100%;
+                    font-size: 0.95rem;
+                }
+                @media(max-width: 768px) {
+                    .teachers-hero { padding: 1.25rem; }
+                    .teachers-hero__title { font-size: 1.75rem; }
+                }
+                @media(max-width: 420px) {
+                    .teachers-hero { padding: 1rem; border-radius: 14px; }
+                    .teachers-hero__title { font-size: 1.5rem; }
+                    .teachers-hero__desc { font-size: 0.85rem; }
+                    .teachers-panel { padding: 1rem; }
+                }
+            </style>
+            <div style="background: var(--bg-primary); min-height: 100vh; padding: 2rem 1.5rem;">
+                <div style="max-width: 1200px; margin: 0 auto; display: grid; gap: 1.5rem;">
+                    <div class="teachers-hero">
+                        <div>
+                            <h1 class="teachers-hero__title">${lang === 'uz' ? "O'qituvchilar" : 'Учителя'}</h1>
+                            <p class="teachers-hero__desc">${lang === 'uz' ? "O'qituvchilarni boshqarish va ko'rish" : 'Управление и просмотр учителей'}</p>
+                        </div>
+                        <div class="teachers-hero__meta">
+                            <button id="btnTeachersBack" class="btn-secondary" style="padding: 0.7rem 1.2rem; font-size: 0.9rem; border: 1px solid var(--border-color);">← ${t('back')}</button>
+                            <span class="teachers-pill">${teachers.length} ${lang === 'uz' ? "o'qituvchi" : 'учителей'}</span>
+                        </div>
+                    </div>
+
+                    <div class="teachers-panel">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                            <div class="teachers-search" style="flex: 1; min-width: 250px;">
+                                <i class="fas fa-search" style="color: var(--text-muted);"></i>
+                                <input id="teachersSearch" type="text" placeholder="${lang === 'uz' ? "O'qituvchini qidiring..." : 'Найти учителя...'}">
+                            </div>
+                            <button onclick="showAddUserModal()" class="btn-primary" style="padding: 0.7rem 1.2rem; font-size: 0.9rem;">
+                                <i class="fas fa-plus"></i> ${lang === 'uz' ? "Yangi o'qituvchi" : 'Новый учитель'}
+                            </button>
+                        </div>
+
+                        <div id="teachersListContainer">
+                            ${teachers.length === 0 ? `
+                                <div style="background: var(--bg-tertiary); border: 1px dashed var(--border-color); border-radius: 12px; padding: 2.5rem; text-align: center; color: var(--text-secondary);">
+                                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">👨‍🏫</div>
+                                    <div style="font-weight: 600; margin-bottom: 0.35rem;">${lang === 'uz' ? "O'qituvchilar topilmadi" : 'Учителей не найдено'}</div>
+                                    <div style="font-size: 0.9rem;">${lang === 'uz' ? "Yangi o'qituvchi qo'shing" : 'Добавьте нового учителя'}</div>
+                                </div>
+                            ` : `
+                                <div id="teachersGrid" style="display: grid; gap: 1rem;">
+                                    ${teachers.map(teacher => `
+                                        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%); border: 2px solid #10b981; border-radius: 12px; padding: 1.25rem; cursor: pointer; transition: all 0.3s; display: flex; gap: 1rem; align-items: center;" 
+                                             onclick="window.router.navigate('/admin/teacher/${teacher.id || teacher._id}')"
+                                             onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 24px rgba(16, 185, 129, 0.15)'" 
+                                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+                                             data-teacher-search="${(teacher.firstName + ' ' + teacher.lastName + ' ' + teacher.username).toLowerCase()}">
+                                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; flex-shrink: 0;">
+                                                <i class="fas fa-chalkboard-user"></i>
+                                            </div>
+                                            <div style="flex: 1; min-width: 0;">
+                                                <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">${teacher.firstName || teacher.name || 'Без имени'} ${teacher.lastName || ''}</div>
+                                                <div style="font-size: 0.8rem; color: var(--text-secondary);">@${teacher.username}</div>
+                                                <div style="font-size: 0.75rem; color: #10b981; margin-top: 0.25rem; font-weight: 500;">${t('teacher')}</div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        renderLayout(content, 'admin');
+
+        document.getElementById('btnTeachersBack')?.addEventListener('click', () => {
+            router.navigate('/admin/dashboard');
+        });
+
+        // Search functionality
+        const searchInput = document.getElementById('teachersSearch');
+        searchInput?.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const teacherCards = document.querySelectorAll('[data-teacher-search]');
+
+            teacherCards.forEach(card => {
+                const searchData = card.getAttribute('data-teacher-search');
+                if (searchData.includes(searchTerm)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading teachers:', error);
+        showAlert('Ошибка при загрузке учителей', 'error');
     }
 }
 
@@ -12564,6 +12718,7 @@ router.register('/teacher/module/:moduleId/edit-test/:testId', renderTestEditor)
 router.register('/admin/dashboard', renderAdminDashboard);
 router.register('/admin/analytics', renderAdminAnalytics);
 router.register('/admin/classes', renderAdminClasses);
+router.register('/admin/teachers', renderAdminTeachers);
 router.register('/admin/subjects', renderAdminSubjects);
 // router.register('/admin/passwords', renderAdminPasswords); - REMOVED
 router.register('/admin/teacher-tests', renderAdminTeacherTests);
