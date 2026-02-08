@@ -3041,7 +3041,11 @@ async function renderStudentSubjectModules() {
     console.log('📦 Data length:', modulesResult.data ? modulesResult.data.length : 'undefined');
     console.log('📦 Success:', modulesResult.success);
 
-    if (modulesResult.success && modulesResult.data && modulesResult.data.length > 0) {
+    const modulesData = modulesResult.success
+        ? (modulesResult.data?.data || modulesResult.data || [])
+        : [];
+
+    if (modulesData.length > 0) {
         const modulesContainer = document.getElementById('modulesContainer');
 
         // Load test results for this student
@@ -3088,13 +3092,33 @@ async function renderStudentSubjectModules() {
         console.log('======================');
 
         // Load tests for each module
+        const normalizedModules = modulesData.map((module) => ({
+            ...module,
+            id: module?.id || module?._id,
+            name: module?.name || module?.title || '',
+            description: module?.description || module?.summary || ''
+        }));
+
         const modulesWithTests = await Promise.all(
-            modulesResult.data.map(async (module) => {
-                const testsResult = await apiRequest(`/api/modules/${module._id}/tests`);
-                const publishedTests = testsResult.success ? testsResult.data.filter(t => t.status === 'published') : [];
+            normalizedModules.map(async (module) => {
+                if (!module.id) {
+                    return { ...module, tests: [] };
+                }
+                const testsResult = await apiRequest(`/api/modules/${module.id}/tests`);
+                const testsData = testsResult.success
+                    ? (testsResult.data?.data || testsResult.data || [])
+                    : [];
+                const publishedTests = testsData.filter(t => !t.status || t.status === 'published');
+                const normalizedTests = publishedTests.map((test) => ({
+                    ...test,
+                    id: test?.id || test?._id || test?.testId || test?.test_id,
+                    name: test?.title || test?.name || '',
+                    duration: test?.duration || test?.duration_minutes || test?.durationMinutes || null,
+                    questionsCount: test?.questionsCount || test?.questions_count || (Array.isArray(test?.questions) ? test.questions.length : 0)
+                }));
                 return {
                     ...module,
-                    tests: publishedTests
+                    tests: normalizedTests
                 };
             })
         );
@@ -3107,8 +3131,9 @@ async function renderStudentSubjectModules() {
                 ${module.tests.length > 0 ? `
                     <div style="display: grid; gap: 1rem;">
                         ${module.tests.map(test => {
+            const testId = test?.id || test?._id;
             // Получаем последний результат для этого теста
-            const testResult = latestResultByTestId[test._id];
+            const testResult = testId ? latestResultByTestId[testId] : null;
             const isPassed = testResult !== null && testResult !== undefined;
 
             // Базовая карточка для непройденного теста
@@ -3120,7 +3145,7 @@ async function renderStudentSubjectModules() {
                                             ${test.duration ? `<span>⏱️ ${test.duration} ${lang === 'uz' ? 'daqiqa' : 'мин'}</span>` : ''}
                                             <span>📝 ${test.questionsCount || 0} ${lang === 'uz' ? 'savol' : 'вопросов'}</span>
                                         </div>
-                                        <button class="button button-primary btn-start-student-test" data-test-id="${test._id}" style="width: 100%;">
+                                        <button class="button button-primary btn-start-student-test" data-test-id="${testId || ''}" style="width: 100%;">
                                             ${lang === 'uz' ? '▶️ Boshlash' : '▶️ Начать тест'}
                                         </button>
                                     </div>
