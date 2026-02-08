@@ -1283,8 +1283,26 @@ app.delete('/api/modules/:moduleId', auth, async (req, res) => {
 app.get('/api/modules/:moduleId', auth, async (req, res) => {
   try {
     const { moduleId } = req.params;
-    // Stub - module functionality not implemented with database
-    res.status(404).json({ success: false, error: 'Модуль не найден' });
+    const { rows } = await pool.query(
+      'SELECT id::text as id, subject_id as "subjectId", name, description, created_by as "createdBy", created_at FROM modules WHERE id = $1',
+      [moduleId]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Модуль не найден' });
+    }
+    const moduleItem = rows[0];
+    res.json({
+      success: true,
+      data: {
+        ...moduleItem,
+        _id: moduleItem.id,
+        nameRu: moduleItem.name,
+        nameUz: moduleItem.name,
+        descriptionRu: moduleItem.description,
+        descriptionUz: moduleItem.description,
+        createdAt: moduleItem.created_at
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке модуля' });
   }
@@ -1305,7 +1323,7 @@ app.get('/api/modules/:moduleId/tests', auth, async (req, res) => {
       `SELECT column_name
        FROM information_schema.columns
        WHERE table_name = 'tests'
-         AND column_name IN ('module_id', 'moduleId')`
+         AND column_name IN ('module_id', 'moduleId', 'title', 'name', 'duration_minutes', 'duration', 'pass_percent')`
     );
     const columnNames = new Set(columnRows.map(row => row.column_name));
     const moduleColumn = columnNames.has('module_id')
@@ -1313,31 +1331,139 @@ app.get('/api/modules/:moduleId/tests', auth, async (req, res) => {
       : columnNames.has('moduleId')
         ? '"moduleId"'
         : null;
+    const titleColumn = columnNames.has('title')
+      ? 'title'
+      : columnNames.has('name')
+        ? 'name'
+        : null;
+    const durationColumn = columnNames.has('duration_minutes')
+      ? 'duration_minutes'
+      : columnNames.has('duration')
+        ? 'duration'
+        : null;
+    const passPercentColumn = columnNames.has('pass_percent') ? 'pass_percent' : null;
 
     if (!moduleColumn) {
       console.warn('⚠️ tests table has no module_id/moduleId column; returning empty list');
       return res.json({ success: true, data: [] });
     }
+    if (!titleColumn) {
+      console.warn('⚠️ tests table has no title/name column; returning empty list');
+      return res.json({ success: true, data: [] });
+    }
 
-    const query = `SELECT id,
-                          ${moduleColumn} as "moduleId",
-                          name,
-                          duration,
-                          time_limit as "timeLimit",
-                          max_score as "maxScore",
-                          status,
-                          assigned_grades as "assignedGrades",
-                          questions,
-                          created_by as "createdBy",
-                          jsonb_array_length(questions) as "questionsCount"
-                   FROM tests
-                   WHERE ${moduleColumn} = $1`;
+    const query = `SELECT t.id::text as id,
+               t.${moduleColumn} as "moduleId",
+               t.${titleColumn} as title,
+               ${durationColumn ? `t.${durationColumn} as duration_minutes` : 'NULL as duration_minutes'},
+               ${passPercentColumn ? `t.${passPercentColumn} as pass_percent` : 'NULL as pass_percent'},
+               t.status,
+               t.created_at,
+               (SELECT COUNT(*) FROM test_questions tq WHERE tq.test_id = t.id) as "questionsCount"
+             FROM tests t
+             WHERE t.${moduleColumn} = $1
+             ORDER BY t.created_at DESC`;
     const { rows } = await pool.query(query, [moduleId]);
+
+    const normalized = rows.map(row => ({
+      ...row,
+      _id: row.id,
+      nameRu: row.title,
+      nameUz: row.title,
+      duration: row.duration_minutes,
+      maxScore: 100,
+      createdAt: row.created_at
+    }));
     console.log(`✅ Найдено ${rows.length} тестов для модуля ${moduleId}`);
-    res.json({ success: true, data: rows });
+    res.json({ success: true, data: normalized });
   } catch (error) {
     console.error(`❌ Ошибка загрузки тестов: ${error.message}`);
     res.status(500).json({ success: false, error: 'Ошибка при загрузке тестов' });
+  }
+});
+
+// Create test for a module (new schema mapping)
+app.post('/api/modules/:moduleId/tests', auth, async (req, res) => {
+  try {
+    if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+    }
+
+    const { moduleId } = req.params;
+    const { nameRu, nameUz, duration, passPercent, status } = req.body || {};
+    const title = (nameRu || nameUz || 'Тест').trim();
+    const durationMinutes = Number.isFinite(Number(duration)) ? Number(duration) : 30;
+    const passPercentValue = Number.isFinite(Number(passPercent)) ? Number(passPercent) : 60;
+    const testStatus = status || 'draft';
+
+    const { rows: columnRows } = await pool.query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_name = 'tests'
+         AND column_name IN ('module_id', 'moduleId', 'title', 'name', 'duration_minutes', 'duration', 'pass_percent')`
+    );
+    const columnNames = new Set(columnRows.map(row => row.column_name));
+    const moduleColumn = columnNames.has('module_id')
+      ? 'module_id'
+      : columnNames.has('moduleId')
+        ? '"moduleId"'
+        : null;
+    const titleColumn = columnNames.has('title')
+      ? 'title'
+      : columnNames.has('name')
+        ? 'name'
+        : null;
+    const durationColumn = columnNames.has('duration_minutes')
+      ? 'duration_minutes'
+      : columnNames.has('duration')
+        ? 'duration'
+        : null;
+    const passPercentColumn = columnNames.has('pass_percent') ? 'pass_percent' : null;
+
+    if (!moduleColumn) {
+      return res.status(400).json({
+        success: false,
+        error: 'В таблице tests отсутствует колонка module_id. Добавьте ее в БД.'
+      });
+    }
+    if (!titleColumn || !durationColumn || !passPercentColumn) {
+      return res.status(400).json({
+        success: false,
+        error: 'В таблице tests отсутствуют необходимые колонки (title/name, duration_minutes/duration, pass_percent).'
+      });
+    }
+
+    const testId = crypto.randomUUID();
+    const insertQuery = `INSERT INTO tests (id, ${titleColumn}, ${durationColumn}, ${passPercentColumn}, created_by, target_role, status, created_at, updated_at, ${moduleColumn})
+               VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW(), $8)
+               RETURNING id::text as id, ${titleColumn} as title, ${durationColumn} as duration_minutes, ${passPercentColumn} as pass_percent, status, created_at`;
+    const { rows } = await pool.query(insertQuery, [
+      testId,
+      title,
+      durationMinutes,
+      passPercentValue,
+      req.userId,
+      'student',
+      testStatus,
+      moduleId
+    ]);
+
+    const created = rows[0];
+    res.status(201).json({
+      success: true,
+      data: {
+        ...created,
+        _id: created.id,
+        nameRu: created.title,
+        nameUz: created.title,
+        duration: created.duration_minutes,
+        maxScore: 100,
+        createdAt: created.created_at
+      }
+    });
+  } catch (error) {
+    console.error('❌ Ошибка создания теста модуля:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при создании теста' });
   }
 });
 
