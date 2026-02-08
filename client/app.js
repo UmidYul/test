@@ -6110,15 +6110,8 @@ function showCreateTeacherTestModal() {
                     </div>
                 </div>
 
-                <div style="margin-top: 0.5rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                        <label class="form-label" style="margin: 0;">${lang === 'uz' ? 'Savollar' : 'Вопросы'}</label>
-                        <button type="button" class="button button-secondary" id="btnAddTeacherTestQuestion" style="padding: 0.4rem 0.8rem;">
-                            <span>➕</span>
-                            <span>${lang === 'uz' ? 'Savol qo\'shish' : 'Добавить вопрос'}</span>
-                        </button>
-                    </div>
-                    <div id="teacherTestCreateQuestions" style="display: grid; gap: 1rem;"></div>
+                <div class="info-message" style="padding: 0.75rem 1rem;">
+                    ${lang === 'uz' ? 'Savollar test yaratilgandan keyin alohida sahifada qo\'shiladi.' : 'Вопросы добавляются после создания теста на отдельной странице.'}
                 </div>
                 
                 <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
@@ -6142,13 +6135,6 @@ function showCreateTeacherTestModal() {
         setTimeout(() => modal.remove(), 300);
     });
 
-    const questionsContainer = document.getElementById('teacherTestCreateQuestions');
-    addTeacherTestQuestion(questionsContainer);
-
-    document.getElementById('btnAddTeacherTestQuestion')?.addEventListener('click', () => {
-        addTeacherTestQuestion(questionsContainer);
-    });
-
     document.getElementById('createTeacherTestForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         await createTeacherTest(new FormData(e.target), modal);
@@ -6163,18 +6149,12 @@ async function createTeacherTest(formData, modal) {
 
     try {
         // Parse form data
-        const collected = collectTeacherTestQuestions();
-        if (!collected.success) {
-            await showAlert(collected.error, 'warning');
-            return;
-        }
-
         const testData = {
             title: formData.get('title'),
             description: formData.get('description'),
             duration: parseInt(formData.get('duration')),
             passingScore: parseInt(formData.get('passingScore')),
-            questions: collected.questions
+            questions: []
         };
 
         console.log('Test data basic:', testData);
