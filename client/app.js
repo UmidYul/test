@@ -6015,39 +6015,55 @@ async function loadTeacherTests() {
         const tests = response.data;
         console.log('Rendering', tests.length, 'tests');
 
-        container.innerHTML = tests.map(test => `
+        const getTeacherTestId = (test) => test?._id || test?.id || test?.testId || test?.test_id;
+        const getTeacherTestDate = (test) => test?.createdAt || test?.created_at || test?.updatedAt || test?.updated_at;
+
+        container.innerHTML = tests.map(test => {
+            const testId = getTeacherTestId(test);
+            const createdAt = getTeacherTestDate(test);
+            const createdDate = createdAt ? new Date(createdAt).toLocaleDateString('ru-RU') : '-';
+            const title = test?.title || '';
+            const description = test?.description || '';
+            const actions = testId ? `
+                <button class="button button-primary button-inline" onclick="editTeacherTest('${testId}')" style="padding: 0.5rem 1rem;">
+                    <span>✏️</span>
+                    <span>${lang === 'uz' ? 'Tahrirlash' : 'Редактировать'}</span>
+                </button>
+                <button class="button button-secondary button-inline" onclick="viewTeacherTestResults('${testId}')" style="padding: 0.5rem 1rem;">
+                    <span>📊</span>
+                    <span>${lang === 'uz' ? 'Natijalar' : 'Результаты'}</span>
+                </button>
+                <button class="button button-primary button-inline" onclick="assignTestToTeachers('${testId}')" style="padding: 0.5rem 1rem;">
+                    <span>👥</span>
+                    <span>${lang === 'uz' ? 'Tayinlash' : 'Назначить'}</span>
+                </button>
+                <button class="button button-inline" onclick="deleteTeacherTest('${testId}')" style="padding: 0.5rem 1rem; background: #ef4444; color: white; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <span>🗑️</span>
+                    <span class="delete-text">${lang === 'uz' ? 'O\'chirish' : 'Удалить'}</span>
+                </button>
+            ` : `
+                <span style="color: var(--text-muted); font-size: 0.9rem;">${lang === 'uz' ? 'ID topilmadi' : 'ID не найден'}</span>
+            `;
+
+            return `
             <div class="card" style="margin-bottom: 1rem; border-left: 4px solid var(--primary); overflow: hidden;">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                     <div style="flex: 1;">
-                        <h3 style="margin: 0 0 0.5rem 0;">${test.title}</h3>
-                        <p style="color: var(--text-muted); margin: 0 0 0.5rem 0;">${test.description}</p>
+                        <h3 style="margin: 0 0 0.5rem 0;">${title}</h3>
+                        <p style="color: var(--text-muted); margin: 0 0 0.5rem 0;">${description}</p>
                         <div style="display: flex; gap: 1rem; font-size: 0.9rem; color: var(--text-muted);">
                             <span>📝 ${test.questionsCount || 0} ${lang === 'uz' ? 'ta savol' : 'вопросов'}</span>
                             <span>⏱️ ${test.duration || 30} ${lang === 'uz' ? 'daqiqa' : 'минут'}</span>
-                            <span>📅 ${new Date(test.createdAt).toLocaleDateString('ru-RU')}</span>
+                            <span>📅 ${createdDate}</span>
                         </div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button class="button button-primary button-inline" onclick="editTeacherTest('${test._id || test.id}')" style="padding: 0.5rem 1rem;">
-                            <span>✏️</span>
-                            <span>${lang === 'uz' ? 'Tahrirlash' : 'Редактировать'}</span>
-                        </button>
-                        <button class="button button-secondary button-inline" onclick="viewTeacherTestResults('${test._id || test.id}')" style="padding: 0.5rem 1rem;">
-                            <span>📊</span>
-                            <span>${lang === 'uz' ? 'Natijalar' : 'Результаты'}</span>
-                        </button>
-                        <button class="button button-primary button-inline" onclick="assignTestToTeachers('${test._id || test.id}')" style="padding: 0.5rem 1rem;">
-                            <span>👥</span>
-                            <span>${lang === 'uz' ? 'Tayinlash' : 'Назначить'}</span>
-                        </button>
-                        <button class="button button-inline" onclick="deleteTeacherTest('${test._id || test.id}')" style="padding: 0.5rem 1rem; background: #ef4444; color: white; display: inline-flex; align-items: center; gap: 0.5rem;">
-                            <span>🗑️</span>
-                            <span class="delete-text">${lang === 'uz' ? 'O\'chirish' : 'Удалить'}</span>
-                        </button>
+                        ${actions}
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
 
     } catch (error) {
         console.error('Error loading teacher tests:', error);
@@ -6187,7 +6203,10 @@ async function createTeacherTest(formData, modal) {
 }
 
 function editTeacherTest(testId) {
-    if (!testId) return;
+    if (!testId || testId === 'undefined' || testId === 'null') {
+        showAlert(store.getState().language === 'uz' ? 'Test ID topilmadi' : 'ID теста не найден', 'warning');
+        return;
+    }
     router.navigate(`/admin/teacher-tests/${testId}`);
 }
 
@@ -6572,8 +6591,16 @@ async function viewTeacherTestResults(testId) {
     const lang = store.getState().language;
 
     try {
+        if (!testId || testId === 'undefined' || testId === 'null') {
+            await showAlert(lang === 'uz' ? 'Test ID topilmadi' : 'ID теста не найден', 'warning');
+            return;
+        }
         // Get test info
         const testResponse = await apiRequest(`/api/teacher-tests/${testId}`);
+        if (!testResponse.success || !testResponse.data) {
+            await showAlert(lang === 'uz' ? 'Test topilmadi' : 'Тест не найден', 'warning');
+            return;
+        }
         const test = testResponse.data;
 
         // Get results
@@ -6700,6 +6727,10 @@ async function assignTestToTeachers(testId) {
     const lang = store.getState().language;
 
     try {
+        if (!testId || testId === 'undefined' || testId === 'null') {
+            await showAlert(lang === 'uz' ? 'Test ID topilmadi' : 'ID теста не найден', 'warning');
+            return;
+        }
         // Get all teachers
         const usersResponse = await apiRequest('/api/users');
 
@@ -6819,6 +6850,11 @@ async function assignTestToTeachers(testId) {
 // Delete teacher test
 async function deleteTeacherTest(testId) {
     const lang = store.getState().language;
+
+    if (!testId || testId === 'undefined' || testId === 'null') {
+        await showAlert(lang === 'uz' ? 'Test ID topilmadi' : 'ID теста не найден', 'warning');
+        return;
+    }
 
     const confirmed = await showConfirm(
         lang === 'uz' ? 'Testni o\'chirmoqchimisiz?' : 'Удалить тест?',
