@@ -921,8 +921,6 @@ app.put('/api/teachers/:teacherId/assignments', auth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Учитель не найден' });
     }
 
-    await pool.query('DELETE FROM teacher_teaching_assignments WHERE teacher_id = $1', [teacherId]);
-
     const pairs = [];
     subjectAssignments.forEach((item) => {
       const subjectId = item?.subjectId || item?.id || item?.subject || null;
@@ -933,6 +931,44 @@ app.put('/api/teachers/:teacherId/assignments', auth, async (req, res) => {
         }
       });
     });
+
+    if (pairs.length > 0) {
+      const subjectIds = pairs.map(p => p.subjectId);
+      const classIds = pairs.map(p => p.classId);
+      const { rows: conflicts } = await pool.query(
+        `SELECT tta.subject_id::text as "subjectId", tta.class_id::text as "classId",
+                s.name as "subjectName",
+                c.grade, c.section, c.name as "className",
+                u.first_name, u.last_name
+         FROM teacher_teaching_assignments tta
+         JOIN subjects s ON s.id = tta.subject_id
+         JOIN classes c ON c.id = tta.class_id
+         JOIN users u ON u.id = tta.teacher_id
+         WHERE tta.is_active = true
+           AND tta.teacher_id <> $1
+           AND (tta.subject_id, tta.class_id) IN (
+             SELECT s, c FROM UNNEST($2::uuid[], $3::uuid[]) AS t(s, c)
+           )`,
+        [teacherId, subjectIds, classIds]
+      );
+
+      if (conflicts.length > 0) {
+        const conflictText = conflicts.map((row) => {
+          const classLabel = row.section
+            ? `${row.grade || ''}${row.section}`
+            : (row.grade && row.className ? `${row.grade}${row.className}` : (row.className || row.grade || '—'));
+          const teacherName = `${row.first_name || ''} ${row.last_name || ''}`.trim();
+          return `${row.subjectName || 'Предмет'} — ${classLabel} (${teacherName || 'учитель'})`;
+        }).join(', ');
+        return res.status(409).json({
+          success: false,
+          error: `Нельзя назначить: ${conflictText}`,
+          conflicts
+        });
+      }
+    }
+
+    await pool.query('DELETE FROM teacher_teaching_assignments WHERE teacher_id = $1', [teacherId]);
 
     if (pairs.length > 0) {
       const subjectIds = pairs.map(p => p.subjectId);
@@ -1132,6 +1168,37 @@ app.post('/api/users/register', async (req, res) => {
       if (pairs.length > 0) {
         const subjectIds = pairs.map(p => p.subjectId);
         const classIds = pairs.map(p => p.classId);
+        const { rows: conflicts } = await pool.query(
+          `SELECT tta.subject_id::text as "subjectId", tta.class_id::text as "classId",
+                  s.name as "subjectName",
+                  c.grade, c.section, c.name as "className",
+                  u.first_name, u.last_name
+           FROM teacher_teaching_assignments tta
+           JOIN subjects s ON s.id = tta.subject_id
+           JOIN classes c ON c.id = tta.class_id
+           JOIN users u ON u.id = tta.teacher_id
+           WHERE tta.is_active = true
+             AND (tta.subject_id, tta.class_id) IN (
+               SELECT s, c FROM UNNEST($1::uuid[], $2::uuid[]) AS t(s, c)
+             )`,
+          [subjectIds, classIds]
+        );
+
+        if (conflicts.length > 0) {
+          const conflictText = conflicts.map((row) => {
+            const classLabel = row.section
+              ? `${row.grade || ''}${row.section}`
+              : (row.grade && row.className ? `${row.grade}${row.className}` : (row.className || row.grade || '—'));
+            const teacherName = `${row.first_name || ''} ${row.last_name || ''}`.trim();
+            return `${row.subjectName || 'Предмет'} — ${classLabel} (${teacherName || 'учитель'})`;
+          }).join(', ');
+          return res.status(409).json({
+            success: false,
+            error: `Нельзя назначить: ${conflictText}`,
+            conflicts
+          });
+        }
+
         await pool.query(
           `INSERT INTO teacher_teaching_assignments (id, teacher_id, subject_id, class_id, is_active)
            SELECT gen_random_uuid(), $1, s, c, true
