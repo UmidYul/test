@@ -5081,6 +5081,7 @@ window.showAddClassModal = showAddClassModal;
 window.viewTeacherTestResults = viewTeacherTestResults;
 window.assignTestToTeachers = assignTestToTeachers;
 window.deleteTeacherTest = deleteTeacherTest;
+window.editTeacherTest = editTeacherTest;
 window.startTeacherTest = startTeacherTest;
 window.retakeTeacherTest = retakeTeacherTest;
 window.viewMyTestResult = viewMyTestResult;
@@ -6027,15 +6028,19 @@ async function loadTeacherTests() {
                         </div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button class="button button-secondary button-inline" onclick="viewTeacherTestResults('${test._id}')" style="padding: 0.5rem 1rem;">
+                        <button class="button button-primary button-inline" onclick="editTeacherTest('${test._id || test.id}')" style="padding: 0.5rem 1rem;">
+                            <span>✏️</span>
+                            <span>${lang === 'uz' ? 'Tahrirlash' : 'Редактировать'}</span>
+                        </button>
+                        <button class="button button-secondary button-inline" onclick="viewTeacherTestResults('${test._id || test.id}')" style="padding: 0.5rem 1rem;">
                             <span>📊</span>
                             <span>${lang === 'uz' ? 'Natijalar' : 'Результаты'}</span>
                         </button>
-                        <button class="button button-primary button-inline" onclick="assignTestToTeachers('${test._id}')" style="padding: 0.5rem 1rem;">
+                        <button class="button button-primary button-inline" onclick="assignTestToTeachers('${test._id || test.id}')" style="padding: 0.5rem 1rem;">
                             <span>👥</span>
                             <span>${lang === 'uz' ? 'Tayinlash' : 'Назначить'}</span>
                         </button>
-                        <button class="button button-inline" onclick="deleteTeacherTest('${test._id}')" style="padding: 0.5rem 1rem; background: #ef4444; color: white; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <button class="button button-inline" onclick="deleteTeacherTest('${test._id || test.id}')" style="padding: 0.5rem 1rem; background: #ef4444; color: white; display: inline-flex; align-items: center; gap: 0.5rem;">
                             <span>🗑️</span>
                             <span class="delete-text">${lang === 'uz' ? 'O\'chirish' : 'Удалить'}</span>
                         </button>
@@ -6088,16 +6093,8 @@ function showCreateTeacherTestModal() {
                         <input type="number" name="passingScore" class="form-input" value="70" min="0" max="100">
                     </div>
                 </div>
-                
-                <div>
-                    <label class="form-label">${lang === 'uz' ? 'Savollar' : 'Вопросы'}</label>
-                    <div id="questionsContainer" style="display: grid; gap: 1rem;">
-                        <!-- Questions will be added here -->
-                    </div>
-                    <button type="button" class="button button-secondary" id="btnAddQuestion" style="margin-top: 0.5rem;">
-                        <span>➕</span>
-                        <span>${lang === 'uz' ? 'Savol qo\'shish' : 'Добавить вопрос'}</span>
-                    </button>
+                <div class="info-message" style="padding: 0.75rem 1rem;">
+                    ${lang === 'uz' ? 'Savollar test yaratilgandan keyin alohida sahifada qo\'shiladi.' : 'Вопросы добавляются после создания теста на отдельной странице.'}
                 </div>
                 
                 <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
@@ -6110,14 +6107,6 @@ function showCreateTeacherTestModal() {
 
     document.body.appendChild(modal);
     setTimeout(() => modal.classList.add('show'), 10);
-
-    // Reset question counter
-    questionCounter = 0;
-
-    // Add first question by default
-    addQuestionField();
-
-    document.getElementById('btnAddQuestion').addEventListener('click', addQuestionField);
 
     document.getElementById('closeModal').addEventListener('click', () => {
         modal.classList.remove('show');
@@ -6135,61 +6124,11 @@ function showCreateTeacherTestModal() {
     });
 }
 
-let questionCounter = 0;
-
-// Add question field to form
-function addQuestionField() {
-    const lang = store.getState().language;
-    const container = document.getElementById('questionsContainer');
-    questionCounter++;
-
-    const questionDiv = document.createElement('div');
-    questionDiv.className = 'card';
-    questionDiv.style.background = 'var(--bg-secondary)';
-    questionDiv.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem; gap: 0.5rem;">
-            <h4 style="margin: 0;">${lang === 'uz' ? 'Savol' : 'Вопрос'} ${questionCounter}</h4>
-            <button type="button" onclick="this.closest('.card').remove()" style="padding: 0.5rem 0.75rem; background: #ef4444; color: white; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; border: none; cursor: pointer; transition: all 0.3s; width: auto; min-width: 0; flex: 0 0 auto;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'" aria-label="Удалить вопрос">
-                <span>🗑️</span>
-            </button>
-        </div>
-        
-        <div style="display: grid; gap: 0.75rem;">
-            <input type="text" name="question_${questionCounter}_text" class="form-input" required placeholder="${lang === 'uz' ? 'Savol matni' : 'Текст вопроса'}">
-            
-            <div style="display: grid; gap: 0.5rem;">
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <input type="radio" name="question_${questionCounter}_correct" value="0" required>
-                    <input type="text" name="question_${questionCounter}_option_0" class="form-input" required placeholder="${lang === 'uz' ? 'Variant A' : 'Вариант A'}" style="flex: 1;">
-                </div>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <input type="radio" name="question_${questionCounter}_correct" value="1" required>
-                    <input type="text" name="question_${questionCounter}_option_1" class="form-input" required placeholder="${lang === 'uz' ? 'Variant B' : 'Вариант B'}" style="flex: 1;">
-                </div>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <input type="radio" name="question_${questionCounter}_correct" value="2" required>
-                    <input type="text" name="question_${questionCounter}_option_2" class="form-input" required placeholder="${lang === 'uz' ? 'Variant C' : 'Вариант C'}" style="flex: 1;">
-                </div>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <input type="radio" name="question_${questionCounter}_correct" value="3" required>
-                    <input type="text" name="question_${questionCounter}_option_3" class="form-input" required placeholder="${lang === 'uz' ? 'Variant D' : 'Вариант D'}" style="flex: 1;">
-                </div>
-            </div>
-            <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">
-                ${lang === 'uz' ? 'To\'g\'ri javobni belgilang' : 'Отметьте правильный ответ'}
-            </p>
-        </div>
-    `;
-
-    container.appendChild(questionDiv);
-}
-
 // Create teacher test
 async function createTeacherTest(formData, modal) {
     const lang = store.getState().language;
 
     console.log('Creating teacher test...');
-    console.log('questionCounter:', questionCounter);
 
     try {
         // Parse form data
@@ -6203,34 +6142,6 @@ async function createTeacherTest(formData, modal) {
 
         console.log('Test data basic:', testData);
 
-        // Extract questions
-        for (let i = 1; i <= questionCounter; i++) {
-            const questionText = formData.get(`question_${i}_text`);
-            console.log(`Question ${i}:`, questionText);
-            if (questionText) {
-                const question = {
-                    text: questionText,
-                    options: [
-                        formData.get(`question_${i}_option_0`),
-                        formData.get(`question_${i}_option_1`),
-                        formData.get(`question_${i}_option_2`),
-                        formData.get(`question_${i}_option_3`)
-                    ],
-                    correctAnswer: parseInt(formData.get(`question_${i}_correct`))
-                };
-                console.log(`Parsed question ${i}:`, question);
-                testData.questions.push(question);
-            }
-        }
-
-        console.log('Total questions parsed:', testData.questions.length);
-        console.log('Full testData:', testData);
-
-        if (testData.questions.length === 0) {
-            await showAlert(lang === 'uz' ? 'Kamida bitta savol qo\'shing' : 'Добавьте хотя бы один вопрос', 'warning');
-            return;
-        }
-
         const response = await apiRequest('/api/teacher-tests', 'POST', testData);
 
         console.log('Create test response:', response);
@@ -6238,9 +6149,13 @@ async function createTeacherTest(formData, modal) {
         if (response.success) {
             modal.classList.remove('show');
             setTimeout(() => modal.remove(), 300);
-            console.log('Test created successfully, reloading list...');
-            await loadTeacherTests();
+            const createdId = response.data?._id || response.data?.id;
             await showAlert(lang === 'uz' ? 'Test muvaffaqiyatli yaratildi' : 'Тест успешно создан', 'success');
+            if (createdId) {
+                router.navigate(`/admin/teacher-tests/${createdId}`);
+            } else {
+                await loadTeacherTests();
+            }
         } else {
             throw new Error(response.error);
         }
@@ -6248,6 +6163,386 @@ async function createTeacherTest(formData, modal) {
         console.error('Error creating teacher test:', error);
         await showAlert(lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка', 'error');
     }
+}
+
+function editTeacherTest(testId) {
+    if (!testId) return;
+    router.navigate(`/admin/teacher-tests/${testId}`);
+}
+
+// Admin: Teacher test editor
+async function renderAdminTeacherTestEditor({ testId }) {
+    const lang = store.getState().language;
+    const resolvedTestId = testId || router.currentParams?.testId || window.location.pathname.split('/').pop();
+
+    if (!resolvedTestId) {
+        await showAlert(lang === 'uz' ? 'Test topilmadi' : 'Тест не найден', 'warning');
+        router.navigate('/admin/teacher-tests');
+        return;
+    }
+
+    const response = await apiRequest(`/api/teacher-tests/${resolvedTestId}`);
+    if (!response.success || !response.data) {
+        await showAlert(lang === 'uz' ? 'Test topilmadi' : 'Тест не найден', 'warning');
+        router.navigate('/admin/teacher-tests');
+        return;
+    }
+
+    const test = response.data;
+    const questions = Array.isArray(test.questions) ? test.questions : [];
+
+    const content = `
+        <div class="page-header" style="margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                <div>
+                    <h1 style="margin-bottom: 0.5rem;">${lang === 'uz' ? 'Testni tahrirlash' : 'Редактирование теста'}</h1>
+                    <p style="color: var(--text-muted); margin: 0;">${test.title || ''}</p>
+                </div>
+                <button class="button button-secondary" id="btnBackToTeacherTests" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>←</span>
+                    <span>${lang === 'uz' ? 'Testlar ro\'yxati' : 'Список тестов'}</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 2rem;">
+            <h3 style="margin-top: 0;">${lang === 'uz' ? 'Test ma\'lumotlari' : 'Данные теста'}</h3>
+            <div style="display: grid; gap: 1rem;">
+                <div>
+                    <label class="form-label">${lang === 'uz' ? 'Название теста' : 'Название теста'}</label>
+                    <input type="text" class="form-input" id="teacherTestTitle" value="${test.title || ''}">
+                </div>
+                <div>
+                    <label class="form-label">${lang === 'uz' ? 'Описание' : 'Описание'}</label>
+                    <textarea class="form-input" id="teacherTestDescription" rows="3">${test.description || ''}</textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label class="form-label">${lang === 'uz' ? 'Davomiyligi (daqiqa)' : 'Длительность (минуты)'}</label>
+                        <input type="number" class="form-input" id="teacherTestDuration" value="${test.duration || 30}" min="5" max="180">
+                    </div>
+                    <div>
+                        <label class="form-label">${lang === 'uz' ? 'O\'tish bali (%)' : 'Проходной балл (%)'}</label>
+                        <input type="number" class="form-input" id="teacherTestPassingScore" value="${test.passingScore || test.passing_score || 70}" min="0" max="100">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0;">${lang === 'uz' ? 'Savollar' : 'Вопросы'}</h3>
+                <button class="button button-secondary" id="btnAddTeacherQuestion" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>➕</span>
+                    <span>${lang === 'uz' ? 'Savol qo\'shish' : 'Добавить вопрос'}</span>
+                </button>
+            </div>
+            <div id="teacherTestQuestions" style="display: grid; gap: 1.5rem;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 2rem;">
+            <button class="button button-primary" id="btnSaveTeacherTest" style="padding: 0.9rem 1.5rem;">
+                <span>💾</span>
+                <span>${lang === 'uz' ? 'Saqlash' : 'Сохранить'}</span>
+            </button>
+        </div>
+    `;
+
+    renderLayout(content, 'admin');
+
+    document.getElementById('btnBackToTeacherTests')?.addEventListener('click', () => {
+        router.navigate('/admin/teacher-tests');
+    });
+
+    const questionsContainer = document.getElementById('teacherTestQuestions');
+
+    questions.forEach(question => {
+        addTeacherTestQuestion(questionsContainer, question);
+    });
+
+    if (questions.length === 0) {
+        questionsContainer.innerHTML = `
+            <div class="card" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                <div style="font-size: 3rem; margin-bottom: 0.75rem; opacity: 0.4;">❓</div>
+                <p>${lang === 'uz' ? 'Hozircha savollar yo\'q' : 'Вопросов пока нет'}</p>
+            </div>
+        `;
+    }
+
+    document.getElementById('btnAddTeacherQuestion')?.addEventListener('click', () => {
+        if (questionsContainer.querySelector('.card')?.textContent?.includes(lang === 'uz' ? 'Hozircha savollar' : 'Вопросов пока нет')) {
+            questionsContainer.innerHTML = '';
+        }
+        addTeacherTestQuestion(questionsContainer);
+    });
+
+    document.getElementById('btnSaveTeacherTest')?.addEventListener('click', async () => {
+        const title = document.getElementById('teacherTestTitle').value.trim();
+        const description = document.getElementById('teacherTestDescription').value.trim();
+        const duration = parseInt(document.getElementById('teacherTestDuration').value);
+        const passingScore = parseInt(document.getElementById('teacherTestPassingScore').value);
+
+        if (!title) {
+            await showAlert(lang === 'uz' ? 'Test nomini kiriting' : 'Введите название теста', 'warning');
+            return;
+        }
+
+        const collected = collectTeacherTestQuestions();
+        if (!collected.success) {
+            await showAlert(collected.error, 'warning');
+            return;
+        }
+
+        const updateResult = await apiRequest(`/api/teacher-tests/${resolvedTestId}`, 'PUT', {
+            title,
+            description,
+            duration,
+            passingScore,
+            questions: collected.questions
+        });
+
+        if (updateResult.success) {
+            await showAlert(lang === 'uz' ? 'Test muvaffaqiyatli saqlandi' : 'Тест успешно сохранен', 'success');
+            router.navigate('/admin/teacher-tests');
+        } else {
+            await showAlert(updateResult.error || (lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка'), 'error');
+        }
+    });
+}
+
+function normalizeTeacherQuestionType(type) {
+    const raw = String(type || '').toLowerCase();
+    if (raw.includes('multiple')) return 'multiple';
+    if (raw.includes('text')) return 'text';
+    return 'single';
+}
+
+function addTeacherTestQuestion(container, data = {}) {
+    const lang = store.getState().language;
+    const questionIndex = container.querySelectorAll('.teacher-test-question').length;
+    const normalizedType = normalizeTeacherQuestionType(data.type);
+    const initialOptions = Array.isArray(data.options) ? data.options : [];
+    const correctAnswers = Array.isArray(data.correctAnswers) ? data.correctAnswers.map(Number) : [];
+    const correctAnswer = Number.isInteger(data.correctAnswer)
+        ? data.correctAnswer
+        : (data.correctAnswer !== undefined && data.correctAnswer !== null ? Number(data.correctAnswer) : null);
+
+    const questionCard = document.createElement('div');
+    questionCard.className = 'card teacher-test-question';
+    questionCard.setAttribute('data-question-index', questionIndex);
+    questionCard.style.borderLeft = '4px solid var(--primary)';
+
+    questionCard.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+            <h4 style="margin: 0;">${lang === 'uz' ? 'Savol' : 'Вопрос'} ${questionIndex + 1}</h4>
+            <button type="button" class="button button-danger btn-delete-question" style="padding: 0.4rem 0.8rem;">${lang === 'uz' ? 'O\'chirish' : 'Удалить'}</button>
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label">${lang === 'uz' ? 'Savol matni' : 'Текст вопроса'}</label>
+            <input type="text" class="form-input question-text" value="${data.text || ''}" placeholder="${lang === 'uz' ? 'Savol matnini kiriting' : 'Введите текст вопроса'}">
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label">${lang === 'uz' ? 'Savol turi' : 'Тип вопроса'}</label>
+            <select class="form-input question-type">
+                <option value="single">${lang === 'uz' ? 'Bitta to\'g\'ri javob' : 'Один правильный ответ'}</option>
+                <option value="multiple">${lang === 'uz' ? 'Bir nechta to\'g\'ri javob' : 'Несколько правильных ответов'}</option>
+                <option value="text">${lang === 'uz' ? 'Matnli javob' : 'Текстовый ответ'}</option>
+            </select>
+        </div>
+        <div class="question-options" style="display: grid; gap: 0.75rem; margin-bottom: 1rem;">
+            <div class="options-list" style="display: grid; gap: 0.75rem;"></div>
+            <button type="button" class="button button-secondary btn-add-option" style="justify-self: start; padding: 0.4rem 0.8rem;">
+                <span>➕</span>
+                <span>${lang === 'uz' ? 'Variant' : 'Вариант'}</span>
+            </button>
+        </div>
+        <div class="question-text-answer" style="display: none;">
+            <label class="form-label">${lang === 'uz' ? 'To\'g\'ri javob (matn)' : 'Правильный ответ (текст)'}</label>
+            <input type="text" class="form-input question-text-correct" value="${data.correctText || ''}" placeholder="${lang === 'uz' ? 'To\'g\'ri javobni kiriting' : 'Введите правильный ответ'}">
+        </div>
+    `;
+
+    container.appendChild(questionCard);
+
+    const typeSelect = questionCard.querySelector('.question-type');
+    const optionsContainer = questionCard.querySelector('.question-options');
+    const optionsList = questionCard.querySelector('.options-list');
+    const textAnswerContainer = questionCard.querySelector('.question-text-answer');
+    const textAnswerInput = questionCard.querySelector('.question-text-correct');
+
+    const getOptionsFromDom = () => {
+        const list = [];
+        optionsList.querySelectorAll('.option-item').forEach((optEl, idx) => {
+            const textValue = optEl.querySelector('.option-text').value.trim();
+            const inputEl = optEl.querySelector('.option-correct');
+            list.push({
+                text: textValue,
+                isCorrect: inputEl?.checked || false,
+                index: idx
+            });
+        });
+        return list;
+    };
+
+    const renderOptions = (type, seedOptions) => {
+        optionsList.innerHTML = '';
+        const isSingle = type === 'single';
+        let hasCorrect = false;
+        seedOptions.forEach((opt, idx) => {
+            const optionRow = document.createElement('div');
+            optionRow.className = 'option-item';
+            optionRow.style.cssText = 'display: grid; grid-template-columns: 1fr auto auto; gap: 0.75rem; align-items: center;';
+            const isChecked = isSingle
+                ? (!hasCorrect && opt.isCorrect)
+                : opt.isCorrect;
+            if (isChecked && isSingle) hasCorrect = true;
+            optionRow.innerHTML = `
+                <input type="text" class="form-input option-text" value="${opt.text || ''}" placeholder="${lang === 'uz' ? 'Variant matni' : 'Текст варианта'}">
+                <label style="display: flex; align-items: center; gap: 0.5rem;">
+                    <input type="${isSingle ? 'radio' : 'checkbox'}" class="option-correct" name="teacher-question-${questionIndex}-correct" ${isChecked ? 'checked' : ''}>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">${lang === 'uz' ? 'To\'g\'ri' : 'Верно'}</span>
+                </label>
+                <button type="button" class="button button-danger btn-delete-option" style="padding: 0.3rem 0.6rem;">🗑️</button>
+            `;
+            optionRow.querySelector('.btn-delete-option').addEventListener('click', () => {
+                optionRow.remove();
+            });
+            optionsList.appendChild(optionRow);
+        });
+    };
+
+    const ensureDefaultOptions = () => {
+        const existing = getOptionsFromDom();
+        if (existing.length >= 2) return existing;
+        const base = existing.length ? existing : [];
+        while (base.length < 2) {
+            base.push({ text: '', isCorrect: false });
+        }
+        return base;
+    };
+
+    const applyTypeUi = (type) => {
+        if (type === 'text') {
+            optionsContainer.style.display = 'none';
+            textAnswerContainer.style.display = 'grid';
+        } else {
+            optionsContainer.style.display = 'grid';
+            textAnswerContainer.style.display = 'none';
+            const existingOptions = getOptionsFromDom();
+            const seed = existingOptions.length ? existingOptions : ensureDefaultOptions();
+            renderOptions(type, seed);
+        }
+    };
+
+    questionCard.querySelector('.btn-delete-question').addEventListener('click', () => {
+        questionCard.remove();
+    });
+
+    questionCard.querySelector('.btn-add-option').addEventListener('click', () => {
+        const seed = getOptionsFromDom();
+        seed.push({ text: '', isCorrect: false });
+        renderOptions(typeSelect.value, seed);
+    });
+
+    typeSelect.value = normalizedType;
+
+    if (normalizedType === 'text') {
+        if (!textAnswerInput.value && data.correctAnswerText) {
+            textAnswerInput.value = data.correctAnswerText;
+        }
+        optionsContainer.style.display = 'none';
+        textAnswerContainer.style.display = 'grid';
+    } else {
+        const optionSeed = initialOptions.length
+            ? initialOptions.map((opt, idx) => ({
+                text: opt,
+                isCorrect: normalizedType === 'multiple'
+                    ? correctAnswers.includes(idx)
+                    : correctAnswer === idx
+            }))
+            : ensureDefaultOptions();
+        renderOptions(normalizedType, optionSeed);
+    }
+
+    typeSelect.addEventListener('change', () => {
+        applyTypeUi(typeSelect.value);
+    });
+}
+
+function collectTeacherTestQuestions() {
+    const lang = store.getState().language;
+    const questions = [];
+    const questionNodes = document.querySelectorAll('.teacher-test-question');
+
+    for (const questionEl of questionNodes) {
+        const text = questionEl.querySelector('.question-text').value.trim();
+        const type = questionEl.querySelector('.question-type').value;
+
+        if (!text) {
+            return { success: false, error: lang === 'uz' ? 'Savol matnini kiriting' : 'Введите текст вопроса' };
+        }
+
+        if (type === 'text') {
+            const correctText = questionEl.querySelector('.question-text-correct').value.trim();
+            if (!correctText) {
+                return { success: false, error: lang === 'uz' ? 'To\'g\'ri javob matnini kiriting' : 'Введите правильный ответ' };
+            }
+            questions.push({
+                type: 'text',
+                text,
+                correctText
+            });
+            continue;
+        }
+
+        const optionItems = [...questionEl.querySelectorAll('.option-item')];
+        const options = [];
+        const correctIndexes = [];
+        let correctIndex = null;
+
+        optionItems.forEach((optEl, idx) => {
+            const textValue = optEl.querySelector('.option-text').value.trim();
+            if (!textValue) return;
+            options.push(textValue);
+            const isCorrect = optEl.querySelector('.option-correct')?.checked || false;
+            if (isCorrect) {
+                correctIndexes.push(options.length - 1);
+                if (correctIndex === null) correctIndex = options.length - 1;
+            }
+        });
+
+        if (options.length < 2) {
+            return { success: false, error: lang === 'uz' ? 'Kamida ikkita variant kiriting' : 'Добавьте минимум два варианта' };
+        }
+
+        if (type === 'single') {
+            if (correctIndex === null) {
+                return { success: false, error: lang === 'uz' ? 'To\'g\'ri javobni belgilang' : 'Выберите правильный ответ' };
+            }
+            questions.push({
+                type: 'single',
+                text,
+                options,
+                correctAnswer: correctIndex
+            });
+        } else {
+            if (correctIndexes.length === 0) {
+                return { success: false, error: lang === 'uz' ? 'To\'g\'ri javoblarni belgilang' : 'Выберите правильные ответы' };
+            }
+            questions.push({
+                type: 'multiple',
+                text,
+                options,
+                correctAnswers: correctIndexes
+            });
+        }
+    }
+
+    if (questions.length === 0) {
+        return { success: false, error: lang === 'uz' ? 'Kamida bitta savol qo\'shing' : 'Добавьте хотя бы один вопрос' };
+    }
+
+    return { success: true, questions };
 }
 
 // View teacher test results
@@ -6824,6 +7119,14 @@ async function renderTeacherTestTaking() {
 
         const test = response.data;
         const questions = test.questions || [];
+        const passingScore = test.passingScore ?? test.passing_score ?? 70;
+        test.passingScore = passingScore;
+
+        if (!Array.isArray(questions) || questions.length === 0) {
+            await showAlert(lang === 'uz' ? 'Testda savollar yo\'q' : 'В тесте нет вопросов', 'warning');
+            router.navigate('/teacher/tests');
+            return;
+        }
 
         const content = `
             <div class="page-header" style="background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; padding: 2rem; margin: -2rem -2rem 2rem -2rem; border-radius: 0 0 20px 20px;">
@@ -6832,7 +7135,7 @@ async function renderTeacherTestTaking() {
                 <div style="display: flex; gap: 2rem; font-size: 0.95rem; opacity: 0.95;">
                     <span>⏱️ ${test.duration} ${lang === 'uz' ? 'daqiqa' : 'минут'}</span>
                     <span>📝 ${questions.length} ${lang === 'uz' ? 'ta savol' : 'вопросов'}</span>
-                    <span>📊 ${lang === 'uz' ? 'O\'tish' : 'Проходной балл'}: ${test.passingScore}%</span>
+                    <span>📊 ${lang === 'uz' ? 'O\'tish' : 'Проходной балл'}: ${passingScore}%</span>
                 </div>
             </div>
             
@@ -6898,7 +7201,7 @@ function initializeTeacherTest(test) {
     const lang = store.getState().language;
     const questions = test.questions || [];
     let currentQuestionIndex = 0;
-    const answers = new Array(questions.length).fill(null);
+    const answers = questions.map(q => normalizeTeacherQuestionType(q?.type) === 'multiple' ? [] : null);
 
     // Timer
     let timeLeft = test.duration * 60; // Convert to seconds
@@ -6916,33 +7219,85 @@ function initializeTeacherTest(test) {
         }
     }, 1000);
 
+    const isAnswered = (answer, type) => {
+        if (type === 'multiple') return Array.isArray(answer) && answer.length > 0;
+        if (type === 'text') return typeof answer === 'string' && answer.trim().length > 0;
+        return answer !== null && answer !== undefined;
+    };
+
     // Render question
     function renderQuestion(index) {
         const question = questions[index];
         const container = document.getElementById('questionContainer');
+        const questionType = normalizeTeacherQuestionType(question.type);
+        const options = Array.isArray(question.options) ? question.options : [];
+
+        let bodyHtml = '';
+        if (questionType === 'text') {
+            const currentValue = typeof answers[index] === 'string' ? answers[index] : '';
+            bodyHtml = `
+                <div style="display: grid; gap: 0.75rem;">
+                    <textarea id="textAnswer" rows="4" style="width: 100%; background: var(--bg-secondary); border: 2px solid var(--border-color); border-radius: 12px; padding: 14px; color: var(--text-primary); font-size: 1rem; resize: vertical; font-family: inherit;" placeholder="${lang === 'uz' ? 'Javobni yozing' : 'Введите ответ'}">${currentValue}</textarea>
+                </div>
+            `;
+        } else {
+            const isMultiple = questionType === 'multiple';
+            const currentAnswer = answers[index];
+            bodyHtml = `
+                <div style="display: grid; gap: 1rem;">
+                    ${options.map((option, optIndex) => {
+                const selected = isMultiple
+                    ? Array.isArray(currentAnswer) && currentAnswer.includes(optIndex)
+                    : currentAnswer === optIndex;
+                return `
+                            <label class="test-option ${selected ? 'selected' : ''}" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--bg-secondary); border: 2px solid ${selected ? 'var(--primary)' : 'var(--border-color)'}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                                <input type="${isMultiple ? 'checkbox' : 'radio'}" name="question_${index}" value="${optIndex}" ${selected ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: var(--primary);">
+                                <span style="flex: 1; font-size: 1.05rem;">${String.fromCharCode(65 + optIndex)}. ${option}</span>
+                            </label>
+                        `;
+            }).join('')}
+                </div>
+            `;
+        }
 
         container.innerHTML = `
             <div style="margin-bottom: 2rem;">
                 <h3 style="font-size: 1.25rem; line-height: 1.6; margin-bottom: 1.5rem;">${question.text}</h3>
-                <div style="display: grid; gap: 1rem;">
-                    ${question.options.map((option, optIndex) => `
-                        <label class="test-option ${answers[index] === optIndex ? 'selected' : ''}" style="display: flex; align-items: center; gap: 1rem; padding: 1.25rem; background: var(--bg-secondary); border: 2px solid ${answers[index] === optIndex ? 'var(--primary)' : 'var(--border-color)'}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
-                            <input type="radio" name="question_${index}" value="${optIndex}" ${answers[index] === optIndex ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: var(--primary);">
-                            <span style="flex: 1; font-size: 1.05rem;">${String.fromCharCode(65 + optIndex)}. ${option}</span>
-                        </label>
-                    `).join('')}
-                </div>
+                ${bodyHtml}
             </div>
         `;
 
-        // Add change listeners
-        container.querySelectorAll('input[type="radio"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                answers[index] = parseInt(e.target.value);
+        if (questionType === 'text') {
+            const input = document.getElementById('textAnswer');
+            input.addEventListener('input', (e) => {
+                answers[index] = e.target.value;
                 updateQuestionNavigation();
-                renderQuestion(index); // Re-render to update styling
             });
-        });
+        } else if (questionType === 'multiple') {
+            container.querySelectorAll('input[type="checkbox"]').forEach(box => {
+                box.addEventListener('change', (e) => {
+                    const value = parseInt(e.target.value);
+                    const current = Array.isArray(answers[index]) ? answers[index] : [];
+                    if (e.target.checked) {
+                        if (!current.includes(value)) current.push(value);
+                    } else {
+                        const idx = current.indexOf(value);
+                        if (idx !== -1) current.splice(idx, 1);
+                    }
+                    answers[index] = current;
+                    updateQuestionNavigation();
+                    renderQuestion(index);
+                });
+            });
+        } else {
+            container.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    answers[index] = parseInt(e.target.value);
+                    updateQuestionNavigation();
+                    renderQuestion(index);
+                });
+            });
+        }
 
         document.getElementById('currentQuestion').textContent = index + 1;
         updateNavigationButtons();
@@ -6962,13 +7317,14 @@ function initializeTeacherTest(test) {
 
     function updateQuestionNavigation() {
         document.querySelectorAll('.question-nav-btn').forEach((btn, index) => {
+            const questionType = normalizeTeacherQuestionType(questions[index]?.type);
             btn.classList.remove('active');
             if (index === currentQuestionIndex) {
                 btn.classList.add('active');
                 btn.style.background = 'var(--primary)';
                 btn.style.color = 'white';
                 btn.style.borderColor = 'var(--primary)';
-            } else if (answers[index] !== null) {
+            } else if (isAnswered(answers[index], questionType)) {
                 btn.style.background = '#10b981';
                 btn.style.color = 'white';
                 btn.style.borderColor = '#10b981';
@@ -7003,7 +7359,7 @@ function initializeTeacherTest(test) {
     });
 
     document.getElementById('btnFinishTest')?.addEventListener('click', () => {
-        const unanswered = answers.filter(a => a === null).length;
+        const unanswered = answers.filter((answer, idx) => !isAnswered(answer, normalizeTeacherQuestionType(questions[idx]?.type))).length;
         if (unanswered > 0) {
             if (!confirm(`${lang === 'uz' ? `${unanswered} ta savolga javob berilmagan. Testni yakunlashni xohlaysizmi?` : `Не отвечено ${unanswered} вопросов. Завершить тест?`}`)) {
                 return;
@@ -7036,8 +7392,33 @@ async function submitTeacherTest(testId, answers, test) {
         // Calculate score
         let correctAnswers = 0;
         test.questions.forEach((question, index) => {
-            if (answers[index] === question.correctAnswer) {
-                correctAnswers++;
+            const questionType = normalizeTeacherQuestionType(question.type);
+            if (questionType === 'multiple') {
+                const expected = Array.isArray(question.correctAnswers)
+                    ? question.correctAnswers.map(Number)
+                    : Array.isArray(question.correctAnswer)
+                        ? question.correctAnswer.map(Number)
+                        : (Number.isInteger(question.correctAnswer) ? [question.correctAnswer] : []);
+                const given = Array.isArray(answers[index]) ? answers[index].map(Number) : [];
+                const expectedSet = new Set(expected);
+                const givenSet = new Set(given);
+                if (expectedSet.size > 0 && expectedSet.size === givenSet.size) {
+                    const allMatch = [...expectedSet].every(val => givenSet.has(val));
+                    if (allMatch) correctAnswers++;
+                }
+            } else if (questionType === 'text') {
+                const expected = String(question.correctText || question.correctAnswerText || question.correctAnswer || '').trim().toLowerCase();
+                const given = String(answers[index] || '').trim().toLowerCase();
+                if (expected && expected === given) {
+                    correctAnswers++;
+                }
+            } else {
+                const expected = Number.isInteger(question.correctAnswer)
+                    ? question.correctAnswer
+                    : (Array.isArray(question.correctAnswers) ? question.correctAnswers[0] : null);
+                if (expected !== null && answers[index] === expected) {
+                    correctAnswers++;
+                }
             }
         });
 
@@ -13262,6 +13643,7 @@ router.register('/admin/teachers', renderAdminTeachers);
 router.register('/admin/subjects', renderAdminSubjects);
 // router.register('/admin/passwords', renderAdminPasswords); - REMOVED
 router.register('/admin/teacher-tests', renderAdminTeacherTests);
+router.register('/admin/teacher-tests/:testId', ({ testId }) => renderAdminTeacherTestEditor({ testId }));
 router.register('/admin/student/:studentId', ({ studentId }) => renderAdminStudentDetail(studentId));
 router.register('/admin/teacher/:teacherId', ({ teacherId }) => renderAdminTeacherDetail(teacherId));
 

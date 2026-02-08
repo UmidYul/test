@@ -2649,10 +2649,11 @@ app.get('/api/teacher-tests/:id', auth, async (req, res) => {
 app.post('/api/teacher-tests', auth, async (req, res) => {
   try {
     const { title, description, duration, passingScore, questions } = req.body;
-    if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
+    if (!title) {
       return res.status(400).json({ success: false, error: 'Заполните все обязательные поля' });
     }
     const testId = crypto.randomUUID();
+    const questionsPayload = Array.isArray(questions) ? questions : [];
     const query = 'INSERT INTO teacher_tests (id, title, description, duration, passing_score, questions, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id::text, title, description, duration, passing_score, questions, assigned_to, created_at';
     const params = [
       testId,
@@ -2660,7 +2661,7 @@ app.post('/api/teacher-tests', auth, async (req, res) => {
       description || '',
       duration || 30,
       passingScore || 70,
-      JSON.stringify(questions)
+      JSON.stringify(questionsPayload)
     ];
     const result = await pool.query(query, params);
     const newTest = result.rows[0];
