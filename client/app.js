@@ -7041,8 +7041,8 @@ async function viewMyTestResult(testId) {
         const resultsResponse = await apiRequest(`/api/teacher-test-results/teacher/${teacherId}`);
         const results = resultsResponse.data || [];
         const result = results
-            .filter(r => r.testId === testId)
-            .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0];
+            .filter(r => (r.testId || r.test_id) === testId)
+            .sort((a, b) => new Date(b.completedAt || b.completed_at) - new Date(a.completedAt || a.completed_at))[0];
 
         if (!result) {
             await showAlert(lang === 'uz' ? 'Natija topilmadi' : 'Результат не найден', 'warning');
@@ -7077,7 +7077,7 @@ async function viewMyTestResult(testId) {
             }
                     </p>
                     <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.8;">
-                        ${new Date(result.completedAt).toLocaleString('ru-RU')}
+                        ${new Date(result.completedAt || result.completed_at).toLocaleString('ru-RU')}
                     </p>
                 </div>
                 
@@ -7098,7 +7098,7 @@ async function viewMyTestResult(testId) {
                         </div>
                         <div style="display: flex; justify-content: space-between;">
                             <span>${lang === 'uz' ? 'O\'tish bali' : 'Проходной балл'}:</span>
-                            <strong>${test.passingScore}%</strong>
+                            <strong>${test.passingScore || test.passing_score || 70}%</strong>
                         </div>
                     </div>
                 </div>
