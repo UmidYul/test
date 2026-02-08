@@ -4658,37 +4658,6 @@ async function showAddUserModal() {
     console.log('🔧 showAddUserModal called');
     const lang = store.getState().language;
 
-    // Load subjects and classes first
-    let subjectsList = [];
-    let classesList = [];
-    try {
-        const [subjectsResponse, classesResponse] = await Promise.all([
-            apiRequest('/api/subjects'),
-            apiRequest('/api/classes')
-        ]);
-
-        console.log('📚 Raw API response:', subjectsResponse);
-        if (subjectsResponse.success) {
-            subjectsList = subjectsResponse.data || [];
-            console.log('📚 Загружено предметов:', subjectsList.length);
-            console.log('📚 Данные предметов:', subjectsList.slice(0, 3));
-            console.log('📚 Типы данных:', subjectsList.length > 0 ? typeof subjectsList[0].id + ', ' + typeof subjectsList[0].name : 'no data');
-        } else {
-            console.error('❌ Ошибка загрузки предметов:', subjectsResponse);
-        }
-
-        if (classesResponse.success) {
-            classesList = classesResponse.data || [];
-            console.log('🏫 Загружено классов:', classesList.length);
-        } else {
-            console.error('❌ Ошибка загрузки классов:', classesResponse);
-        }
-    } catch (error) {
-        console.error('❌ Ошибка при загрузке предметов:', error);
-    }
-
-    // No extra teacher-specific class data needed here
-
     const modal = document.createElement('div');
     modal.className = 'modal';
 
@@ -4744,56 +4713,6 @@ async function showAddUserModal() {
             : '⚠️ Email обязателен!'}
                 </div>
                 
-                <!-- TEACHER FIELDS -->
-                <div id="teacherFields" class="teacher-fields" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.05) 100%); border: 2px solid rgba(139, 92, 246, 0.3); padding: 1.2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem;">
-                        <span style="font-size: 1.2rem;">📚</span>
-                        <label style="display: block; font-weight: 700; font-size: 1rem; color: var(--text-primary);">
-                            ${lang === 'uz' ? 'Predmetlar' : 'Предметы'}
-                        </label>
-                    </div>
-                    <div class="teacher-subjects-list" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 320px; overflow-y: auto; padding: 0.5rem;">
-                        
-                    ${subjectsList && subjectsList.length > 0 ? subjectsList.map((subject, index) => {
-                const subjectId = subject?.id || subject?._id || `undefined-${index}`;
-                const subjectName = subject?.name || `undefined-${index}`;
-                const classOptions = classesList.map((cls) => {
-                    const classId = cls?.id || cls?._id;
-                    const classLabel = cls?.section
-                        ? `${cls.grade || ''}${cls.section}`
-                        : (cls?.grade || cls?.name || '—');
-                    return `
-                                <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.6rem; border-radius: 8px; cursor: pointer;">
-                                    <input type="checkbox" class="teacherSubjectClass" data-subject-id="${subjectId}" value="${classId}" style="width: 16px; height: 16px; accent-color: #8b5cf6;">
-                                    <span style="font-size: 0.9rem; color: var(--text-primary);">${classLabel}</span>
-                                </label>
-                            `;
-                }).join('');
-
-                return `
-                            <div style="border: 2px solid transparent; border-radius: 10px; background: var(--bg-secondary);">
-                                <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.7rem; padding: 0.75rem 0.9rem; cursor: pointer; border-radius: 8px; transition: all 0.2s ease;" 
-                                    onmouseover="this.style.background='rgba(139, 92, 246, 0.12)'; this.style.borderColor='rgba(139, 92, 246, 0.4)'; this.style.transform='translateX(3px)'" 
-                                    onmouseout="this.style.background='transparent'; this.style.borderColor='transparent'; this.style.transform='translateX(0)'">
-                                    <input type="checkbox" class="teacherSubject" 
-                                        value="${subjectId}" 
-                                        data-name="${subjectName}" 
-                                        style="width: 20px; height: 20px; cursor: pointer; accent-color: #8b5cf6; border-radius: 4px;">
-                                    <span style="flex: 1; font-size: 0.95rem; font-weight: 500; color: var(--text-primary);">${subjectName}</span>
-                                    <span style="font-size: 0.75rem; opacity: 0; transition: opacity 0.2s;">✓</span>
-                                </label>
-                                <div class="teacher-subject-classes" data-subject-id="${subjectId}" style="display: none; padding: 0.5rem 0.9rem 0.9rem 2.2rem; border-top: 1px solid var(--border-color);">
-                                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem;">${lang === 'uz' ? 'Sinflar' : 'Классы'}</div>
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.35rem;">
-                                        ${classOptions}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-            }).join('') : '<p style="color: var(--text-muted); text-align: center; padding: 2rem; font-size: 0.9rem;">📭 Предметы не загружены или пустой список</p>'}
-                    </div>
-                </div>
-                
                 <div style="display: flex; gap: 1rem; margin-top: 1rem;">
                     <button type="button" class="button button-secondary" id="closeAddUserBtn" style="flex: 1;">
                         ${lang === 'uz' ? 'Bekor qilish' : 'Отмена'}
@@ -4808,31 +4727,6 @@ async function showAddUserModal() {
 
     document.body.appendChild(modal);
     setTimeout(() => modal.classList.add('show'), 10);
-
-    // Add checkbox interaction effects
-    setTimeout(() => {
-        document.querySelectorAll('.teacherSubject').forEach(checkbox => {
-            checkbox.addEventListener('change', (e) => {
-                const label = e.target.closest('.teacher-subject-item');
-                const checkmark = label.querySelector('span:last-child');
-                const subjectId = e.target.value;
-                const classesContainer = document.querySelector(`.teacher-subject-classes[data-subject-id="${subjectId}"]`);
-                if (e.target.checked) {
-                    label.style.background = 'rgba(139, 92, 246, 0.18)';
-                    label.style.borderColor = '#8b5cf6';
-                    label.style.boxShadow = '0 2px 8px rgba(139, 92, 246, 0.25)';
-                    if (checkmark) checkmark.style.opacity = '1';
-                    if (classesContainer) classesContainer.style.display = 'block';
-                } else {
-                    label.style.background = 'var(--bg-secondary)';
-                    label.style.borderColor = 'transparent';
-                    label.style.boxShadow = 'none';
-                    if (checkmark) checkmark.style.opacity = '0';
-                    if (classesContainer) classesContainer.style.display = 'none';
-                }
-            });
-        });
-    }, 50);
 
     const addUserAlert = document.getElementById('addUserAlert');
 
@@ -4877,45 +4771,12 @@ async function showAddUserModal() {
             return;
         }
 
-        const selectedSubjectNodes = Array.from(document.querySelectorAll('.teacherSubject:checked'));
-        const subjectAssignments = [];
-        let hasEmptyClasses = false;
-
-        selectedSubjectNodes.forEach((checkbox) => {
-            const subjectId = checkbox.value;
-            const subjectName = checkbox.dataset.name;
-            const classIds = Array.from(document.querySelectorAll(`.teacherSubjectClass[data-subject-id="${subjectId}"]:checked`))
-                .map(cb => cb.value)
-                .filter(Boolean);
-            if (classIds.length === 0) {
-                hasEmptyClasses = true;
-            }
-            subjectAssignments.push({ subjectId, subjectName, classIds });
-        });
-
-        if (subjectAssignments.length === 0) {
-            showAddUserAlert(lang === 'uz' ? 'Kamida bitta predmet tanlang' : 'Выберите хотя бы один предмет', 'warning');
-            return;
-        }
-
-        if (hasEmptyClasses) {
-            showAddUserAlert(lang === 'uz' ? 'Har bir fan uchun kamida bitta sinf tanlang' : 'Выберите хотя бы один класс для каждого предмета', 'warning');
-            return;
-        }
-
-        const selectedSubjects = subjectAssignments.map(item => ({
-            id: item.subjectId,
-            name: item.subjectName
-        }));
-
         const userData = {
             role: 'teacher',
             firstName,
             lastName,
             email,
             phone: phone || null,
-            subjects: selectedSubjects,
-            subjectAssignments
         };
 
         try {
@@ -6016,7 +5877,7 @@ async function showTeacherAssignmentsModal(teacherId) {
             const classId = cls?.id || cls?._id;
             const classLabel = cls?.section
                 ? `${cls.grade || ''}${cls.section}`
-                : (cls?.grade || cls?.name || '—');
+                : (cls?.grade && cls?.name ? `${cls.grade}${cls.name}` : (cls?.name || cls?.grade || '—'));
             const isChecked = classId && selectedClasses.has(classId);
             return `
                                 <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.6rem; border-radius: 8px; cursor: pointer;">
