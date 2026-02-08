@@ -1300,7 +1300,39 @@ app.get('/api/modules/:moduleId/tests', auth, async (req, res) => {
     //   return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     // }
     console.log(`🔍 Получение тестов для модуля: ${moduleId}`);
-    const { rows } = await pool.query('SELECT id, module_id as "moduleId", name, duration, time_limit as "timeLimit", max_score as "maxScore", status, assigned_grades as "assignedGrades", questions, created_by as "createdBy", jsonb_array_length(questions) as "questionsCount" FROM tests WHERE module_id = $1', [moduleId]);
+
+    const { rows: columnRows } = await pool.query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_name = 'tests'
+         AND column_name IN ('module_id', 'moduleId')`
+    );
+    const columnNames = new Set(columnRows.map(row => row.column_name));
+    const moduleColumn = columnNames.has('module_id')
+      ? 'module_id'
+      : columnNames.has('moduleId')
+        ? '"moduleId"'
+        : null;
+
+    if (!moduleColumn) {
+      console.warn('⚠️ tests table has no module_id/moduleId column; returning empty list');
+      return res.json({ success: true, data: [] });
+    }
+
+    const query = `SELECT id,
+                          ${moduleColumn} as "moduleId",
+                          name,
+                          duration,
+                          time_limit as "timeLimit",
+                          max_score as "maxScore",
+                          status,
+                          assigned_grades as "assignedGrades",
+                          questions,
+                          created_by as "createdBy",
+                          jsonb_array_length(questions) as "questionsCount"
+                   FROM tests
+                   WHERE ${moduleColumn} = $1`;
+    const { rows } = await pool.query(query, [moduleId]);
     console.log(`✅ Найдено ${rows.length} тестов для модуля ${moduleId}`);
     res.json({ success: true, data: rows });
   } catch (error) {
