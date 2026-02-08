@@ -5834,9 +5834,14 @@ async function loadTeacherDetail(teacherId) {
     if (subjects.length > 0) {
         html += `
             <div class="card profile-section" style="padding: 1.5rem; margin-bottom: 2rem;">
-                <h2 style="margin-top: 0; display: flex; align-items: center; gap: 0.5rem;">
-                    📚 ${lang === 'uz' ? 'O\'qitadigan fanlar' : 'Преподаваемые предметы'}
-                </h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <h2 style="margin-top: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        📚 ${lang === 'uz' ? 'O\'qitadigan fanlar' : 'Преподаваемые предметы'}
+                    </h2>
+                    <button class="button button-secondary" id="btnEditTeacherAssignments" style="padding: 0.5rem 1rem;">
+                        ${lang === 'uz' ? 'Tayinlash' : 'Назначения'}
+                    </button>
+                </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
                     ${subjects.map((subject, idx) => {
             const colors = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#f5576c', '#ffa502'];
@@ -5851,6 +5856,22 @@ async function loadTeacherDetail(teacherId) {
                             </div>
                         `;
         }).join('')}
+                </div>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="card profile-section" style="padding: 1.5rem; margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <h2 style="margin-top: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        📚 ${lang === 'uz' ? 'O\'qitadigan fanlar' : 'Преподаваемые предметы'}
+                    </h2>
+                    <button class="button button-secondary" id="btnEditTeacherAssignments" style="padding: 0.5rem 1rem;">
+                        ${lang === 'uz' ? 'Tayinlash' : 'Назначения'}
+                    </button>
+                </div>
+                <div style="color: var(--text-muted); text-align: center; padding: 1.5rem;">
+                    ${lang === 'uz' ? 'Hozircha fanlar tayinlanmagan' : 'Предметы не назначены'}
                 </div>
             </div>
         `;
@@ -5944,6 +5965,164 @@ async function loadTeacherDetail(teacherId) {
     }
 
     document.getElementById('teacherDetailContainer').innerHTML = html;
+
+    document.getElementById('btnEditTeacherAssignments')?.addEventListener('click', () => {
+        showTeacherAssignmentsModal(teacherId);
+    });
+}
+
+async function showTeacherAssignmentsModal(teacherId) {
+    const lang = store.getState().language;
+
+    const [subjectsRes, classesRes, assignmentsRes] = await Promise.all([
+        apiRequest('/api/subjects'),
+        apiRequest('/api/classes'),
+        apiRequest(`/api/teachers/${teacherId}/assignments`)
+    ]);
+
+    if (!subjectsRes.success || !classesRes.success) {
+        await showAlert(lang === 'uz' ? 'Ma\'lumotlarni yuklashda xatolik' : 'Ошибка загрузки данных', 'error');
+        return;
+    }
+
+    const subjectsList = subjectsRes.data || [];
+    const classesList = classesRes.data || [];
+    const assignments = assignmentsRes.success ? assignmentsRes.data : [];
+    const assignedMap = new Map();
+    assignments.forEach((row) => {
+        const subjectId = row.subjectId || row.subject_id;
+        const classId = row.classId || row.class_id;
+        if (!subjectId || !classId) return;
+        if (!assignedMap.has(subjectId)) assignedMap.set(subjectId, new Set());
+        assignedMap.get(subjectId).add(classId);
+    });
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0;">${lang === 'uz' ? 'Fan va sinflarni tayinlash' : 'Назначение предметов и классов'}</h2>
+                <button class="modal-close" id="closeAssignmentsModal">✕</button>
+            </div>
+            <form id="teacherAssignmentsForm" style="display: grid; gap: 1rem;">
+                <div class="inline-alert" id="assignmentsAlert" style="display: none;"></div>
+                <div style="display: grid; gap: 0.75rem; max-height: 420px; overflow-y: auto; padding: 0.5rem;">
+                    ${subjectsList.map((subject, index) => {
+        const subjectId = subject?.id || subject?._id || `undefined-${index}`;
+        const subjectName = subject?.name || `undefined-${index}`;
+        const selectedClasses = assignedMap.get(subjectId) || new Set();
+        const classOptions = classesList.map((cls) => {
+            const classId = cls?.id || cls?._id;
+            const classLabel = cls?.section
+                ? `${cls.grade || ''}${cls.section}`
+                : (cls?.grade || cls?.name || '—');
+            const isChecked = classId && selectedClasses.has(classId);
+            return `
+                                <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.6rem; border-radius: 8px; cursor: pointer;">
+                                    <input type="checkbox" class="teacherSubjectClass" data-subject-id="${subjectId}" value="${classId}" ${isChecked ? 'checked' : ''} style="width: 16px; height: 16px; accent-color: #8b5cf6;">
+                                    <span style="font-size: 0.9rem; color: var(--text-primary);">${classLabel}</span>
+                                </label>
+                            `;
+        }).join('');
+
+        const subjectChecked = selectedClasses.size > 0;
+        return `
+                            <div style="border: 2px solid transparent; border-radius: 10px; background: var(--bg-secondary);">
+                                <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.7rem; padding: 0.75rem 0.9rem; cursor: pointer; border-radius: 8px; transition: all 0.2s ease;">
+                                    <input type="checkbox" class="teacherSubject" value="${subjectId}" data-name="${subjectName}" ${subjectChecked ? 'checked' : ''} style="width: 20px; height: 20px; cursor: pointer; accent-color: #8b5cf6; border-radius: 4px;">
+                                    <span style="flex: 1; font-size: 0.95rem; font-weight: 500; color: var(--text-primary);">${subjectName}</span>
+                                </label>
+                                <div class="teacher-subject-classes" data-subject-id="${subjectId}" style="display: ${subjectChecked ? 'block' : 'none'}; padding: 0.5rem 0.9rem 0.9rem 2.2rem; border-top: 1px solid var(--border-color);">
+                                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem;">${lang === 'uz' ? 'Sinflar' : 'Классы'}</div>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.35rem;">
+                                        ${classOptions}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+    }).join('')}
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" class="button button-secondary" id="btnCancelAssignments">${lang === 'uz' ? 'Bekor qilish' : 'Отмена'}</button>
+                    <button type="submit" class="button button-primary">${lang === 'uz' ? 'Saqlash' : 'Сохранить'}</button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('show'), 10);
+
+    const closeModal = () => {
+        modal.classList.remove('show');
+        setTimeout(() => modal.remove(), 300);
+    };
+
+    document.getElementById('closeAssignmentsModal')?.addEventListener('click', closeModal);
+    document.getElementById('btnCancelAssignments')?.addEventListener('click', closeModal);
+
+    modal.querySelectorAll('.teacherSubject').forEach((checkbox) => {
+        checkbox.addEventListener('change', (e) => {
+            const subjectId = e.target.value;
+            const classesContainer = modal.querySelector(`.teacher-subject-classes[data-subject-id="${subjectId}"]`);
+            if (classesContainer) {
+                classesContainer.style.display = e.target.checked ? 'block' : 'none';
+            }
+        });
+    });
+
+    const showAssignmentsAlert = (message) => {
+        const alertEl = document.getElementById('assignmentsAlert');
+        if (!alertEl) return;
+        alertEl.className = 'inline-alert inline-alert--warning';
+        alertEl.style.display = 'flex';
+        alertEl.innerHTML = `
+            <span style="font-size: 1.1rem;">⚠️</span>
+            <span>${message}</span>
+        `;
+    };
+
+    document.getElementById('teacherAssignmentsForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const selectedSubjectNodes = Array.from(modal.querySelectorAll('.teacherSubject:checked'));
+        const subjectAssignments = [];
+        let hasEmptyClasses = false;
+
+        selectedSubjectNodes.forEach((checkbox) => {
+            const subjectId = checkbox.value;
+            const subjectName = checkbox.dataset.name;
+            const classIds = Array.from(modal.querySelectorAll(`.teacherSubjectClass[data-subject-id="${subjectId}"]:checked`))
+                .map(cb => cb.value)
+                .filter(Boolean);
+            if (classIds.length === 0) {
+                hasEmptyClasses = true;
+            }
+            subjectAssignments.push({ subjectId, subjectName, classIds });
+        });
+
+        if (subjectAssignments.length === 0) {
+            showAssignmentsAlert(lang === 'uz' ? 'Kamida bitta predmet tanlang' : 'Выберите хотя бы один предмет');
+            return;
+        }
+
+        if (hasEmptyClasses) {
+            showAssignmentsAlert(lang === 'uz' ? 'Har bir fan uchun kamida bitta sinf tanlang' : 'Выберите хотя бы один класс для каждого предмета');
+            return;
+        }
+
+        const result = await apiRequest(`/api/teachers/${teacherId}/assignments`, {
+            method: 'PUT',
+            body: JSON.stringify({ subjectAssignments })
+        });
+
+        if (result.success) {
+            closeModal();
+            await loadTeacherDetail(teacherId);
+        } else {
+            showAssignmentsAlert(result.error || t('error'));
+        }
+    });
 }
 
 // Admin Teacher Tests Management Page

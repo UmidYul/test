@@ -883,6 +883,75 @@ app.get('/api/users/:userId', auth, async (req, res) => {
   }
 });
 
+// Admin: get teacher subject-class assignments
+app.get('/api/teachers/:teacherId/assignments', auth, async (req, res) => {
+  try {
+    if (req.userRole !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+    }
+    const { teacherId } = req.params;
+    const { rows } = await pool.query(
+      `SELECT subject_id::text as "subjectId", class_id::text as "classId"
+       FROM teacher_teaching_assignments
+       WHERE teacher_id = $1 AND is_active = true
+         AND subject_id IS NOT NULL AND class_id IS NOT NULL`,
+      [teacherId]
+    );
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Error fetching teacher assignments:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при загрузке назначений' });
+  }
+});
+
+// Admin: update teacher subject-class assignments
+app.put('/api/teachers/:teacherId/assignments', auth, async (req, res) => {
+  try {
+    if (req.userRole !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+    }
+    const { teacherId } = req.params;
+    const { subjectAssignments = [] } = req.body || {};
+
+    const { rows: teacherCheck } = await pool.query(
+      'SELECT id FROM users WHERE id = $1 AND role = $2',
+      [teacherId, 'teacher']
+    );
+    if (teacherCheck.length === 0) {
+      return res.status(404).json({ success: false, error: 'Учитель не найден' });
+    }
+
+    await pool.query('DELETE FROM teacher_teaching_assignments WHERE teacher_id = $1', [teacherId]);
+
+    const pairs = [];
+    subjectAssignments.forEach((item) => {
+      const subjectId = item?.subjectId || item?.id || item?.subject || null;
+      const classIds = Array.isArray(item?.classIds) ? item.classIds : [];
+      classIds.forEach((classId) => {
+        if (subjectId && classId) {
+          pairs.push({ subjectId: String(subjectId), classId: String(classId) });
+        }
+      });
+    });
+
+    if (pairs.length > 0) {
+      const subjectIds = pairs.map(p => p.subjectId);
+      const classIds = pairs.map(p => p.classId);
+      await pool.query(
+        `INSERT INTO teacher_teaching_assignments (id, teacher_id, subject_id, class_id, is_active)
+         SELECT gen_random_uuid(), $1, s, c, true
+         FROM UNNEST($2::uuid[], $3::uuid[]) AS t(s, c)`,
+        [teacherId, subjectIds, classIds]
+      );
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating teacher assignments:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при сохранении назначений' });
+  }
+});
+
 // Get student profile for teacher (own classes only)
 app.get('/api/teachers/students/:studentId', auth, async (req, res) => {
   try {
