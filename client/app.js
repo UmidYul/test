@@ -9181,7 +9181,10 @@ async function renderTeacherSubjectManagement() {
             }
         }
         if (subject) {
-            document.getElementById('subjectName').textContent = lang === 'uz' ? subject.nameUz : subject.nameRu;
+            const subjectName = lang === 'uz'
+                ? (subject.nameUz || subject.name || subject.nameRu)
+                : (subject.nameRu || subject.name || subject.nameUz);
+            document.getElementById('subjectName').textContent = subjectName || (lang === 'uz' ? 'Fan' : 'Предмет');
             window.currentSubject = subject;
         }
     }
@@ -9213,8 +9216,9 @@ async function renderTeacherSubjectManagement() {
             document.getElementById('createModuleForm').reset();
             await loadSubjectModules(subjectId);
 
-            if (result.data?._id) {
-                await apiRequest(`/api/modules/${result.data._id}/tests`, {
+            const createdModuleId = result.data?._id || result.data?.id;
+            if (createdModuleId) {
+                await apiRequest(`/api/modules/${createdModuleId}/tests`, {
                     method: 'POST',
                     body: JSON.stringify({
                         name: lang === 'uz' ? 'Test' : 'Тест',
@@ -9224,7 +9228,7 @@ async function renderTeacherSubjectManagement() {
                         questions: []
                     })
                 });
-                router.navigate(`/teacher/module/${result.data._id}/tests`);
+                router.navigate(`/teacher/module/${createdModuleId}/tests`);
                 return;
             }
 
@@ -9264,11 +9268,26 @@ async function loadSubjectModules(subjectId) {
     console.log('📊 Is array?', Array.isArray(modulesData));
 
     if (result.success && modulesData && modulesData.length > 0) {
-        console.log('✅ Found', modulesData.length, 'modules');
+        const normalizedModules = modulesData.map((module) => {
+            const id = module?._id || module?.id;
+            return {
+                ...module,
+                id,
+                _id: id,
+                nameRu: module?.nameRu || module?.name || '',
+                nameUz: module?.nameUz || module?.name || '',
+                descriptionRu: module?.descriptionRu || module?.description || '',
+                descriptionUz: module?.descriptionUz || module?.description || '',
+                createdAt: module?.createdAt || module?.created_at || module?.createdAt
+            };
+        });
+
+        window.currentModules = normalizedModules;
+        console.log('✅ Found', normalizedModules.length, 'modules');
         // Load test counts for each module
         const modulesWithTests = await Promise.all(
-            modulesData.map(async (module) => {
-                const testsResult = await apiRequest(`/api/modules/${module._id}/tests`);
+            normalizedModules.map(async (module) => {
+                const testsResult = await apiRequest(`/api/modules/${module.id}/tests`);
                 const testsData = testsResult.data?.data || testsResult.data || [];
                 return {
                     ...module,
@@ -9289,9 +9308,9 @@ async function loadSubjectModules(subjectId) {
                                 📦
                             </div>
                             <div style="flex: 1; padding-top: 0.25rem;">
-                                <h4 style="margin: 0 0 0.5rem 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">${lang === 'uz' ? module.nameUz : module.nameRu}</h4>
+                                <h4 style="margin: 0 0 0.5rem 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">${lang === 'uz' ? (module.nameUz || module.nameRu) : (module.nameRu || module.nameUz)}</h4>
                                 <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem; line-height: 1.5;">
-                                    ${lang === 'uz' ? module.descriptionUz : module.descriptionRu}
+                                    ${lang === 'uz' ? (module.descriptionUz || module.descriptionRu) : (module.descriptionRu || module.descriptionUz)}
                                 </p>
                             </div>
                         </div>
@@ -9307,7 +9326,7 @@ async function loadSubjectModules(subjectId) {
                                 <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #10b981, #059669); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem;">📅</div>
                                 <div>
                                     <div style="color: var(--text-muted); font-size: 0.75rem; margin-bottom: 0.125rem;">${lang === 'uz' ? 'Yaratilgan' : 'Создано'}</div>
-                                    <div style="font-weight: 600; color: var(--text-primary);">${new Date(module.createdAt).toLocaleDateString()}</div>
+                                    <div style="font-weight: 600; color: var(--text-primary);">${module.createdAt ? new Date(module.createdAt).toLocaleDateString() : '-'}</div>
                                 </div>
                             </div>
                         </div>
