@@ -5880,7 +5880,7 @@ async function showTeacherAssignmentsModal(teacherId) {
                 : (cls?.grade && cls?.name ? `${cls.grade}${cls.name}` : (cls?.name || cls?.grade || '—'));
             const isChecked = classId && selectedClasses.has(classId);
             return `
-                                <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.6rem; border-radius: 8px; cursor: pointer;">
+                                <label data-subject-id="${subjectId}" data-class-id="${classId}" style="display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.6rem; border-radius: 8px; cursor: pointer;">
                                     <input type="checkbox" class="teacherSubjectClass" data-subject-id="${subjectId}" value="${classId}" ${isChecked ? 'checked' : ''} style="width: 16px; height: 16px; accent-color: #8b5cf6;">
                                     <span style="font-size: 0.9rem; color: var(--text-primary);">${classLabel}</span>
                                 </label>
@@ -5944,6 +5944,51 @@ async function showTeacherAssignmentsModal(teacherId) {
         `;
     };
 
+    const clearConflictHighlights = () => {
+        modal.querySelectorAll('label[data-subject-id][data-class-id]').forEach((label) => {
+            label.style.background = '';
+            label.style.border = '';
+            label.style.boxShadow = '';
+        });
+    };
+
+    const applyConflictHighlights = (conflicts) => {
+        clearConflictHighlights();
+        if (!Array.isArray(conflicts) || conflicts.length === 0) return;
+        conflicts.forEach((row) => {
+            const subjectId = row.subjectId || row.subject_id;
+            const classId = row.classId || row.class_id;
+            if (!subjectId || !classId) return;
+            const label = modal.querySelector(`label[data-subject-id="${subjectId}"][data-class-id="${classId}"]`);
+            if (label) {
+                label.style.background = 'rgba(239, 68, 68, 0.12)';
+                label.style.border = '1px solid rgba(239, 68, 68, 0.6)';
+                label.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.08)';
+            }
+            const subjectCheckbox = modal.querySelector(`.teacherSubject[value="${subjectId}"]`);
+            const classesContainer = modal.querySelector(`.teacher-subject-classes[data-subject-id="${subjectId}"]`);
+            if (subjectCheckbox && classesContainer) {
+                subjectCheckbox.checked = true;
+                classesContainer.style.display = 'block';
+            }
+        });
+    };
+
+    const buildConflictMessage = (conflicts) => {
+        if (!Array.isArray(conflicts) || conflicts.length === 0) return '';
+        const items = conflicts.map((row) => {
+            const classLabel = row.section
+                ? `${row.grade || ''}${row.section}`
+                : (row.grade && row.className ? `${row.grade}${row.className}` : (row.className || row.grade || '—'));
+            const teacherName = `${row.first_name || ''} ${row.last_name || ''}`.trim();
+            const subjectName = row.subjectName || (lang === 'uz' ? 'Fan' : 'Предмет');
+            return `${subjectName} — ${classLabel}${teacherName ? ` (${teacherName})` : ''}`;
+        }).join(', ');
+        return lang === 'uz'
+            ? `Bu fan-sinf juftligi allaqachon boshqa o'qituvchiga biriktirilgan: ${items}`
+            : `Эта пара «предмет + класс» уже назначена другому учителю: ${items}`;
+    };
+
     document.getElementById('teacherAssignmentsForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const selectedSubjectNodes = Array.from(modal.querySelectorAll('.teacherSubject:checked'));
@@ -5981,7 +6026,9 @@ async function showTeacherAssignmentsModal(teacherId) {
             closeModal();
             await loadTeacherDetail(teacherId);
         } else {
-            showAssignmentsAlert(result.error || t('error'));
+            const conflictMessage = buildConflictMessage(result?.conflicts);
+            applyConflictHighlights(result?.conflicts);
+            showAssignmentsAlert(conflictMessage || result.error || t('error'));
         }
     });
 }
