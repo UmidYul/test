@@ -9366,22 +9366,6 @@ async function renderTeacherSubjectManagement() {
             document.getElementById('createModuleForm').reset();
             await loadSubjectModules(subjectId);
 
-            const createdModuleId = result.data?._id || result.data?.id;
-            if (createdModuleId) {
-                await apiRequest(`/api/modules/${createdModuleId}/tests`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        name: lang === 'uz' ? 'Test' : 'Тест',
-                        duration: 30,
-                        maxScore: 100,
-                        status: 'published',
-                        questions: []
-                    })
-                });
-                router.navigate(`/teacher/module/${createdModuleId}/tests`);
-                return;
-            }
-
             setTimeout(() => {
                 messageDiv.innerHTML = '';
             }, 3000);
