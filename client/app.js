@@ -9419,10 +9419,12 @@ function editModule(moduleId) {
 // Update module
 async function updateModule(moduleId, nameRu, nameUz, descriptionRu, descriptionUz) {
     const lang = store.getState().language;
+    const name = nameRu || nameUz;
+    const description = descriptionRu || descriptionUz;
 
     const result = await apiRequest(`/api/modules/${moduleId}`, {
         method: 'PUT',
-        body: JSON.stringify({ nameRu, nameUz, descriptionRu, descriptionUz })
+        body: JSON.stringify({ name, description })
     });
 
     if (result.success) {
