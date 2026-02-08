@@ -2732,9 +2732,28 @@ app.get('/api/analytics/students/:studentId/timeline', auth, async (req, res) =>
 
     const student = studentResult.rows[0];
 
-    // Check permissions (simplified - admin can access, teacher access check would need more complex query)
-    if (req.userRole !== 'admin' && req.userId !== studentId) {
-      // For teacher access, you might want to check if teacher teaches this student's class
+    // Check permissions
+    if (req.userRole === 'admin' || req.userId === studentId) {
+      // allowed
+    } else if (req.userRole === 'teacher') {
+      const { rows: accessRows } = await pool.query(
+        `SELECT 1
+         FROM class_students cs
+         JOIN classes c ON c.id = cs.class_id
+         LEFT JOIN teacher_teaching_assignments tta
+           ON tta.class_id = c.id AND tta.teacher_id = $2 AND tta.is_active = true
+         LEFT JOIN homeroom_assignments ha
+           ON ha.class_id = c.id AND ha.teacher_id = $2 AND ha.end_at IS NULL
+         WHERE cs.student_id = $1 AND cs.left_at IS NULL
+           AND (tta.teacher_id IS NOT NULL OR ha.teacher_id IS NOT NULL)
+         LIMIT 1`,
+        [studentId, req.userId]
+      );
+
+      if (accessRows.length === 0) {
+        return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+      }
+    } else {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
 
