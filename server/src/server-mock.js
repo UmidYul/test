@@ -2720,6 +2720,36 @@ app.delete('/api/teacher-tests/:id', auth, async (req, res) => {
   }
 });
 
+// Assign teacher test to teachers
+app.post('/api/teacher-tests/:id/assign', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teacherIds } = req.body || {};
+
+    if (!id || id === 'undefined' || id === 'null') {
+      return res.status(400).json({ success: false, error: 'Неверный идентификатор теста' });
+    }
+
+    if (!Array.isArray(teacherIds) || teacherIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'Не выбраны учителя' });
+    }
+
+    const result = await pool.query(
+      'UPDATE teacher_tests SET assigned_to = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
+      [JSON.stringify(teacherIds), id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Тест не найден' });
+    }
+
+    return res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    console.error('Error assigning teacher test:', error);
+    return res.status(500).json({ success: false, error: 'Ошибка при назначении теста' });
+  }
+});
+
 // Get teacher's assigned tests (DB-backed)
 app.get('/api/teacher-tests/assigned/:teacherId', auth, async (req, res) => {
   try {
