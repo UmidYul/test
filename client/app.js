@@ -3367,25 +3367,30 @@ async function renderTestTaker() {
         history.back();
     });
 
-    // Load test with questions
-    console.log('📚 Loading test:', testId);
-    const testResult = await apiRequest(`/api/tests/${testId}`);
-    console.log('📝 Test result:', testResult);
+    // Start test session and load randomized questions
+    console.log('📚 Starting test:', testId);
+    const testResult = await apiRequest(`/api/tests/${testId}/start`);
+    console.log('📝 Test start result:', testResult);
 
     if (testResult.success && testResult.data) {
         const test = testResult.data;
-        document.getElementById('testName').textContent = test.name;
+        const sessionId = test.sessionId;
+        document.getElementById('testName').textContent = test.title || test.name || '';
 
-        const questions = test.questions || [];
+        const questions = (test.questions || []).map((question) => ({
+            ...question,
+            text: question.text || question.questionUz || question.questionRu || '',
+            options: (question.options || question.answers || []).map((opt) => ({
+                ...opt,
+                text: opt.text || opt.textUz || opt.textRu || ''
+            }))
+        }));
 
         console.log('📊 Test has', questions.length, 'questions');
 
-        // Shuffle questions and answers
-        const shuffledQuestions = shuffleQuestions(questions);
-        console.log('🔀 Shuffled questions:', shuffledQuestions.length);
-
         // Start/resume timer - check if test was already in progress
-        let timeLeft = (test.timeLimit || 15) * 60; // Convert to seconds
+        const timeLimitMinutes = test.durationMinutes || test.timeLimit || 15;
+        let timeLeft = timeLimitMinutes * 60; // Convert to seconds
         let startTime = Date.now();
 
         // Check localStorage for saved progress
@@ -3401,7 +3406,7 @@ async function renderTestTaker() {
             localStorage.setItem(`test-${testId}-progress`, JSON.stringify({
                 testId,
                 startedAt: startTime,
-                timeLimit: test.timeLimit || 15
+                timeLimit: timeLimitMinutes
             }));
             console.log('⏱️ Started new test');
         }
@@ -3419,7 +3424,7 @@ async function renderTestTaker() {
                 localStorage.setItem(`test-${testId}-progress`, JSON.stringify({
                     testId,
                     startedAt: startTime,
-                    timeLimit: test.timeLimit || 15
+                    timeLimit: timeLimitMinutes
                 }));
                 const seconds = timeLeft % 60;
                 timerElement.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -3450,18 +3455,18 @@ async function renderTestTaker() {
         let testHTML = `
             <div class="card" style="margin-bottom: 2rem;">
                 <div style="display: flex; gap: 1.5rem; font-size: 0.875rem; color: var(--text-muted); margin-bottom: 2rem; flex-wrap: wrap;">
-                    ${test.timeLimit ? `<span>⏱️ ${test.timeLimit} ${lang === 'uz' ? 'min' : 'мин'}</span>` : ''}
+                    ${timeLimitMinutes ? `<span>⏱️ ${timeLimitMinutes} ${lang === 'uz' ? 'min' : 'мин'}</span>` : ''}
                     <span>📝 ${questions.length} ${lang === 'uz' ? 'savol' : 'вопросов'}</span>
-                    <span>🎯 ${test.maxScore} ${lang === 'uz' ? 'ball' : 'баллов'}</span>
+                    ${test.maxScore ? `<span>🎯 ${test.maxScore} ${lang === 'uz' ? 'ball' : 'баллов'}</span>` : ''}
                 </div>
                 
                 <form id="testForm" style="display: grid; gap: 2rem;">
         `;
 
         // Render each question
-        shuffledQuestions.forEach((question, index) => {
-            const questionText = lang === 'uz' ? question.questionUz : question.questionRu;
-            const answers = question.answers || [];
+        questions.forEach((question, index) => {
+            const questionText = question.text || '';
+            const answers = question.options || [];
 
             testHTML += `
                 <div style="padding: 1.5rem; background: var(--bg-primary); border-radius: 10px; border: 2px solid var(--border-color);">
@@ -3474,12 +3479,12 @@ async function renderTestTaker() {
 
             // Render answer options (already shuffled)
             answers.forEach((answer, answerIndex) => {
-                const answerText = lang === 'uz' ? answer.textUz : answer.textRu;
+                const answerText = answer.text || '';
                 const inputId = `q${index}_a${answerIndex}`;
 
                 testHTML += `
                     <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
-                        <input type="radio" id="${inputId}" name="question_${index}" value="${answer.originalIndex}" data-question-idx="${index}" style="cursor: pointer; width: 18px; height: 18px;">
+                        <input type="radio" id="${inputId}" name="question_${index}" value="${answer.id}" data-question-idx="${index}" style="cursor: pointer; width: 18px; height: 18px;">
                         <span style="flex: 1; color: var(--text-primary);">${answerText}</span>
                     </label>
                 `;
@@ -3517,12 +3522,12 @@ async function renderTestTaker() {
 
             // Collect answers - map to original question indices
             const answers = {};
-            shuffledQuestions.forEach((question, index) => {
+            questions.forEach((question, index) => {
                 const selected = document.querySelector(`input[name="question_${index}"]:checked`);
                 if (selected) {
-                    const answerIdx = parseInt(selected.value);
-                    answers[index] = answerIdx;
-                    console.log(`Q${index}: selected answer ${answerIdx}`);
+                    const optionId = selected.value;
+                    answers[question.id] = optionId;
+                    console.log(`Q${index}: selected option ${optionId}`);
                 }
             });
 
@@ -3530,15 +3535,12 @@ async function renderTestTaker() {
             console.log('📊 Collected answers object:', answers);
             console.log('⏱️ Time taken:', timeTaken, 'seconds');
 
-            // Convert answers object to array (server expects array indexed by question)
-            const answersArray = shuffledQuestions.map((_, idx) => answers[idx] !== undefined ? answers[idx] : null);
-            console.log('📊 Converted to array:', answersArray);
             console.log('📤 Submitting to API...');
 
             // Submit to backend
             const submitResult = await apiRequest(`/api/tests/${testId}/submit`, {
                 method: 'POST',
-                body: JSON.stringify({ answers: answersArray, timeTaken })
+                body: JSON.stringify({ sessionId, answers, timeTaken })
             });
 
             console.log('📥 API Response:', submitResult);
@@ -3584,8 +3586,8 @@ async function renderTestTaker() {
 function shuffleQuestions(questions) {
     // Shuffle answers using Fisher-Yates algorithm for true randomness
     // Keep track of original indices for correct answer validation
-    return questions.map(question => {
-        const answers = question.answers.map((answer, originalIndex) => ({
+    return (Array.isArray(questions) ? questions : []).map(question => {
+        const answers = (Array.isArray(question.answers) ? question.answers : []).map((answer, originalIndex) => ({
             ...answer,
             originalIndex // Save original index before shuffling
         }));

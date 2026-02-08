@@ -1,53 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZEDLY</title>
-    <link rel="icon" href="/assets/zedly_logo_bg.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script>
-      // Apply saved theme before rendering
-      const savedTheme = localStorage.getItem('theme') || 'dark';
-      if (savedTheme === 'light') {
-        document.documentElement.classList.add('light-theme');
-      }
-    </script>
-    <script type="module" crossorigin src="/assets/index-CSBQz1Oo.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DzxwXUo0.css">
-  </head>
-  <body>
-    <!-- Language Switch -->
-    <div id="languageSwitch" class="language-switch" style="position: fixed; top: 20px; right: 20px; z-index: 1999;">
-      <button id="langBtn" class="lang-btn">RU | UZ</button>
-    </div>
 
-    <!-- Bottom Navigation (Mobile) -->
-    <div id="bottomNav" class="bottom-nav">
-        <button class="bottom-nav-item" data-nav="home">
-            <span><i class="fas fa-home"></i></span>
-            <span>Главная</span>
-        </button>
-        <button class="bottom-nav-item" data-nav="statistics">
-            <span><i class="fas fa-user"></i></span>
-            <span id="bottomProfileText">Профиль</span>
-        </button>
-        <button class="bottom-nav-item" data-nav="history">
-            <span><i class="fas fa-history"></i></span>
-            <span>История</span>
-        </button>
-        <button class="bottom-nav-item" data-nav="language" id="bottomLangBtn">
-            <span><i class="fas fa-globe"></i></span>
-            <span id="bottomLangText">RU</span>
-        </button>
-        <button class="bottom-nav-item" data-nav="settings">
-            <span><i class="fas fa-sign-out-alt"></i></span>
-            <span>Выход</span>
-        </button>
-    </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZEDLY Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
 
-    <!-- Main App Container -->
-    <div id="app"></div>
+        h1 {
+            color: #333;
+        }
+    </style>
+</head>
 
-  </body>
+<body>
+    <h1>ZEDLY Platform</h1>
+    <p>Тестовое развертывание на Vercel</p>
+    <p>Если вы видите эту страницу, развертывание работает!</p>
+</body>
+
 </html>
