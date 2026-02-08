@@ -2880,19 +2880,57 @@ async function renderSubjectTests() {
 
     if (result.success && result.data && result.data.length > 0) {
         const subjectsContainer = document.getElementById('subjectsContainer');
+        const subjects = result.data;
+
+        const subjectStats = await Promise.all(subjects.map(async (subject) => {
+            const subjectId = subject?.id || subject?._id;
+            if (!subjectId) return null;
+
+            const modulesRes = await apiRequest(`/api/subjects/${subjectId}/modules`);
+            const modules = modulesRes.success ? (modulesRes.data?.data || modulesRes.data || []) : [];
+            const moduleIds = modules.map(m => m?.id || m?._id).filter(Boolean);
+
+            let testsCount = 0;
+            if (moduleIds.length > 0) {
+                const testsResults = await Promise.all(
+                    moduleIds.map(moduleId => apiRequest(`/api/modules/${moduleId}/tests`))
+                );
+                testsResults.forEach((testsRes) => {
+                    const tests = testsRes.success ? (testsRes.data?.data || testsRes.data || []) : [];
+                    testsCount += Array.isArray(tests) ? tests.length : 0;
+                });
+            }
+
+            return {
+                subject,
+                subjectId,
+                modulesCount: modules.length,
+                testsCount
+            };
+        }));
+
+        const filteredSubjects = subjectStats
+            .filter(Boolean)
+            .filter(item => item.modulesCount > 0 || item.testsCount > 0);
+
+        if (filteredSubjects.length === 0) {
+            subjectsContainer.innerHTML = `<p style="text-align: center; color: var(--text-muted);">${store.getState().language === 'uz' ? 'Fanlar topilmadi' : 'Предметы не найдены'}</p>`;
+            return;
+        }
+
         subjectsContainer.innerHTML = `
             <div class="subjects-grid">
-                ${result.data.map(subject => `
-                    <div class="subject-card" data-subject-id="${subject.id}">
+                ${filteredSubjects.map(({ subject, subjectId, modulesCount, testsCount }) => `
+                    <div class="subject-card" data-subject-id="${subjectId}">
                         <div class="subject-header">
                             <div class="subject-icon">${getSubjectIcon(subject.name)}</div>
                             <h3>${subject.name}</h3>
                         </div>
                         <div class="subject-info">
-                            <p>${store.getState().language === 'uz' ? 'Savollar' : 'Вопросов'}: ${subject.questionsCount || 10}</p>
-                            <p>${store.getState().language === 'uz' ? 'Vaqt' : 'Время'}: 30 ${store.getState().language === 'uz' ? 'daqiqa' : 'минут'}</p>
+                            <p>${store.getState().language === 'uz' ? 'Modullar' : 'Модули'}: ${modulesCount}</p>
+                            <p>${store.getState().language === 'uz' ? 'Testlar' : 'Тестов'}: ${testsCount}</p>
                         </div>
-                        <button class="btn-secondary btn-start-test" data-subject-id="${subject.id}">
+                        <button class="btn-secondary btn-start-test" data-subject-id="${subjectId}">
                             ${store.getState().language === 'uz' ? 'Testni boshlash' : 'Начать тест'}
                         </button>
                     </div>
