@@ -1607,14 +1607,23 @@ app.post('/api/tests', auth, async (req, res) => {
     );
     const newTest = result.rows[0];
 
+    const normalizeQuestionType = (type) => {
+      const raw = String(type || '').toLowerCase();
+      if (raw === 'single' || raw.includes('single')) return 'single_choice';
+      if (raw === 'multiple' || raw.includes('multiple')) return 'multiple_choice';
+      if (raw === 'text' || raw.includes('text')) return 'text_answer';
+      return raw || 'single_choice';
+    };
+
     // Создать вопросы
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       const qId = crypto.randomUUID();
+      const questionType = normalizeQuestionType(q.type);
       await pool.query(
         `INSERT INTO test_questions (id, test_id, question_type, text, points, order_no)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [qId, testId, q.type, q.text, q.points || 1, i + 1]
+        [qId, testId, questionType, q.text, q.points || 1, i + 1]
       );
       if (q.options && q.options.length > 0) {
         for (let j = 0; j < q.options.length; j++) {
@@ -1661,6 +1670,14 @@ app.put('/api/tests/:testId', auth, async (req, res) => {
     const updateQuery = `UPDATE tests SET ${updateFields.join(', ')} WHERE id = $${idx}`;
     await pool.query(updateQuery, values);
 
+    const normalizeQuestionType = (type) => {
+      const raw = String(type || '').toLowerCase();
+      if (raw === 'single' || raw.includes('single')) return 'single_choice';
+      if (raw === 'multiple' || raw.includes('multiple')) return 'multiple_choice';
+      if (raw === 'text' || raw.includes('text')) return 'text_answer';
+      return raw || 'single_choice';
+    };
+
     // Если переданы вопросы, обновить их
     if (questions !== undefined) {
       // Удалить старые вопросы и опции
@@ -1671,10 +1688,11 @@ app.put('/api/tests/:testId', auth, async (req, res) => {
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
         const qId = crypto.randomUUID();
+        const questionType = normalizeQuestionType(q.type);
         await pool.query(
           `INSERT INTO test_questions (id, test_id, question_type, text, points, order_no)
            VALUES ($1, $2, $3, $4, $5, $6)`,
-          [qId, testId, q.type, q.text, q.points || 1, i + 1]
+          [qId, testId, questionType, q.text, q.points || 1, i + 1]
         );
         if (q.options && q.options.length > 0) {
           for (let j = 0; j < q.options.length; j++) {
