@@ -1917,9 +1917,11 @@ app.get('/api/teacher/analytics', auth, async (req, res) => {
       data: {
         totalModules: 0,
         totalTests: 0,
-        totalResults: 0,
-        byClass: [],
-        bySubject: []
+        totalCompletions: 0,
+        averageScore: 0,
+        statsByClass: [],
+        statsBySubject: [],
+        recentCompletions: []
       }
     });
   } catch (error) {
