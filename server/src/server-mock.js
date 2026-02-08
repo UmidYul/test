@@ -2043,9 +2043,9 @@ app.post('/api/tests/:testId/submit', auth, async (req, res) => {
 
     // Сохранить результат в test_results
     await pool.query(
-      `INSERT INTO test_results (id, user_id, test_id, score, passed, completed_at, earned_points, total_points)
-       VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7)`,
-      [crypto.randomUUID(), req.userId, testId, score, passed, earnedPoints, totalPoints]
+      `INSERT INTO test_results (id, user_id, test_id, score, passed, correct_count, total_count, completed_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
+      [crypto.randomUUID(), req.userId, testId, score, passed, result.correctCount || 0, result.totalCount || 0]
     );
 
     console.log(`✅ Тест сдан: ${testId}, score: ${score}%, passed: ${passed}`);
