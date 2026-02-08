@@ -909,6 +909,29 @@ app.get('/api/teacher/classes', auth, async (req, res) => {
   }
 });
 
+// Get teacher subjects (new schema)
+app.get('/api/teacher/subjects', auth, async (req, res) => {
+  try {
+    if (req.userRole !== 'teacher' && req.userRole !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Доступ запрещен' });
+    }
+
+    const { rows } = await pool.query(
+      `SELECT DISTINCT s.id::text as id, s.name
+       FROM teacher_teaching_assignments tta
+       JOIN subjects s ON s.id = tta.subject_id
+       WHERE tta.teacher_id = $1 AND tta.is_active = true
+       ORDER BY s.name`,
+      [req.userId]
+    );
+
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('❌ Ошибка получения предметов учителя:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при загрузке предметов' });
+  }
+});
+
 // Get teacher test results (new schema)
 app.get('/api/teacher/test-results', auth, async (req, res) => {
   try {
