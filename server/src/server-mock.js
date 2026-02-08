@@ -2079,11 +2079,55 @@ app.get('/api/test-results', auth, async (req, res) => {
 app.get('/api/test-results/:resultId', auth, async (req, res) => {
   try {
     const { resultId } = req.params;
+    // Получить основной результат
     const { rows } = await pool.query('SELECT * FROM test_results WHERE id = $1 AND user_id = $2', [resultId, req.userId]);
     if (rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Результат не найден' });
     }
-    res.json({ success: true, data: rows[0] });
+    const result = rows[0];
+
+    // Получить тест
+    const { rows: testRows } = await pool.query('SELECT * FROM tests WHERE id = $1', [result.test_id]);
+    const testInfo = testRows.length > 0 ? testRows[0] : null;
+
+    // Получить ответы
+    const { rows: answerRows } = await pool.query('SELECT * FROM test_answers WHERE session_id = $1', [resultId]);
+
+    // Получить вопросы
+    const { rows: questionRows } = await pool.query('SELECT * FROM test_questions WHERE test_id = $1', [result.test_id]);
+
+    // Получить варианты ответов
+    const { rows: optionRows } = await pool.query('SELECT * FROM question_options WHERE question_id = ANY($1::uuid[])', [questionRows.map(q => q.id)]);
+
+    // Собрать questionResults
+    const questionResults = questionRows.map(q => {
+      const answer = answerRows.find(a => a.question_id === q.id);
+      const userAnswerOption = answer ? optionRows.find(o => o.id === answer.selected_option_id) : null;
+      const correctOption = optionRows.find(o => o.question_id === q.id && o.is_correct);
+      return {
+        questionId: q.id,
+        questionUz: q.text_uz || q.text,
+        questionRu: q.text_ru || q.text,
+        isCorrect: answer ? answer.is_correct : false,
+        userAnswerText: userAnswerOption ? {
+          textUz: userAnswerOption.text_uz || userAnswerOption.text,
+          textRu: userAnswerOption.text_ru || userAnswerOption.text
+        } : null,
+        correctAnswerText: correctOption ? {
+          textUz: correctOption.text_uz || correctOption.text,
+          textRu: correctOption.text_ru || correctOption.text
+        } : null
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        ...result,
+        testInfo,
+        questionResults
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Ошибка при загрузке результата' });
   }
