@@ -2634,6 +2634,9 @@ app.get('/api/teacher-tests/:id', auth, async (req, res) => {
   console.log('🔍 GET /api/teacher-tests/:id called with id:', req.params.id);
   try {
     const { id } = req.params;
+    if (!id || id === 'undefined' || id === 'null') {
+      return res.status(400).json({ success: false, error: 'Неверный идентификатор теста' });
+    }
     const result = await pool.query('SELECT * FROM teacher_tests WHERE id = $1', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, error: 'Тест не найден' });
