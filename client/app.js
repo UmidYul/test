@@ -11374,53 +11374,15 @@ async function renderModuleTests() {
                 <div class="test-create__icon">🧩</div>
                 <div>
                     <h3>${lang === 'uz' ? 'Yangi test' : 'Новый тест'}</h3>
-                    <p>${lang === 'uz' ? 'Test darhol e’lon qilinadi' : 'Тест сразу публикуется'}</p>
+                    <p>${lang === 'uz' ? 'Testni yaratish va tahrirlash' : 'Создание и редактирование тестов'}</p>
                 </div>
             </div>
-
-            <form id="createTestForm" class="test-create__form">
-                <div class="test-create__grid">
-                    <div class="form-group">
-                        <label class="form-label">
-                            <span>🇷🇺</span>
-                            ${lang === 'uz' ? 'Test nomi (Ruscha)' : 'Название теста (RU)'}
-                        </label>
-                        <input type="text" class="form-input" id="testNameRu" placeholder="${lang === 'uz' ? 'Masalan: Algebra testi' : 'Например: Тест по алгебре'}" required />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">
-                            <span>🇺🇿</span>
-                            ${lang === 'uz' ? 'Test nomi (O\'zbekcha)' : 'Название теста (UZ)'}
-                        </label>
-                        <input type="text" class="form-input" id="testNameUz" placeholder="${lang === 'uz' ? 'Masalan: Algebra testi' : 'Например: Тест по алгебре'}" required />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">
-                            <span>⏱️</span>
-                            ${lang === 'uz' ? 'Vaqt (daqiqa)' : 'Время (мин)'}
-                        </label>
-                        <input type="number" class="form-input" id="testDuration" value="30" min="5" max="180" required />
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">
-                            <span>🎯</span>
-                            ${lang === 'uz' ? 'Maks. ball' : 'Макс. баллов'}
-                        </label>
-                        <input type="number" class="form-input" id="testMaxScore" value="100" min="10" max="1000" required />
-                    </div>
-                </div>
-
-                <div class="test-create__actions">
-                    <div class="test-create__note">
-                        ${lang === 'uz' ? '⚡ Test avtomatik nashr qilinadi' : '⚡ Тест будет опубликован автоматически'}
-                    </div>
-                    <button type="submit" class="button button-primary test-create__submit">
-                        <span>✅</span>
-                        <span>${lang === 'uz' ? 'Testni yaratish' : 'Создать тест'}</span>
-                    </button>
-                </div>
-            </form>
-            <div id="createTestMessage" style="margin-top: 1rem;"></div>
+            <div class="test-create__actions">
+                <button type="button" class="button button-primary" id="btnCreateModuleTest">
+                    <span>➕</span>
+                    <span>${lang === 'uz' ? 'Test yaratish' : 'Создать тест'}</span>
+                </button>
+            </div>
         </div>
         
         <!-- Questions Builder -->
@@ -11470,51 +11432,90 @@ async function renderModuleTests() {
     console.log('⏳ Loading tests for module:', moduleId);
     await loadModuleTests(moduleId);
 
-    // Handle create test form
-    const createForm = document.getElementById('createTestForm');
-    console.log('📋 Create test form found:', !!createForm);
+    // Handle create test button
+    document.getElementById('btnCreateModuleTest')?.addEventListener('click', () => {
+        showCreateModuleTestModal(moduleId);
+    });
+}
 
-    if (createForm) {
-        createForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            console.log('📝 Create test form submitted!');
+function showCreateModuleTestModal(moduleId) {
+    const lang = store.getState().language;
 
-            const nameRu = document.getElementById('testNameRu').value;
-            const nameUz = document.getElementById('testNameUz').value;
-            const duration = parseInt(document.getElementById('testDuration').value);
-            const maxScore = parseInt(document.getElementById('testMaxScore').value);
-            const status = 'published';
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0;">${lang === 'uz' ? 'Yangi test yaratish' : 'Создать новый тест'}</h2>
+                <button class="modal-close" id="closeModuleTestModal">✕</button>
+            </div>
+            
+            <form id="createModuleTestForm" style="display: grid; gap: 1rem;">
+                <div>
+                    <label class="form-label">${lang === 'uz' ? 'Test nomi' : 'Название теста'}</label>
+                    <input type="text" name="title" class="form-input" required placeholder="${lang === 'uz' ? 'Test nomini kiriting' : 'Введите название теста'}">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label class="form-label">${lang === 'uz' ? 'Davomiyligi (daqiqa)' : 'Длительность (минуты)'}</label>
+                        <input type="number" name="duration" class="form-input" value="30" min="5" max="180">
+                    </div>
+                    <div>
+                        <label class="form-label">${lang === 'uz' ? 'O\'tish bali (%)' : 'Проходной балл (%)'}</label>
+                        <input type="number" name="passPercent" class="form-input" value="70" min="0" max="100">
+                    </div>
+                </div>
 
-            console.log('📋 Test data:', { nameRu, nameUz, duration, maxScore, status });
+                <div class="info-message" style="padding: 0.75rem 1rem;">
+                    ${lang === 'uz' ? 'Savollar test yaratilgandan keyin alohida sahifada qo\'shiladi.' : 'Вопросы добавляются после создания теста на отдельной странице.'}
+                </div>
+                
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="button" class="button button-secondary" id="btnCancelModuleTest">${lang === 'uz' ? 'Bekor qilish' : 'Отмена'}</button>
+                    <button type="submit" class="button button-primary">${lang === 'uz' ? 'Saqlash' : 'Сохранить'}</button>
+                </div>
+            </form>
+        </div>
+    `;
 
-            const result = await apiRequest(`/api/modules/${moduleId}/tests`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    nameRu,
-                    nameUz,
-                    duration,
-                    maxScore,
-                    status,
-                    questions: []
-                })
-            });
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('show'), 10);
 
-            console.log('📦 Create test result:', result);
+    const closeModal = () => {
+        modal.classList.remove('show');
+        setTimeout(() => modal.remove(), 300);
+    };
 
-            const messageDiv = document.getElementById('createTestMessage');
+    document.getElementById('closeModuleTestModal')?.addEventListener('click', closeModal);
+    document.getElementById('btnCancelModuleTest')?.addEventListener('click', closeModal);
 
-            if (result.success) {
-                messageDiv.innerHTML = `<div class="success-message">${lang === 'uz' ? '✓ Test muvaffaqiyatli yaratildi!' : '✓ Тест успешно создан!'}</div>`;
-                document.getElementById('createTestForm').reset();
-                await loadModuleTests(moduleId);
-                setTimeout(() => messageDiv.innerHTML = '', 3000);
-            } else {
-                messageDiv.innerHTML = `<div class="error-message">${result.error || t('error')}</div>`;
-            }
+    document.getElementById('createModuleTestForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = new FormData(e.target);
+        const title = String(form.get('title') || '').trim();
+        const duration = parseInt(form.get('duration'), 10);
+        const passPercent = parseInt(form.get('passPercent'), 10);
+
+        if (!title) return;
+
+        const result = await apiRequest(`/api/modules/${moduleId}/tests`, {
+            method: 'POST',
+            body: JSON.stringify({
+                nameRu: title,
+                nameUz: title,
+                duration: Number.isFinite(duration) ? duration : 30,
+                passPercent: Number.isFinite(passPercent) ? passPercent : 70,
+                status: 'published'
+            })
         });
-    } else {
-        console.error('❌ Create test form not found!');
-    }
+
+        if (result.success) {
+            closeModal();
+            await loadModuleTests(moduleId);
+        } else {
+            await showAlert(result.error || t('error'), 'error');
+        }
+    });
 }
 
 async function loadModuleTests(moduleId) {
@@ -11537,8 +11538,6 @@ async function loadModuleTests(moduleId) {
     console.log('📊 testsData length:', testsData.length);
 
     if (result.success && Array.isArray(testsData) && testsData.length > 0) {
-        const createCard = document.querySelector('#createTestForm')?.closest('.card');
-        if (createCard) createCard.style.display = 'none';
         console.log('✅ Found', testsData.length, 'tests');
         testsData.forEach(test => {
             console.log(`  Test "${test.nameRu}" (ID: ${test._id}): ${test.questionsCount || 0} questions`);
@@ -11602,8 +11601,6 @@ async function loadModuleTests(moduleId) {
             });
         });
     } else {
-        const createCard = document.querySelector('#createTestForm')?.closest('.card');
-        if (createCard) createCard.style.display = 'block';
         console.log('❌ No tests found or empty result. Success:', result.success, 'Array?', Array.isArray(testsData), 'Length:', testsData.length);
         testsList.innerHTML = `
             <div class="card" style="text-align: center; padding: 4rem 2rem; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 2px dashed var(--border-color); border-radius: 12px;">
