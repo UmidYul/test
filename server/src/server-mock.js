@@ -2042,10 +2042,19 @@ app.post('/api/tests/:testId/submit', auth, async (req, res) => {
     );
 
     // Сохранить результат в test_results
+    // Подсчитать количество правильных и всего вопросов
+    let correctCount = 0;
+    let totalCount = 0;
+    for (const [questionId, selectedOptionId] of Object.entries(answers)) {
+      const { rows: optRows } = await pool.query('SELECT is_correct FROM question_options WHERE id = $1', [selectedOptionId]);
+      const isCorrect = optRows.length > 0 && optRows[0].is_correct;
+      if (isCorrect) correctCount++;
+      totalCount++;
+    }
     await pool.query(
       `INSERT INTO test_results (id, user_id, test_id, score, passed, correct_count, total_count, completed_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`,
-      [crypto.randomUUID(), req.userId, testId, score, passed, result.correctCount || 0, result.totalCount || 0]
+      [crypto.randomUUID(), req.userId, testId, score, passed, correctCount, totalCount]
     );
 
     console.log(`✅ Тест сдан: ${testId}, score: ${score}%, passed: ${passed}`);
