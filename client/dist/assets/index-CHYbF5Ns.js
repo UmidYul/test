@@ -783,7 +783,7 @@ var Tr=Object.defineProperty;var Mr=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                     ${n.error||"API Error"}
                 </p>
             </div>
-        `}function pr(e){var u;const t=k.getState().language,i=document.getElementById("testContainer");console.log("🎨 renderTestResults called with:",e);const s=e.data||e;s.score;const n=s.passed||!1,a=s.earnedPoints||0,r=s.totalPoints||0,o=n?"success":"error",l=n?"linear-gradient(135deg, #10b981, #059669)":"linear-gradient(135deg, #ef4444, #dc2626)",d=e.totalCount?Math.round(e.correctCount/e.totalCount*100):0;let c=`
+        `}function pr(e){var p;const t=k.getState().language,i=document.getElementById("testContainer");console.log("🎨 renderTestResults called with:",e);const s=e.data||e;s.score;const n=s.passed||!1,a=s.earnedPoints||0,r=s.totalPoints||0,o=s.correctCount||0,l=s.totalCount||0,d=s.timeTaken||0,c=n?"success":"error",u=n?"linear-gradient(135deg, #10b981, #059669)":"linear-gradient(135deg, #ef4444, #dc2626)",h=l?Math.round(o/l*100):0;let m=`
         <style>
             @keyframes slideIn {
                 from { opacity: 0; transform: translateY(20px); }
@@ -797,28 +797,28 @@ var Tr=Object.defineProperty;var Mr=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
             .score-circle { animation: pulse 0.8s ease-in-out infinite; }
         </style>
         
-        <div class="result-card" style="text-align: center; padding: 3rem 2rem; margin-bottom: 2rem; background: ${l}; border-radius: 16px; color: white; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <div class="result-card" style="text-align: center; padding: 3rem 2rem; margin-bottom: 2rem; background: ${u}; border-radius: 16px; color: white; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
             <h2 style="margin-top: 0; font-size: 2rem; text-transform: uppercase; letter-spacing: 1px;">
-                ${o==="success"?"🎉 ":o==="warning"?"👍 ":"💪 "}
+                ${c==="success"?"🎉 ":c==="warning"?"👍 ":"💪 "}
                 ${t==="uz"?"Test tugatildi!":"Тест завершён!"}
             </h2>
             <div class="score-circle" style="font-size: 4.5rem; font-weight: 900; margin: 2rem 0; text-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-                ${e.correctCount}/${e.totalCount}
+                ${o}/${l}
             </div>
             <p style="font-size: 1.8rem; font-weight: 700; margin: 1rem 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                ${d}%
+                ${h}%
             </p>
             <div style="display: flex; gap: 2rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap;">
                 <div style="background: rgba(255,255,255,0.2); padding: 1rem 2rem; border-radius: 12px; backdrop-filter: blur(10px);">
                     <div style="font-size: 0.9rem; opacity: 0.9;">⏱️ ${t==="uz"?"Vaqt":"Время"}</div>
                     <div style="font-size: 1.5rem; font-weight: bold;">
-                        ${Math.floor(e.timeTaken/60)}:${String(e.timeTaken%60).padStart(2,"0")}
+                        ${Math.floor(d/60)}:${String(d%60).padStart(2,"0")}
                     </div>
                 </div>
                 <div style="background: rgba(255,255,255,0.2); padding: 1rem 2rem; border-radius: 12px; backdrop-filter: blur(10px);">
                     <div style="font-size: 0.9rem; opacity: 0.9;">📊 ${t==="uz"?"Baho":"Оценка"}</div>
                     <div style="font-size: 1.5rem; font-weight: bold;">
-                        ${o==="success"?"⭐⭐⭐":o==="warning"?"⭐⭐":"⭐"}
+                        ${c==="success"?"⭐⭐⭐":c==="warning"?"⭐⭐":"⭐"}
                     </div>
                 </div>
             </div>
@@ -841,21 +841,21 @@ var Tr=Object.defineProperty;var Mr=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                 </div>
             </div>
         </div>
-        ${Array.isArray(e.questionResults)?e.questionResults.map((h,m)=>{const p=h.isCorrect?"#10b981":"#ef4444";return`
-                <div style="padding: 1.5rem; background: rgba(255,255,255,0.7); border-left: 4px solid ${p}; border-radius: 8px; margin-bottom: 1rem;">
+        ${Array.isArray(e.questionResults)?e.questionResults.map((g,f)=>{const y=g.isCorrect?"#10b981":"#ef4444";return`
+                <div style="padding: 1.5rem; background: rgba(255,255,255,0.7); border-left: 4px solid ${y}; border-radius: 8px; margin-bottom: 1rem;">
                     <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                        <span style="font-size: 1.5rem; color: ${p}; font-weight: bold;">${h.isCorrect?"✓":"✗"}</span>
+                        <span style="font-size: 1.5rem; color: ${y}; font-weight: bold;">${g.isCorrect?"✓":"✗"}</span>
                         <div style="flex: 1;">
                             <p style="margin: 0; color: var(--text-primary); font-weight: 500;">
-                                ${m+1}. ${t==="uz"?h.questionUz:h.questionRu}
+                                ${f+1}. ${t==="uz"?g.questionUz:g.questionRu}
                             </p>
                         </div>
                     </div>
                     <div style="margin-left: 2.5rem; color: var(--text-muted); font-size: 0.9rem;">
                         <p style="margin: 0.5rem 0;">
                             <strong>${t==="uz"?"Sizning javobingiz":"Ваш ответ"}:</strong> 
-                            <span style="color: ${p};">
-                                ${h.userAnswerText?t==="uz"?h.userAnswerText.textUz:h.userAnswerText.textRu:t==="uz"?"Javob yo'q":"Нет ответа"}
+                            <span style="color: ${y};">
+                                ${g.userAnswerText?t==="uz"?g.userAnswerText.textUz:g.userAnswerText.textRu:t==="uz"?"Javob yo'q":"Нет ответа"}
                             </span>
                         </p>
                     </div>
@@ -866,7 +866,7 @@ var Tr=Object.defineProperty;var Mr=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                 ${t==="uz"?"Modulga qaytish":"Вернуться к модулю"}
             </button>
         </div>
-    `;i.innerHTML=c,(u=document.getElementById("btnBackFromResults"))==null||u.addEventListener("click",()=>{e.subjectId?$.navigate(`/student/subject-modules/${e.subjectId}`):$.navigate("/student/subjects")})}async function Ju(){var a;const e=window.location.pathname.split("/").pop(),t=k.getState().language;O(`
+    `;i.innerHTML=m,(p=document.getElementById("btnBackFromResults"))==null||p.addEventListener("click",()=>{e.subjectId?$.navigate(`/student/subject-modules/${e.subjectId}`):$.navigate("/student/subjects")})}async function Ju(){var a;const e=window.location.pathname.split("/").pop(),t=k.getState().language;O(`
         <div class="page-header">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h1>${t==="uz"?"Test natijalari":"Результаты теста"}</h1>
@@ -906,26 +906,26 @@ var Tr=Object.defineProperty;var Mr=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                 <div class="spinner"></div>
             </div>
         </div>
-    `,"student"),(n=document.getElementById("btnBackFromHistory"))==null||n.addEventListener("click",()=>{$.navigate("/student/dashboard")});const i=document.getElementById("historyContainer"),s=await C("/api/test-results");if(s.success&&s.data&&s.data.length>0){const r=s.data;let o='<div style="display: grid; gap: 1rem;">';r.forEach((l,d)=>{const c=new Date(l.completedAt),u=c.toLocaleDateString(e==="uz"?"uz":"ru"),h=c.toLocaleTimeString(e==="uz"?"uz":"ru"),m=Math.round(l.correctCount/l.totalCount*100),p=m>=70?"#10b981":m>=50?"#f59e0b":"#ef4444";o+=`
+    `,"student"),(n=document.getElementById("btnBackFromHistory"))==null||n.addEventListener("click",()=>{$.navigate("/student/dashboard")});const i=document.getElementById("historyContainer"),s=await C("/api/test-results");if(s.success&&s.data&&s.data.length>0){const r=s.data;let o='<div style="display: grid; gap: 1rem;">';r.forEach((l,d)=>{const c=l.testName||(e==="uz"?"Nomaʼlum test":"Неизвестный тест"),u=l.correctCount||0,h=l.totalCount||0,m=l.timeTaken||0,p=l.completedAt?new Date(l.completedAt):null,g=p&&!isNaN(p)?p.toLocaleDateString(e==="uz"?"uz":"ru"):e==="uz"?"Nomaʼlum sana":"Неизвестная дата",f=p&&!isNaN(p)?p.toLocaleTimeString(e==="uz"?"uz":"ru"):"",y=h?Math.round(u/h*100):0,b=y>=70?"#10b981":y>=50?"#f59e0b":"#ef4444";o+=`
                 <div class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem;">
                     <div>
                         <h3 style="margin: 0 0 0.5rem 0; color: var(--text-primary);">
-                            ${l.testName}
+                            ${c}
                         </h3>
                         <p style="margin: 0.25rem 0; color: var(--text-muted); font-size: 0.9rem;">
-                            📅 ${u} ${h}
+                            📅 ${g} ${f}
                         </p>
                         <p style="margin: 0.25rem 0; color: var(--text-muted); font-size: 0.9rem;">
-                            ⏱️ ${e==="uz"?"Vaqt":"Время"}: ${Math.floor(l.timeTaken/60)} ${e==="uz"?"daqiqa":"мин"}
+                            ⏱️ ${e==="uz"?"Vaqt":"Время"}: ${Math.floor(m/60)} ${e==="uz"?"daqiqa":"мин"}
                         </p>
                     </div>
                     <div style="text-align: right; display: flex; gap: 2rem; align-items: center;">
                         <div>
-                            <div style="font-size: 1.5rem; font-weight: bold; color: ${p};">
-                                ${l.correctCount}/${l.totalCount}
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${b};">
+                                ${u}/${h}
                             </div>
-                            <div style="font-size: 0.9rem; color: ${p}; font-weight: 600;">
-                                ${m}%
+                            <div style="font-size: 0.9rem; color: ${b}; font-weight: 600;">
+                                ${y}%
                             </div>
                         </div>
                         <button class="button button-secondary view-details-btn" data-result-id="${l._id}" data-index="${d}">

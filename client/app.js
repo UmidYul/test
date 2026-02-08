@@ -3617,12 +3617,16 @@ function renderTestResults(result) {
     const earnedPoints = resultData.earnedPoints || 0;
     const totalPoints = resultData.totalPoints || 0;
 
+    const correctCount = resultData.correctCount || 0;
+    const totalCount = resultData.totalCount || 0;
+    const timeTaken = resultData.timeTaken || 0;
+
     const status = passed ? 'success' : 'error';
     const statusColor = passed ? '#10b981' : '#ef4444';
     const statusGradient = passed ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)';
 
     // Calculate percentage (avoid division by zero)
-    const percentage = result.totalCount ? Math.round((result.correctCount / result.totalCount) * 100) : 0;
+    const percentage = totalCount ? Math.round((correctCount / totalCount) * 100) : 0;
 
     let resultHTML = `
         <style>
@@ -3644,7 +3648,7 @@ function renderTestResults(result) {
                 ${lang === 'uz' ? 'Test tugatildi!' : 'Тест завершён!'}
             </h2>
             <div class="score-circle" style="font-size: 4.5rem; font-weight: 900; margin: 2rem 0; text-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-                ${result.correctCount}/${result.totalCount}
+                ${correctCount}/${totalCount}
             </div>
             <p style="font-size: 1.8rem; font-weight: 700; margin: 1rem 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                 ${percentage}%
@@ -3653,7 +3657,7 @@ function renderTestResults(result) {
                 <div style="background: rgba(255,255,255,0.2); padding: 1rem 2rem; border-radius: 12px; backdrop-filter: blur(10px);">
                     <div style="font-size: 0.9rem; opacity: 0.9;">⏱️ ${lang === 'uz' ? 'Vaqt' : 'Время'}</div>
                     <div style="font-size: 1.5rem; font-weight: bold;">
-                        ${Math.floor(result.timeTaken / 60)}:${String(result.timeTaken % 60).padStart(2, '0')}
+                        ${Math.floor(timeTaken / 60)}:${String(timeTaken % 60).padStart(2, '0')}
                     </div>
                 </div>
                 <div style="background: rgba(255,255,255,0.2); padding: 1rem 2rem; border-radius: 12px; backdrop-filter: blur(10px);">
@@ -3808,29 +3812,33 @@ async function renderTestHistoryPage() {
         let historyHTML = `<div style="display: grid; gap: 1rem;">`;
 
         data.forEach((result, index) => {
-            const date = new Date(result.completedAt);
-            const dateStr = date.toLocaleDateString(lang === 'uz' ? 'uz' : 'ru');
-            const timeStr = date.toLocaleTimeString(lang === 'uz' ? 'uz' : 'ru');
-            const percentage = Math.round((result.correctCount / result.totalCount) * 100);
+            const testName = result.testName || (lang === 'uz' ? 'Nomaʼlum test' : 'Неизвестный тест');
+            const correctCount = result.correctCount || 0;
+            const totalCount = result.totalCount || 0;
+            const timeTaken = result.timeTaken || 0;
+            const completedAt = result.completedAt ? new Date(result.completedAt) : null;
+            const dateStr = completedAt && !isNaN(completedAt) ? completedAt.toLocaleDateString(lang === 'uz' ? 'uz' : 'ru') : (lang === 'uz' ? 'Nomaʼlum sana' : 'Неизвестная дата');
+            const timeStr = completedAt && !isNaN(completedAt) ? completedAt.toLocaleTimeString(lang === 'uz' ? 'uz' : 'ru') : '';
+            const percentage = totalCount ? Math.round((correctCount / totalCount) * 100) : 0;
             const statusColor = percentage >= 70 ? '#10b981' : percentage >= 50 ? '#f59e0b' : '#ef4444';
 
             historyHTML += `
                 <div class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem;">
                     <div>
                         <h3 style="margin: 0 0 0.5rem 0; color: var(--text-primary);">
-                            ${result.testName}
+                            ${testName}
                         </h3>
                         <p style="margin: 0.25rem 0; color: var(--text-muted); font-size: 0.9rem;">
                             📅 ${dateStr} ${timeStr}
                         </p>
                         <p style="margin: 0.25rem 0; color: var(--text-muted); font-size: 0.9rem;">
-                            ⏱️ ${lang === 'uz' ? 'Vaqt' : 'Время'}: ${Math.floor(result.timeTaken / 60)} ${lang === 'uz' ? 'daqiqa' : 'мин'}
+                            ⏱️ ${lang === 'uz' ? 'Vaqt' : 'Время'}: ${Math.floor(timeTaken / 60)} ${lang === 'uz' ? 'daqiqa' : 'мин'}
                         </p>
                     </div>
                     <div style="text-align: right; display: flex; gap: 2rem; align-items: center;">
                         <div>
                             <div style="font-size: 1.5rem; font-weight: bold; color: ${statusColor};">
-                                ${result.correctCount}/${result.totalCount}
+                                ${correctCount}/${totalCount}
                             </div>
                             <div style="font-size: 0.9rem; color: ${statusColor}; font-weight: 600;">
                                 ${percentage}%
