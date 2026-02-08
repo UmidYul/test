@@ -3621,6 +3621,9 @@ function renderTestResults(result) {
     const statusColor = passed ? '#10b981' : '#ef4444';
     const statusGradient = passed ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)';
 
+    // Calculate percentage (avoid division by zero)
+    const percentage = result.totalCount ? Math.round((result.correctCount / result.totalCount) * 100) : 0;
+
     let resultHTML = `
         <style>
             @keyframes slideIn {
