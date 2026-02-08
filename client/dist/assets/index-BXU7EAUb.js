@@ -4175,7 +4175,7 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                 <div class="spinner"></div>
             </div>
         </div>
-    `,"teacher"),(a=document.getElementById("btnBackFromStudentProfile"))==null||a.addEventListener("click",()=>{$.navigate("/teacher/classes")});const n=document.getElementById("teacherStudentProfileContainer");try{const[r,o]=await Promise.all([L(`/api/teachers/students/${e}`),L(`/api/analytics/students/${e}/timeline`)]);if(!r.success||!r.data)throw new Error(r.error||"Не удалось загрузить профиль");const l=r.data,c=(u=>u?Array.isArray(u)?[...u].filter(h=>h&&h.categories).sort((h,g)=>new Date(g.completedAt||0)-new Date(h.completedAt||0))[0]||null:u.categories?u:null:null)(l.interestTestResults);if(n.innerHTML=`
+    `,"teacher"),(a=document.getElementById("btnBackFromStudentProfile"))==null||a.addEventListener("click",()=>{$.navigate("/teacher/classes")});const n=document.getElementById("teacherStudentProfileContainer");try{const[r,o]=await Promise.all([L(`/api/teachers/students/${e}`),L(`/api/analytics/students/${e}/timeline`)]);if(!r.success||!r.data)throw new Error(r.error||"Не удалось загрузить профиль");const l=r.data||{},d={...l,firstName:l.firstName||l.first_name||"",lastName:l.lastName||l.last_name||"",username:l.username||l.login||"",grade:l.grade||l.class_grade||l.classGrade||"",className:l.className||l.class_name||l.section||""},u=(h=>h?Array.isArray(h)?[...h].filter(g=>g&&g.categories).sort((g,p)=>new Date(p.completedAt||0)-new Date(g.completedAt||0))[0]||null:h.categories?h:null:null)(d.interestTestResults);if(n.innerHTML=`
             <div class="profile-grid" style="display: grid; gap: 1.5rem;">
                 <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                     <div style="display: flex; align-items: center; gap: 1.5rem;">
@@ -4183,10 +4183,10 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                             👤
                         </div>
                         <div>
-                            <h2 style="margin: 0 0 0.4rem 0; color: white;">${l.firstName} ${l.lastName}</h2>
+                            <h2 style="margin: 0 0 0.4rem 0; color: white;">${d.firstName||"—"} ${d.lastName||""}</h2>
                             <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem; opacity: 0.9;">
-                                <span>📚 ${l.grade?`${l.grade}${l.className||""}`:"—"} ${t==="uz"?"sinf":"класс"}</span>
-                                <span>👨‍🎓 @${l.username}</span>
+                                <span>📚 ${d.grade?`${d.grade}${d.className||""}`:"—"} ${t==="uz"?"sinf":"класс"}</span>
+                                <span>👨‍🎓 @${d.username||"—"}</span>
                             </div>
                         </div>
                     </div>
@@ -4202,15 +4202,15 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                     </div>
                 </div>
 
-                ${c?`
+                ${u?`
                     <div class="card">
                         <h3 style="margin: 0 0 1rem 0;">${t==="uz"?"Qiziqishlar profili":"Профиль интересов"}</h3>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
-                            ${Object.entries(c.categories||{}).sort((u,h)=>h[1]-u[1]).map(([u,h])=>{const p={math:{uz:"Matematika",ru:"Математика",icon:"🔢"},science:{uz:"Fan",ru:"Наука",icon:"🔬"},tech:{uz:"Texnologiya",ru:"Технологии",icon:"💻"},art:{uz:"San'at",ru:"Искусство",icon:"🎨"},social:{uz:"Ijtimoiy",ru:"Социальные",icon:"👥"},language:{uz:"Til",ru:"Языки",icon:"📚"}}[u]||{uz:u,ru:u,icon:"📊"};return`
+                            ${Object.entries(u.categories||{}).sort((h,g)=>g[1]-h[1]).map(([h,g])=>{const m={math:{uz:"Matematika",ru:"Математика",icon:"🔢"},science:{uz:"Fan",ru:"Наука",icon:"🔬"},tech:{uz:"Texnologiya",ru:"Технологии",icon:"💻"},art:{uz:"San'at",ru:"Искусство",icon:"🎨"},social:{uz:"Ijtimoiy",ru:"Социальные",icon:"👥"},language:{uz:"Til",ru:"Языки",icon:"📚"}}[h]||{uz:h,ru:h,icon:"📊"};return`
                                     <div class="card" style="text-align: center; background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                                        <div style="font-size: 2rem; margin-bottom: 0.35rem;">${p.icon}</div>
-                                        <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">${Math.round(h)}%</div>
-                                        <div style="color: var(--text-secondary); font-size: 0.9rem;">${t==="uz"?p.uz:p.ru}</div>
+                                        <div style="font-size: 2rem; margin-bottom: 0.35rem;">${m.icon}</div>
+                                        <div style="font-size: 1.4rem; font-weight: 700; color: var(--text-primary);">${Math.round(g)}%</div>
+                                        <div style="color: var(--text-secondary); font-size: 0.9rem;">${t==="uz"?m.uz:m.ru}</div>
                                     </div>
                                 `}).join("")}
                         </div>
@@ -4221,7 +4221,7 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                     </div>
                 `}
             </div>
-        `,o.success){const u=Ls(o.data,t==="uz"?"Natija":"Результат",{includeAllSubjects:!0});te("teacherStudentSubjectChart","teacherStudentSubjectEmpty",u)}else te("teacherStudentSubjectChart","teacherStudentSubjectEmpty",{labels:[],series:[]})}catch(r){console.error("Error loading student profile:",r),n&&(n.innerHTML=`
+        `,o.success){const h=Ls(o.data,t==="uz"?"Natija":"Результат",{includeAllSubjects:!0});te("teacherStudentSubjectChart","teacherStudentSubjectEmpty",h)}else te("teacherStudentSubjectChart","teacherStudentSubjectEmpty",{labels:[],series:[]})}catch(r){console.error("Error loading student profile:",r),n&&(n.innerHTML=`
                 <div class="card" style="text-align: center; color: var(--text-secondary);">
                     ${t==="uz"?"Ma'lumotlarni yuklashda xatolik":"Ошибка при загрузке данных"}
                 </div>

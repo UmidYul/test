@@ -11012,7 +11012,15 @@ async function renderTeacherStudentProfile({ studentId }) {
             throw new Error(studentRes.error || 'Не удалось загрузить профиль');
         }
 
-        const student = studentRes.data;
+        const rawStudent = studentRes.data || {};
+        const student = {
+            ...rawStudent,
+            firstName: rawStudent.firstName || rawStudent.first_name || '',
+            lastName: rawStudent.lastName || rawStudent.last_name || '',
+            username: rawStudent.username || rawStudent.login || '',
+            grade: rawStudent.grade || rawStudent.class_grade || rawStudent.classGrade || '',
+            className: rawStudent.className || rawStudent.class_name || rawStudent.section || ''
+        };
 
         const normalizeInterestResults = (value) => {
             if (!value) return null;
@@ -11034,10 +11042,10 @@ async function renderTeacherStudentProfile({ studentId }) {
                             👤
                         </div>
                         <div>
-                            <h2 style="margin: 0 0 0.4rem 0; color: white;">${student.firstName} ${student.lastName}</h2>
+                            <h2 style="margin: 0 0 0.4rem 0; color: white;">${student.firstName || '—'} ${student.lastName || ''}</h2>
                             <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.9rem; opacity: 0.9;">
                                 <span>📚 ${student.grade ? `${student.grade}${student.className || ''}` : '—'} ${lang === 'uz' ? 'sinf' : 'класс'}</span>
-                                <span>👨‍🎓 @${student.username}</span>
+                                <span>👨‍🎓 @${student.username || '—'}</span>
                             </div>
                         </div>
                     </div>
