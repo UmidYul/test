@@ -7258,7 +7258,7 @@ function initializeTeacherTest(test) {
 
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            submitTeacherTest(test._id, answers, test);
+            submitTeacherTest(test._id || test.id, answers, test);
         }
     }, 1000);
 
@@ -7409,7 +7409,7 @@ function initializeTeacherTest(test) {
             }
         }
         clearInterval(timerInterval);
-        submitTeacherTest(test._id, answers, test);
+        submitTeacherTest(test._id || test.id, answers, test);
     });
 
     // Initial render
@@ -7420,6 +7420,11 @@ function initializeTeacherTest(test) {
 async function submitTeacherTest(testId, answers, test) {
     const lang = store.getState().language;
     const user = store.getState().user;
+
+    if (!testId || testId === 'undefined' || testId === 'null') {
+        await showAlert(lang === 'uz' ? 'Test ID topilmadi' : 'ID теста не найден', 'warning');
+        return;
+    }
 
     console.log('📤 Submitting teacher test:', { testId, user });
     const userId = user?._id || user?.id || user?.userId;
