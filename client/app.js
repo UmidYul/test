@@ -3682,22 +3682,29 @@ function renderTestResults(result) {
                 </div>
             </div>
         </div>
-                            ${index + 1}. ${lang === 'uz' ? qr.questionUz : qr.questionRu}
+        ${Array.isArray(result.questionResults) ? result.questionResults.map((qr, index) => {
+        const borderColor = qr.isCorrect ? '#10b981' : '#ef4444';
+        return `
+                <div style="padding: 1.5rem; background: rgba(255,255,255,0.7); border-left: 4px solid ${borderColor}; border-radius: 8px; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <span style="font-size: 1.5rem; color: ${borderColor}; font-weight: bold;">${qr.isCorrect ? '✓' : '✗'}</span>
+                        <div style="flex: 1;">
+                            <p style="margin: 0; color: var(--text-primary); font-weight: 500;">
+                                ${index + 1}. ${lang === 'uz' ? qr.questionUz : qr.questionRu}
+                            </p>
+                        </div>
+                    </div>
+                    <div style="margin-left: 2.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                        <p style="margin: 0.5rem 0;">
+                            <strong>${lang === 'uz' ? 'Sizning javobingiz' : 'Ваш ответ'}:</strong> 
+                            <span style="color: ${borderColor};">
+                                ${qr.userAnswerText ? (lang === 'uz' ? qr.userAnswerText.textUz : qr.userAnswerText.textRu) : (lang === 'uz' ? 'Javob yo\'q' : 'Нет ответа')}
+                            </span>
                         </p>
                     </div>
                 </div>
-                
-                <div style="margin-left: 2.5rem; color: var(--text-muted); font-size: 0.9rem;">
-                    <p style="margin: 0.5rem 0;">
-                        <strong>${lang === 'uz' ? 'Sizning javobingiz' : 'Ваш ответ'}:</strong> 
-                        <span style="color: ${borderColor};">
-                            ${qr.userAnswerText ? (lang === 'uz' ? qr.userAnswerText.textUz : qr.userAnswerText.textRu) : (lang === 'uz' ? 'Javob yo\'q' : 'Нет ответа')}
-                        </span>
-                    </p>
-                </div>
-            </div>
-        </div>
-        
+            `;
+    }).join('') : ''}
         <div style="display: flex; gap: 1rem; margin-top: 2rem;">
             <button class="button button-primary" id="btnBackFromResults" style="flex: 1;">
                 ${lang === 'uz' ? 'Modulga qaytish' : 'Вернуться к модулю'}
