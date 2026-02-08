@@ -10673,14 +10673,8 @@ async function renderTeacherClasses() {
     const token = store.getState().token;
 
     try {
-        // Fetch all classes
-        const classesResponse = await fetch(`${API_BASE_URL}/api/classes`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const classesData = await classesResponse.json();
-        const classes = classesData.data || [];
-        const teacherId = user?.id || user?._id;
-        const teacherClasses = classes.filter(cls => cls.teacherId === teacherId);
+        const classesResponse = await apiRequest('/api/teacher/classes');
+        const teacherClasses = classesResponse.success ? (classesResponse.data || []) : [];
 
         const totalStudents = teacherClasses.reduce((sum, cls) => sum + (cls.studentCount || 0), 0);
         const content = `

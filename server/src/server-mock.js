@@ -1026,9 +1026,10 @@ app.get('/api/teacher/classes', auth, async (req, res) => {
               CASE WHEN ha.class_id IS NOT NULL THEN true ELSE false END as "isHomeroom"
        FROM classes c
        LEFT JOIN class_students cs ON c.id = cs.class_id AND cs.left_at IS NULL
-       JOIN teacher_teaching_assignments tta ON c.id = tta.class_id
+       LEFT JOIN teacher_teaching_assignments tta ON c.id = tta.class_id
        LEFT JOIN homeroom_assignments ha ON c.id = ha.class_id AND ha.teacher_id = $1 AND ha.end_at IS NULL
-       WHERE tta.teacher_id = $1 AND tta.is_active = true
+       WHERE (tta.teacher_id = $1 AND tta.is_active = true)
+          OR (ha.teacher_id = $1 AND ha.end_at IS NULL)
        GROUP BY c.id, c.grade, c.section, c.created_at, ha.class_id
        ORDER BY c.grade, c.section`,
       [req.userId]
