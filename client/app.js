@@ -3819,23 +3819,21 @@ async function renderTestHistoryPage() {
             });
         }
 
-        data.forEach((result, index) => {
-            let testName = result.testName;
-            if (!testName && testIdNameMap[result.test_id]) {
-                testName = testIdNameMap[result.test_id];
-            }
-            if (!testName && testIdNameMap[result.testId]) {
-                testName = testIdNameMap[result.testId];
-            }
-            if (!testName && result.test_id) {
-                testName = result.test_id;
-            }
-            if (!testName && result.testId) {
-                testName = result.testId;
-            }
-            if (!testName) {
-                testName = lang === 'uz' ? 'Nomaʼlum test' : 'Неизвестный тест';
-            }
+        // Получить названия тестов через API
+        const getTestName = async (testId) => {
+            try {
+                const resp = await apiRequest(`/api/tests/${testId}`);
+                if (resp && resp.success && resp.data) {
+                    return resp.data.title || resp.data.name || resp.data.testName || testId;
+                }
+            } catch (e) { }
+            return testId;
+        };
+
+        // Асинхронно собрать все карточки
+        const historyCards = await Promise.all(data.map(async (result, index) => {
+            const testId = result.test_id || result.testId;
+            const testName = await getTestName(testId);
             const correctCount = result.correctCount || result.correct_count || 0;
             const totalCount = result.totalCount || result.total_count || 0;
             const timeTaken = result.timeTaken || result.time_taken || 0;
@@ -3845,7 +3843,7 @@ async function renderTestHistoryPage() {
             const percentage = totalCount ? Math.round((correctCount / totalCount) * 100) : 0;
             const statusColor = percentage >= 70 ? '#10b981' : percentage >= 50 ? '#f59e0b' : '#ef4444';
 
-            historyHTML += `
+            return `
                 <div class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem;">
                     <div>
                         <h3 style="margin: 0 0 0.5rem 0; color: var(--text-primary);">
@@ -3873,7 +3871,8 @@ async function renderTestHistoryPage() {
                     </div>
                 </div>
             `;
-        });
+        }));
+        historyHTML += historyCards.join('');
 
         historyHTML += `</div>`;
         historyContainer.innerHTML = historyHTML;
