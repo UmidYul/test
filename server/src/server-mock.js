@@ -2761,6 +2761,9 @@ app.post('/api/teacher-test-results', auth, async (req, res) => {
 app.get('/api/teacher-test-results/:testId', auth, async (req, res) => {
   try {
     const { testId } = req.params;
+    if (!testId || testId === 'undefined' || testId === 'null') {
+      return res.status(400).json({ success: false, error: 'Неверный идентификатор теста' });
+    }
     const result = await pool.query('SELECT * FROM teacher_test_results WHERE test_id = $1', [testId]);
     res.json({ success: true, data: result.rows });
   } catch (error) {
@@ -2773,6 +2776,9 @@ app.get('/api/teacher-test-results/:testId', auth, async (req, res) => {
 app.get('/api/teacher-test-results/teacher/:teacherId', auth, async (req, res) => {
   try {
     const { teacherId } = req.params;
+    if (!teacherId || teacherId === 'undefined' || teacherId === 'null') {
+      return res.status(400).json({ success: false, error: 'Неверный идентификатор учителя' });
+    }
     const result = await pool.query('SELECT * FROM teacher_test_results WHERE teacher_id = $1', [teacherId]);
     res.json({ success: true, data: result.rows });
   } catch (error) {
