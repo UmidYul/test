@@ -11647,7 +11647,7 @@ async function renderTestEditor(testId, moduleId) {
             <main class="main-content">
                 <div class="page-header" style="margin-bottom: 2rem;">
                     <h1>${lang === 'uz' ? 'Savollarni tahrirlash' : 'Редактирование вопросов'}</h1>
-                    <p>${lang === 'uz' ? test.nameUz : test.nameRu}</p>
+                    <p>${test?.title || ''}</p>
                 </div>
                 
                 <div id="editorContainer" style="display: grid; gap: 2rem;">
@@ -11671,120 +11671,74 @@ async function renderTestEditor(testId, moduleId) {
     // Render questions
     const container = document.getElementById('editorContainer');
 
-    if (test.questions && test.questions.length > 0) {
-        container.innerHTML = test.questions.map((q, idx) => `
-            <div class="card question-editor" data-question-index="${idx}" style="border-left: 4px solid var(--primary);">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
-                    <h3 style="margin: 0; color: var(--text-primary);">
-                        ${lang === 'uz' ? 'Savol' : 'Вопрос'} ${idx + 1}
-                    </h3>
-                    <button class="button button-danger" onclick="deleteQuestion(this, ${idx})" style="padding: 8px 16px; font-size: 0.9rem;">
-                        ${lang === 'uz' ? 'O\'chirish' : 'Удалить'}
-                    </button>
-                </div>
-                
-                <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; font-weight: 600;">
-                        <span>🇷🇺</span>
-                        ${lang === 'uz' ? 'Savol matni (Ruscha)' : 'Текст вопроса (RU)'}
-                    </label>
-                    <textarea class="question-text-ru" rows="3" style="width: 100%; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 10px; padding: 14px; color: var(--text-primary); font-size: 0.95rem; resize: vertical; font-family: inherit;">${q.questionRu || ''}</textarea>
-                </div>
-                
-                <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; font-weight: 600;">
-                        <span>🇺🇿</span>
-                        ${lang === 'uz' ? 'Savol matni (O\'zbekcha)' : 'Текст вопроса (UZ)'}
-                    </label>
-                    <textarea class="question-text-uz" rows="3" style="width: 100%; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 10px; padding: 14px; color: var(--text-primary); font-size: 0.95rem; resize: vertical; font-family: inherit;">${q.questionUz || ''}</textarea>
-                </div>
-                
-                <div style="margin-bottom: 1.5rem;">
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-                        <h4 style="margin: 0; color: var(--text-primary);">
-                            ${lang === 'uz' ? 'Javob variantlari' : 'Варианты ответов'} 
-                            <span style="color: var(--text-muted); font-size: 0.8rem;">(минимум 2)</span>
-                        </h4>
-                        <button class="button button-secondary add-answer-btn" data-question-index="${idx}" style="padding: 8px 16px; font-size: 0.9rem; display: flex; gap: 0.5rem;">
-                            <span>➕</span>
-                            <span>${lang === 'uz' ? 'Variant' : 'Вариант'}</span>
-                        </button>
-                    </div>
-                    
-                    <div class="answers-container" style="display: grid; gap: 1rem;">
-                        ${(q.answers || []).map((answer, ansIdx) => `
-                            <div class="answer-item" style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center; padding: 1rem; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 10px; transition: all 0.3s ease;">
-                                <div style="display: grid; gap: 0.75rem;">
-                                    <textarea class="answer-text-ru" rows="2" placeholder="${lang === 'uz' ? 'Javob (Ruscha)' : 'Ответ (RU)'}" style="width: 100%; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; color: var(--text-primary); font-size: 0.9rem; resize: vertical; font-family: inherit;">${answer.textRu || ''}</textarea>
-                                    <textarea class="answer-text-uz" rows="2" placeholder="${lang === 'uz' ? 'Javob (O\'zbekcha)' : 'Ответ (UZ)'}" style="width: 100%; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; color: var(--text-primary); font-size: 0.9rem; resize: vertical; font-family: inherit;">${answer.textUz || ''}</textarea>
-                                </div>
-                                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 8px 12px; background: ${answer.isCorrect ? 'rgba(16, 185, 129, 0.2)' : 'transparent'}; border-radius: 8px; transition: all 0.3s ease;">
-                                        <input type="radio" name="correct-${idx}" class="is-correct" ${answer.isCorrect ? 'checked' : ''} style="cursor: pointer;" />
-                                        <span style="color: ${answer.isCorrect ? 'var(--success)' : 'var(--text-muted)'}; font-size: 0.85rem; font-weight: 500;">
-                                            ${lang === 'uz' ? '✓ To\'g\'ri' : '✓ Верно'}
-                                        </span>
-                                    </label>
-                                    <button type="button" class="button button-danger delete-answer-btn" data-answer-index="${ansIdx}" style="padding: 6px 12px; font-size: 0.8rem;">
-                                        🗑️
-                                    </button>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // Add event listeners for answer buttons
-    document.querySelectorAll('.add-answer-btn').forEach(btn => {
-        btn.addEventListener('click', () => addAnswerField(btn.getAttribute('data-question-index')));
-    });
-
-    document.querySelectorAll('.delete-answer-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            this.closest('.answer-item').remove();
+    if (Array.isArray(test.questions) && test.questions.length > 0) {
+        const mapped = test.questions.map((q) => {
+            const type = normalizeTeacherQuestionType(q.question_type || q.type);
+            const options = Array.isArray(q.options) ? q.options.map(opt => opt.text || opt.value || '') : [];
+            const correctIndexes = Array.isArray(q.options)
+                ? q.options
+                    .map((opt, idx) => (opt.is_correct || opt.isCorrect ? idx : null))
+                    .filter(idx => idx !== null)
+                : [];
+            return {
+                type,
+                text: q.text || '',
+                options,
+                correctAnswer: correctIndexes.length ? correctIndexes[0] : null,
+                correctAnswers: correctIndexes
+            };
         });
-    });
+
+        mapped.forEach((question) => {
+            addTeacherTestQuestion(container, question);
+        });
+    } else {
+        container.innerHTML = `
+            <div class="card" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                <div style="font-size: 3rem; margin-bottom: 0.75rem; opacity: 0.4;">❓</div>
+                <p>${lang === 'uz' ? 'Hozircha savollar yo\'q' : 'Вопросов пока нет'}</p>
+            </div>
+        `;
+    }
 
     // Add question button
     document.getElementById('addQuestionBtn').addEventListener('click', () => {
-        addNewQuestion(container);
+        if (container.querySelector('.card')?.textContent?.includes(lang === 'uz' ? 'Hozircha savollar' : 'Вопросов пока нет')) {
+            container.innerHTML = '';
+        }
+        addTeacherTestQuestion(container);
     });
 
     // Save button click handler
     document.getElementById('saveTestBtn').addEventListener('click', window.saveTestEditor = async () => {
         console.log('💾 Save button clicked');
-        const questions = [];
-
-        document.querySelectorAll('.question-editor').forEach((qEl, idx) => {
-            const questionRu = qEl.querySelector('.question-text-ru').value;
-            const questionUz = qEl.querySelector('.question-text-uz').value;
-            const answers = [];
-
-            qEl.querySelectorAll('.answer-item').forEach((ansEl) => {
-                const textRu = ansEl.querySelector('.answer-text-ru').value;
-                const textUz = ansEl.querySelector('.answer-text-uz').value;
-                const isCorrect = ansEl.querySelector('.is-correct').checked;
-
-                if (textRu && textUz) {
-                    answers.push({ textRu, textUz, isCorrect });
-                }
-            });
-
-            if (questionRu && questionUz && answers.length >= 2) {
-                questions.push({ questionRu, questionUz, answers });
-            }
-        });
-
-        console.log('📝 Collected questions:', questions);
-        console.log('🔢 Questions count:', questions.length);
-
-        if (questions.length === 0) {
-            alert(lang === 'uz' ? 'Kamida bitta to\'g\'ri savolni kiriting' : 'Введите хотя бы один вопрос');
+        const collected = collectTeacherTestQuestions();
+        if (!collected.success) {
+            alert(collected.error || (lang === 'uz' ? 'Xato' : 'Ошибка'));
             return;
         }
+
+        if (collected.questions.some(q => q.type === 'text')) {
+            alert(lang === 'uz'
+                ? 'Matnli savollar hozircha qo\'llab-quvvatlanmaydi'
+                : 'Текстовые вопросы пока не поддерживаются');
+            return;
+        }
+
+        const questions = collected.questions.map((q) => {
+            const options = (q.options || []).map((opt, idx) => ({
+                text: opt,
+                isCorrect: q.type === 'multiple'
+                    ? (q.correctAnswers || []).includes(idx)
+                    : q.correctAnswer === idx
+            }));
+            return {
+                type: q.type,
+                text: q.text,
+                points: 1,
+                options
+            };
+        });
 
         console.log('📤 Sending PUT request to /api/tests/' + window.currentTestId);
         const updateResult = await apiRequest(`/api/tests/${window.currentTestId}`, {
