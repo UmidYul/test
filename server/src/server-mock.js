@@ -2782,7 +2782,7 @@ app.get('/api/teacher-test-results/teacher/:teacherId', auth, async (req, res) =
 });
 
 // Start server
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 3001;
 
 // ...demo data init удалён...
 
