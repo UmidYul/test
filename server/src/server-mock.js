@@ -938,7 +938,7 @@ app.put('/api/teachers/:teacherId/assignments', auth, async (req, res) => {
       const { rows: conflicts } = await pool.query(
         `SELECT tta.subject_id::text as "subjectId", tta.class_id::text as "classId",
                 s.name as "subjectName",
-                c.grade, c.section, c.name as "className",
+          c.grade, c.section,
                 u.first_name, u.last_name
          FROM teacher_teaching_assignments tta
          JOIN subjects s ON s.id = tta.subject_id
@@ -956,7 +956,7 @@ app.put('/api/teachers/:teacherId/assignments', auth, async (req, res) => {
         const conflictText = conflicts.map((row) => {
           const classLabel = row.section
             ? `${row.grade || ''}${row.section}`
-            : (row.grade && row.className ? `${row.grade}${row.className}` : (row.className || row.grade || '—'));
+            : (row.grade || '—');
           const teacherName = `${row.first_name || ''} ${row.last_name || ''}`.trim();
           return `${row.subjectName || 'Предмет'} — ${classLabel} (${teacherName || 'учитель'})`;
         }).join(', ');
@@ -1171,7 +1171,7 @@ app.post('/api/users/register', async (req, res) => {
         const { rows: conflicts } = await pool.query(
           `SELECT tta.subject_id::text as "subjectId", tta.class_id::text as "classId",
                   s.name as "subjectName",
-                  c.grade, c.section, c.name as "className",
+              c.grade, c.section,
                   u.first_name, u.last_name
            FROM teacher_teaching_assignments tta
            JOIN subjects s ON s.id = tta.subject_id
@@ -1188,7 +1188,7 @@ app.post('/api/users/register', async (req, res) => {
           const conflictText = conflicts.map((row) => {
             const classLabel = row.section
               ? `${row.grade || ''}${row.section}`
-              : (row.grade && row.className ? `${row.grade}${row.className}` : (row.className || row.grade || '—'));
+              : (row.grade || '—');
             const teacherName = `${row.first_name || ''} ${row.last_name || ''}`.trim();
             return `${row.subjectName || 'Предмет'} — ${classLabel} (${teacherName || 'учитель'})`;
           }).join(', ');
