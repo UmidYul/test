@@ -6728,7 +6728,7 @@ async function assignTestToTeachers(testId) {
         // Get current test
         const testResponse = await apiRequest(`/api/teacher-tests/${testId}`);
         const test = testResponse.data;
-        const assignedIds = test.assignedTo || [];
+        const assignedIds = test.assignedTo || test.assigned_to || [];
 
         const modal = document.createElement('div');
         modal.className = 'modal';
@@ -6748,15 +6748,18 @@ async function assignTestToTeachers(testId) {
                     <div>
                         <label class="form-label">${lang === 'uz' ? 'O\'qituvchilarni tanlang' : 'Выберите учителей'}</label>
                         <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem;">
-                            ${teachers.map(teacher => `
+                            ${teachers.map(teacher => {
+            const teacherId = teacher._id || teacher.id || teacher.userId;
+            return `
                                 <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 6px; cursor: pointer; transition: background 0.2s;" class="teacher-checkbox-label">
-                                    <input type="checkbox" name="teachers" value="${teacher._id}" ${assignedIds.includes(teacher._id) ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                    <input type="checkbox" name="teachers" value="${teacherId || ''}" ${teacherId && assignedIds.includes(teacherId) ? 'checked' : ''} style="width: 18px; height: 18px; accent-color: var(--primary);">
                                     <div style="flex: 1;">
                                         <div style="font-weight: 600;">${teacher.firstName} ${teacher.lastName}</div>
                                         <div style="font-size: 0.85rem; color: var(--text-muted);">${teacher.username}</div>
                                     </div>
                                 </label>
-                            `).join('')}
+                            `;
+        }).join('')}
                         </div>
                     </div>
                     
@@ -6795,7 +6798,7 @@ async function assignTestToTeachers(testId) {
             e.preventDefault();
 
             const formData = new FormData(e.target);
-            const selectedTeachers = formData.getAll('teachers');
+            const selectedTeachers = formData.getAll('teachers').filter(id => id && id !== 'undefined' && id !== 'null');
 
             if (selectedTeachers.length === 0) {
                 await showAlert(lang === 'uz' ? 'Kamida bitta o\'qituvchi tanlang' : 'Выберите хотя бы одного учителя', 'warning');
@@ -6927,9 +6930,11 @@ async function loadTeacherMyTests() {
         const resultsResponse = await apiRequest(`/api/teacher-test-results/teacher/${userId}`);
         const results = resultsResponse.success ? resultsResponse.data : [];
         const latestResults = results.reduce((acc, result) => {
-            const current = acc[result.testId];
+            const resultTestId = result.testId || result.test_id;
+            if (!resultTestId) return acc;
+            const current = acc[resultTestId];
             if (!current || new Date(result.completedAt) > new Date(current.completedAt)) {
-                acc[result.testId] = result;
+                acc[resultTestId] = result;
             }
             return acc;
         }, {});
@@ -6947,7 +6952,8 @@ async function loadTeacherMyTests() {
         const tests = response.data;
 
         container.innerHTML = tests.map(test => {
-            const testResult = latestResults[test._id];
+            const testId = test._id || test.id || test.testId || test.test_id;
+            const testResult = latestResults[testId];
             const isPassed = testResult?.passed;
             const score = testResult?.score || 0;
 
@@ -6967,22 +6973,22 @@ async function loadTeacherMyTests() {
                             <div style="display: flex; gap: 1rem; font-size: 0.9rem; color: var(--text-muted);">
                                 <span>📝 ${test.questionsCount || test.questions?.length || 0} ${lang === 'uz' ? 'ta savol' : 'вопросов'}</span>
                                 <span>⏱️ ${test.duration || 30} ${lang === 'uz' ? 'daqiqa' : 'минут'}</span>
-                                <span>📊 ${lang === 'uz' ? 'O\'tish bali' : 'Проходной балл'}: ${test.passingScore || 70}%</span>
+                                <span>📊 ${lang === 'uz' ? 'O\'tish bali' : 'Проходной балл'}: ${test.passingScore || test.passing_score || 70}%</span>
                                 ${testResult ? `<span>✅ ${lang === 'uz' ? 'Ball' : 'Результат'}: ${score}%</span>` : ''}
                             </div>
                         </div>
                         <div style="display: flex; gap: 0.5rem;">
                             ${testResult ? `
-                                <button class="button button-secondary" onclick="viewMyTestResult('${test._id}')" style="padding: 0.5rem 1rem;">
+                                <button class="button button-secondary" onclick="viewMyTestResult('${testId}')" style="padding: 0.5rem 1rem;">
                                     <span>📊</span>
                                     <span>${lang === 'uz' ? 'Natija' : 'Результат'}</span>
                                 </button>
-                                <button class="button button-primary" onclick="retakeTeacherTest('${test._id}')" style="padding: 0.5rem 1rem;">
+                                <button class="button button-primary" onclick="retakeTeacherTest('${testId}')" style="padding: 0.5rem 1rem;">
                                     <span>🔄</span>
                                     <span>${lang === 'uz' ? 'Qayta topshirish' : 'Пересдать'}</span>
                                 </button>
                             ` : `
-                                <button class="button button-primary" onclick="startTeacherTest('${test._id}')" style="padding: 0.5rem 1rem;">
+                                <button class="button button-primary" onclick="startTeacherTest('${testId}')" style="padding: 0.5rem 1rem;">
                                     <span>▶️</span>
                                     <span>${lang === 'uz' ? 'Boshlash' : 'Начать тест'}</span>
                                 </button>

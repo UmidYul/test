@@ -2448,7 +2448,7 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                     <button class="button button-secondary" id="btnCloseResults">${t==="uz"?"Yopish":"Закрыть"}</button>
                 </div>
             </div>
-        `,document.body.appendChild(l),setTimeout(()=>l.classList.add("show"),10),(i=document.getElementById("closeResultsModal"))==null||i.addEventListener("click",()=>{l.classList.remove("show"),setTimeout(()=>l.remove(),300)}),(s=document.getElementById("btnCloseResults"))==null||s.addEventListener("click",()=>{l.classList.remove("show"),setTimeout(()=>l.remove(),300)})}catch(n){console.error("Error viewing results:",n),await B(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}}async function ph(e){var i,s,n;const t=z.getState().language;try{if(!e||e==="undefined"||e==="null"){await B(t==="uz"?"Test ID topilmadi":"ID теста не найден","warning");return}const a=await A("/api/users");if(!a.success)throw new Error("Failed to load teachers");const r=a.data.filter(u=>u.role==="teacher");if(r.length===0){await B(t==="uz"?"O'qituvchilar topilmadi":"Учителя не найдены","warning");return}const l=(await A(`/api/teacher-tests/${e}`)).data,d=l.assignedTo||[],c=document.createElement("div");c.className="modal",c.innerHTML=`
+        `,document.body.appendChild(l),setTimeout(()=>l.classList.add("show"),10),(i=document.getElementById("closeResultsModal"))==null||i.addEventListener("click",()=>{l.classList.remove("show"),setTimeout(()=>l.remove(),300)}),(s=document.getElementById("btnCloseResults"))==null||s.addEventListener("click",()=>{l.classList.remove("show"),setTimeout(()=>l.remove(),300)})}catch(n){console.error("Error viewing results:",n),await B(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}}async function ph(e){var i,s,n;const t=z.getState().language;try{if(!e||e==="undefined"||e==="null"){await B(t==="uz"?"Test ID topilmadi":"ID теста не найден","warning");return}const a=await A("/api/users");if(!a.success)throw new Error("Failed to load teachers");const r=a.data.filter(u=>u.role==="teacher");if(r.length===0){await B(t==="uz"?"O'qituvchilar topilmadi":"Учителя не найдены","warning");return}const l=(await A(`/api/teacher-tests/${e}`)).data,d=l.assignedTo||l.assigned_to||[],c=document.createElement("div");c.className="modal",c.innerHTML=`
             <div class="modal-content" style="max-width: 600px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <h2 style="margin: 0;">${t==="uz"?"Testni tayinlash":"Назначить тест"}</h2>
@@ -2464,15 +2464,15 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                     <div>
                         <label class="form-label">${t==="uz"?"O'qituvchilarni tanlang":"Выберите учителей"}</label>
                         <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem;">
-                            ${r.map(u=>`
+                            ${r.map(u=>{const h=u._id||u.id||u.userId;return`
                                 <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; border-radius: 6px; cursor: pointer; transition: background 0.2s;" class="teacher-checkbox-label">
-                                    <input type="checkbox" name="teachers" value="${u._id}" ${d.includes(u._id)?"checked":""} style="width: 18px; height: 18px; accent-color: var(--primary);">
+                                    <input type="checkbox" name="teachers" value="${h||""}" ${h&&d.includes(h)?"checked":""} style="width: 18px; height: 18px; accent-color: var(--primary);">
                                     <div style="flex: 1;">
                                         <div style="font-weight: 600;">${u.firstName} ${u.lastName}</div>
                                         <div style="font-size: 0.85rem; color: var(--text-muted);">${u.username}</div>
                                     </div>
                                 </label>
-                            `).join("")}
+                            `}).join("")}
                         </div>
                     </div>
                     
@@ -2482,7 +2482,7 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                     </div>
                 </form>
             </div>
-        `,document.body.appendChild(c),setTimeout(()=>c.classList.add("show"),10),c.querySelectorAll(".teacher-checkbox-label").forEach(u=>{u.addEventListener("mouseenter",()=>{u.style.background="var(--bg-secondary)"}),u.addEventListener("mouseleave",()=>{u.style.background="transparent"})}),(i=document.getElementById("closeAssignModal"))==null||i.addEventListener("click",()=>{c.classList.remove("show"),setTimeout(()=>c.remove(),300)}),(s=document.getElementById("btnCancelAssign"))==null||s.addEventListener("click",()=>{c.classList.remove("show"),setTimeout(()=>c.remove(),300)}),(n=document.getElementById("assignTestForm"))==null||n.addEventListener("submit",async u=>{u.preventDefault();const g=new FormData(u.target).getAll("teachers");if(g.length===0){await B(t==="uz"?"Kamida bitta o'qituvchi tanlang":"Выберите хотя бы одного учителя","warning");return}try{const p=await A(`/api/teacher-tests/${e}/assign`,"POST",{teacherIds:g});if(p.success)c.classList.remove("show"),setTimeout(()=>c.remove(),300),await B(t==="uz"?"Test muvaffaqiyatli tayinlandi":"Тест успешно назначен","success");else throw new Error(p.error)}catch(p){console.error("Error assigning test:",p),await B(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}})}catch(a){console.error("Error loading teachers:",a),await B(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}}async function fh(e){const t=z.getState().language;if(!e||e==="undefined"||e==="null"){await B(t==="uz"?"Test ID topilmadi":"ID теста не найден","warning");return}if(await Vt(t==="uz"?"Testni o'chirmoqchimisiz?":"Удалить тест?",t==="uz"?"O'chirish":"Удаление"))try{const s=await A(`/api/teacher-tests/${e}`,"DELETE");if(s.success)await Ps(),await B(t==="uz"?"Test o'chirildi":"Тест удален","success");else throw new Error(s.error)}catch(s){console.error("Error deleting test:",s),await B(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}}async function bh(){var s;const e=z.getState().user,t=z.getState().language;if(!e){k.navigate("/login");return}O(`
+        `,document.body.appendChild(c),setTimeout(()=>c.classList.add("show"),10),c.querySelectorAll(".teacher-checkbox-label").forEach(u=>{u.addEventListener("mouseenter",()=>{u.style.background="var(--bg-secondary)"}),u.addEventListener("mouseleave",()=>{u.style.background="transparent"})}),(i=document.getElementById("closeAssignModal"))==null||i.addEventListener("click",()=>{c.classList.remove("show"),setTimeout(()=>c.remove(),300)}),(s=document.getElementById("btnCancelAssign"))==null||s.addEventListener("click",()=>{c.classList.remove("show"),setTimeout(()=>c.remove(),300)}),(n=document.getElementById("assignTestForm"))==null||n.addEventListener("submit",async u=>{u.preventDefault();const g=new FormData(u.target).getAll("teachers").filter(p=>p&&p!=="undefined"&&p!=="null");if(g.length===0){await B(t==="uz"?"Kamida bitta o'qituvchi tanlang":"Выберите хотя бы одного учителя","warning");return}try{const p=await A(`/api/teacher-tests/${e}/assign`,"POST",{teacherIds:g});if(p.success)c.classList.remove("show"),setTimeout(()=>c.remove(),300),await B(t==="uz"?"Test muvaffaqiyatli tayinlandi":"Тест успешно назначен","success");else throw new Error(p.error)}catch(p){console.error("Error assigning test:",p),await B(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}})}catch(a){console.error("Error loading teachers:",a),await B(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}}async function fh(e){const t=z.getState().language;if(!e||e==="undefined"||e==="null"){await B(t==="uz"?"Test ID topilmadi":"ID теста не найден","warning");return}if(await Vt(t==="uz"?"Testni o'chirmoqchimisiz?":"Удалить тест?",t==="uz"?"O'chirish":"Удаление"))try{const s=await A(`/api/teacher-tests/${e}`,"DELETE");if(s.success)await Ps(),await B(t==="uz"?"Test o'chirildi":"Тест удален","success");else throw new Error(s.error)}catch(s){console.error("Error deleting test:",s),await B(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}}async function bh(){var s;const e=z.getState().user,t=z.getState().language;if(!e){k.navigate("/login");return}O(`
         <div class="page-header">
             <div class="page-header-title">
                 <h1>📋 ${t==="uz"?"Mening testlarim":"Мои тесты"}</h1>
@@ -2501,43 +2501,43 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                 <div class="loading"><div class="spinner"></div></div>
             </div>
         </div>
-    `,"teacher"),(s=document.getElementById("btnBackToTeacher"))==null||s.addEventListener("click",()=>{k.navigate("/teacher/subjects")}),await yh()}async function yh(){const e=z.getState().user,t=z.getState().language,i=document.getElementById("teacherMyTestsList");console.log("👤 Current user:",e);const s=(e==null?void 0:e._id)||(e==null?void 0:e.id)||(e==null?void 0:e.userId);if(console.log("🆔 User ID:",s),!s){console.error("❌ User ID not found in user object:",e),await B(t==="uz"?"Foydalanuvchi ma'lumotlari topilmadi":"Информация о пользователе не найдена","error"),k.navigate("/login");return}try{const n=await A(`/api/teacher-tests/assigned/${s}`),a=await A(`/api/teacher-test-results/teacher/${s}`),o=(a.success?a.data:[]).reduce((d,c)=>{const u=d[c.testId];return(!u||new Date(c.completedAt)>new Date(u.completedAt))&&(d[c.testId]=c),d},{});if(!n.success||!n.data||n.data.length===0){i.innerHTML=`
+    `,"teacher"),(s=document.getElementById("btnBackToTeacher"))==null||s.addEventListener("click",()=>{k.navigate("/teacher/subjects")}),await yh()}async function yh(){const e=z.getState().user,t=z.getState().language,i=document.getElementById("teacherMyTestsList");console.log("👤 Current user:",e);const s=(e==null?void 0:e._id)||(e==null?void 0:e.id)||(e==null?void 0:e.userId);if(console.log("🆔 User ID:",s),!s){console.error("❌ User ID not found in user object:",e),await B(t==="uz"?"Foydalanuvchi ma'lumotlari topilmadi":"Информация о пользователе не найдена","error"),k.navigate("/login");return}try{const n=await A(`/api/teacher-tests/assigned/${s}`),a=await A(`/api/teacher-test-results/teacher/${s}`),o=(a.success?a.data:[]).reduce((d,c)=>{const u=c.testId||c.test_id;if(!u)return d;const h=d[u];return(!h||new Date(c.completedAt)>new Date(h.completedAt))&&(d[u]=c),d},{});if(!n.success||!n.data||n.data.length===0){i.innerHTML=`
                 <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
                     <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;">📝</div>
                     <p>${t==="uz"?"Sizga hali testlar tayinlanmagan":"Вам еще не назначены тесты"}</p>
                 </div>
-            `;return}const l=n.data;i.innerHTML=l.map(d=>{var g;const c=o[d._id],u=c==null?void 0:c.passed,h=(c==null?void 0:c.score)||0;return`
-                <div class="card" style="margin-bottom: 1rem; border-left: 4px solid ${u?"#10b981":c?"#ef4444":"var(--primary)"};">
+            `;return}const l=n.data;i.innerHTML=l.map(d=>{var p;const c=d._id||d.id||d.testId||d.test_id,u=o[c],h=u==null?void 0:u.passed,g=(u==null?void 0:u.score)||0;return`
+                <div class="card" style="margin-bottom: 1rem; border-left: 4px solid ${h?"#10b981":u?"#ef4444":"var(--primary)"};">
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                         <div style="flex: 1;">
                             <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
                                 <h3 style="margin: 0;">${d.title}</h3>
-                                ${c?`
-                                    <span style="padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600; background: ${u?"#10b981":"#ef4444"}; color: white;">
-                                        ${u?t==="uz"?"O'tdi":"Сдан":t==="uz"?"O'tmadi":"Не сдан"}
+                                ${u?`
+                                    <span style="padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600; background: ${h?"#10b981":"#ef4444"}; color: white;">
+                                        ${h?t==="uz"?"O'tdi":"Сдан":t==="uz"?"O'tmadi":"Не сдан"}
                                     </span>
                                 `:""}
                             </div>
                             <p style="color: var(--text-muted); margin: 0 0 0.5rem 0;">${d.description}</p>
                             <div style="display: flex; gap: 1rem; font-size: 0.9rem; color: var(--text-muted);">
-                                <span>📝 ${d.questionsCount||((g=d.questions)==null?void 0:g.length)||0} ${t==="uz"?"ta savol":"вопросов"}</span>
+                                <span>📝 ${d.questionsCount||((p=d.questions)==null?void 0:p.length)||0} ${t==="uz"?"ta savol":"вопросов"}</span>
                                 <span>⏱️ ${d.duration||30} ${t==="uz"?"daqiqa":"минут"}</span>
-                                <span>📊 ${t==="uz"?"O'tish bali":"Проходной балл"}: ${d.passingScore||70}%</span>
-                                ${c?`<span>✅ ${t==="uz"?"Ball":"Результат"}: ${h}%</span>`:""}
+                                <span>📊 ${t==="uz"?"O'tish bali":"Проходной балл"}: ${d.passingScore||d.passing_score||70}%</span>
+                                ${u?`<span>✅ ${t==="uz"?"Ball":"Результат"}: ${g}%</span>`:""}
                             </div>
                         </div>
                         <div style="display: flex; gap: 0.5rem;">
-                            ${c?`
-                                <button class="button button-secondary" onclick="viewMyTestResult('${d._id}')" style="padding: 0.5rem 1rem;">
+                            ${u?`
+                                <button class="button button-secondary" onclick="viewMyTestResult('${c}')" style="padding: 0.5rem 1rem;">
                                     <span>📊</span>
                                     <span>${t==="uz"?"Natija":"Результат"}</span>
                                 </button>
-                                <button class="button button-primary" onclick="retakeTeacherTest('${d._id}')" style="padding: 0.5rem 1rem;">
+                                <button class="button button-primary" onclick="retakeTeacherTest('${c}')" style="padding: 0.5rem 1rem;">
                                     <span>🔄</span>
                                     <span>${t==="uz"?"Qayta topshirish":"Пересдать"}</span>
                                 </button>
                             `:`
-                                <button class="button button-primary" onclick="startTeacherTest('${d._id}')" style="padding: 0.5rem 1rem;">
+                                <button class="button button-primary" onclick="startTeacherTest('${c}')" style="padding: 0.5rem 1rem;">
                                     <span>▶️</span>
                                     <span>${t==="uz"?"Boshlash":"Начать тест"}</span>
                                 </button>
