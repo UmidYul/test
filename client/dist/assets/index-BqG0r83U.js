@@ -906,34 +906,34 @@ var Tr=Object.defineProperty;var Mr=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                 <div class="spinner"></div>
             </div>
         </div>
-    `,"student"),(n=document.getElementById("btnBackFromHistory"))==null||n.addEventListener("click",()=>{$.navigate("/student/dashboard")});const i=document.getElementById("historyContainer"),s=await C("/api/test-results");if(s.success&&s.data&&s.data.length>0){const r=s.data;let o='<div style="display: grid; gap: 1rem;">';r.forEach((l,d)=>{const c=l.testName||(e==="uz"?"Nomaʼlum test":"Неизвестный тест"),u=l.correctCount||0,h=l.totalCount||0,m=l.timeTaken||0,p=l.completedAt?new Date(l.completedAt):null,g=p&&!isNaN(p)?p.toLocaleDateString(e==="uz"?"uz":"ru"):e==="uz"?"Nomaʼlum sana":"Неизвестная дата",f=p&&!isNaN(p)?p.toLocaleTimeString(e==="uz"?"uz":"ru"):"",y=h?Math.round(u/h*100):0,b=y>=70?"#10b981":y>=50?"#f59e0b":"#ef4444";o+=`
+    `,"student"),(n=document.getElementById("btnBackFromHistory"))==null||n.addEventListener("click",()=>{$.navigate("/student/dashboard")});const i=document.getElementById("historyContainer"),s=await C("/api/test-results");if(s.success&&s.data&&s.data.length>0){const r=s.data;let o='<div style="display: grid; gap: 1rem;">';const l={};window.testsList&&Array.isArray(window.testsList)&&window.testsList.forEach(d=>{l[d.id||d._id||d.testId||d.test_id]=d.title||d.name||d.testName||""}),r.forEach((d,c)=>{let u=d.testName;!u&&l[d.test_id]&&(u=l[d.test_id]),!u&&l[d.testId]&&(u=l[d.testId]),!u&&d.test_id&&(u=d.test_id),!u&&d.testId&&(u=d.testId),u||(u=e==="uz"?"Nomaʼlum test":"Неизвестный тест");const h=d.correctCount||d.correct_count||0,m=d.totalCount||d.total_count||0,p=d.timeTaken||d.time_taken||0,g=d.completedAt||d.completed_at?new Date(d.completedAt||d.completed_at):null,f=g&&!isNaN(g)?g.toLocaleDateString(e==="uz"?"uz":"ru"):e==="uz"?"Nomaʼlum sana":"Неизвестная дата",y=g&&!isNaN(g)?g.toLocaleTimeString(e==="uz"?"uz":"ru"):"",b=m?Math.round(h/m*100):0,x=b>=70?"#10b981":b>=50?"#f59e0b":"#ef4444";o+=`
                 <div class="card" style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem;">
                     <div>
                         <h3 style="margin: 0 0 0.5rem 0; color: var(--text-primary);">
-                            ${c}
+                            ${u}
                         </h3>
                         <p style="margin: 0.25rem 0; color: var(--text-muted); font-size: 0.9rem;">
-                            📅 ${g} ${f}
+                            📅 ${f} ${y}
                         </p>
                         <p style="margin: 0.25rem 0; color: var(--text-muted); font-size: 0.9rem;">
-                            ⏱️ ${e==="uz"?"Vaqt":"Время"}: ${Math.floor(m/60)} ${e==="uz"?"daqiqa":"мин"}
+                            ⏱️ ${e==="uz"?"Vaqt":"Время"}: ${Math.floor(p/60)} ${e==="uz"?"daqiqa":"мин"}
                         </p>
                     </div>
                     <div style="text-align: right; display: flex; gap: 2rem; align-items: center;">
                         <div>
-                            <div style="font-size: 1.5rem; font-weight: bold; color: ${b};">
-                                ${u}/${h}
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${x};">
+                                ${h}/${m}
                             </div>
-                            <div style="font-size: 0.9rem; color: ${b}; font-weight: 600;">
-                                ${y}%
+                            <div style="font-size: 0.9rem; color: ${x}; font-weight: 600;">
+                                ${b}%
                             </div>
                         </div>
-                        <button class="button button-secondary view-details-btn" data-result-id="${l._id}" data-index="${d}">
+                        <button class="button button-secondary view-details-btn" data-result-id="${d._id||d.id}" data-index="${c}">
                             ${e==="uz"?"Batafsil":"Подробно"}
                         </button>
                     </div>
                 </div>
-            `}),o+="</div>",i.innerHTML=o,document.querySelectorAll(".view-details-btn").forEach(l=>{l.addEventListener("click",function(){const d=this.getAttribute("data-result-id");console.log("📊 Viewing result details:",d),$.navigate(`/student/test-results/${d}`)})})}else i.innerHTML=`
+            `}),o+="</div>",i.innerHTML=o,document.querySelectorAll(".view-details-btn").forEach(d=>{d.addEventListener("click",function(){const c=this.getAttribute("data-result-id");console.log("📊 Viewing result details:",c),$.navigate(`/student/test-results/${c}`)})})}else i.innerHTML=`
             <div class="card" style="text-align: center; padding: 3rem;">
                 <p style="color: var(--text-muted); font-size: 1.1rem;">
                     ${e==="uz"?"Hali testlar topilmadi":"Тесты еще не найдены"}

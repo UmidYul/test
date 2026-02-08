@@ -3811,12 +3811,35 @@ async function renderTestHistoryPage() {
 
         let historyHTML = `<div style="display: grid; gap: 1rem;">`;
 
+        // Build a testId-to-name map if available
+        const testIdNameMap = {};
+        if (window.testsList && Array.isArray(window.testsList)) {
+            window.testsList.forEach(test => {
+                testIdNameMap[test.id || test._id || test.testId || test.test_id] = test.title || test.name || test.testName || '';
+            });
+        }
+
         data.forEach((result, index) => {
-            const testName = result.testName || (lang === 'uz' ? 'Nomaʼlum test' : 'Неизвестный тест');
-            const correctCount = result.correctCount || 0;
-            const totalCount = result.totalCount || 0;
-            const timeTaken = result.timeTaken || 0;
-            const completedAt = result.completedAt ? new Date(result.completedAt) : null;
+            let testName = result.testName;
+            if (!testName && testIdNameMap[result.test_id]) {
+                testName = testIdNameMap[result.test_id];
+            }
+            if (!testName && testIdNameMap[result.testId]) {
+                testName = testIdNameMap[result.testId];
+            }
+            if (!testName && result.test_id) {
+                testName = result.test_id;
+            }
+            if (!testName && result.testId) {
+                testName = result.testId;
+            }
+            if (!testName) {
+                testName = lang === 'uz' ? 'Nomaʼlum test' : 'Неизвестный тест';
+            }
+            const correctCount = result.correctCount || result.correct_count || 0;
+            const totalCount = result.totalCount || result.total_count || 0;
+            const timeTaken = result.timeTaken || result.time_taken || 0;
+            const completedAt = result.completedAt || result.completed_at ? new Date(result.completedAt || result.completed_at) : null;
             const dateStr = completedAt && !isNaN(completedAt) ? completedAt.toLocaleDateString(lang === 'uz' ? 'uz' : 'ru') : (lang === 'uz' ? 'Nomaʼlum sana' : 'Неизвестная дата');
             const timeStr = completedAt && !isNaN(completedAt) ? completedAt.toLocaleTimeString(lang === 'uz' ? 'uz' : 'ru') : '';
             const percentage = totalCount ? Math.round((correctCount / totalCount) * 100) : 0;
@@ -3844,7 +3867,7 @@ async function renderTestHistoryPage() {
                                 ${percentage}%
                             </div>
                         </div>
-                        <button class="button button-secondary view-details-btn" data-result-id="${result._id}" data-index="${index}">
+                        <button class="button button-secondary view-details-btn" data-result-id="${result._id || result.id}" data-index="${index}">
                             ${lang === 'uz' ? 'Batafsil' : 'Подробно'}
                         </button>
                     </div>
