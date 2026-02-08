@@ -1392,7 +1392,7 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                 </div>
             </form>
         </div>
-    `,i.addEventListener("click",a=>{a.target===i&&i.remove()}),document.body.appendChild(i),setTimeout(()=>i.classList.add("show"),10),(s=document.getElementById("closeSubjectEditModal"))==null||s.addEventListener("click",()=>i.remove()),(n=document.getElementById("subjectEditForm"))==null||n.addEventListener("submit",async a=>{a.preventDefault();const r=document.getElementById("subjectEditName").value.trim();if(!r){B(t==="uz"?"Barcha maydonlarni to'ldiring":"Заполните все обязательные поля","warning");return}const o={name:r},l=e._id||e.id,d=await A(`/api/subjects/${l}`,"PUT",o);d.success?(B(t==="uz"?"Fan yangilandi":"Предмет обновлен","success"),i.remove(),Ai()):B(d.error||(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка"),"error")})}async function sh(e){const t=z.getState().language,i=await A(`/api/subjects/${e}`,"DELETE");i.success?(B(t==="uz"?"Fan o'chirildi":"Предмет удален","success"),Ai()):B(i.error||(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка"),"error")}async function fr(){console.log("🔧 showAddUserModal called");const e=z.getState().language;let t=[];try{const a=await A("/api/subjects");console.log("📚 Raw API response:",a),a.success?(t=a.data||[],console.log("📚 Загружено предметов:",t.length),console.log("📚 Данные предметов:",t.slice(0,3)),console.log("📚 Типы данных:",t.length>0?typeof t[0].id+", "+typeof t[0].name:"no data")):console.error("❌ Ошибка загрузки предметов:",a)}catch(a){console.error("❌ Ошибка при загрузке предметов:",a)}const i=document.createElement("div");i.className="modal",i.innerHTML=`
+    `,i.addEventListener("click",a=>{a.target===i&&i.remove()}),document.body.appendChild(i),setTimeout(()=>i.classList.add("show"),10),(s=document.getElementById("closeSubjectEditModal"))==null||s.addEventListener("click",()=>i.remove()),(n=document.getElementById("subjectEditForm"))==null||n.addEventListener("submit",async a=>{a.preventDefault();const r=document.getElementById("subjectEditName").value.trim();if(!r){B(t==="uz"?"Barcha maydonlarni to'ldiring":"Заполните все обязательные поля","warning");return}const o={name:r},l=e._id||e.id,d=await A(`/api/subjects/${l}`,"PUT",o);d.success?(B(t==="uz"?"Fan yangilandi":"Предмет обновлен","success"),i.remove(),Ai()):B(d.error||(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка"),"error")})}async function sh(e){const t=z.getState().language,i=await A(`/api/subjects/${e}`,"DELETE");i.success?(B(t==="uz"?"Fan o'chirildi":"Предмет удален","success"),Ai()):B(i.error||(t==="uz"?"Xatolik yuz berdi":"Произошла ошибка"),"error")}async function fr(){console.log("🔧 showAddUserModal called");const e=z.getState().language;let t=[],i=[];try{const[r,o]=await Promise.all([A("/api/subjects"),A("/api/classes")]);console.log("📚 Raw API response:",r),r.success?(t=r.data||[],console.log("📚 Загружено предметов:",t.length),console.log("📚 Данные предметов:",t.slice(0,3)),console.log("📚 Типы данных:",t.length>0?typeof t[0].id+", "+typeof t[0].name:"no data")):console.error("❌ Ошибка загрузки предметов:",r),o.success?(i=o.data||[],console.log("🏫 Загружено классов:",i.length)):console.error("❌ Ошибка загрузки классов:",o)}catch(r){console.error("❌ Ошибка при загрузке предметов:",r)}const s=document.createElement("div");s.className="modal",s.innerHTML=`
         <div class="modal-content" style="max-width: 550px;">
             <div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(124, 58, 237, 0.15) 100%); border: 1px solid rgba(139, 92, 246, 0.35); color: var(--text-primary); padding: 1.25rem; border-radius: 14px; margin-bottom: 1.25rem;">
                 <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem;">${e==="uz"?"Admin paneli":"Админ панель"}</div>
@@ -1448,20 +1448,33 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                             ${e==="uz"?"Predmetlar":"Предметы"}
                         </label>
                     </div>
-                    <div class="teacher-subjects-list" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 220px; overflow-y: auto; padding: 0.5rem;">
+                    <div class="teacher-subjects-list" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 320px; overflow-y: auto; padding: 0.5rem;">
                         
-                    ${t&&t.length>0?t.map((a,r)=>`
-                            <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.7rem; padding: 0.75rem 0.9rem; cursor: pointer; border-radius: 8px; background: var(--bg-secondary); border: 2px solid transparent; transition: all 0.2s ease;" 
-                                onmouseover="this.style.background='rgba(139, 92, 246, 0.12)'; this.style.borderColor='rgba(139, 92, 246, 0.4)'; this.style.transform='translateX(3px)'" 
-                                onmouseout="this.style.background='var(--bg-secondary)'; this.style.borderColor='transparent'; this.style.transform='translateX(0)'">
-                                <input type="checkbox" class="teacherSubject" 
-                                    value="${a&&a.id?a.id:"undefined-"+r}" 
-                                    data-name="${a&&a.name?a.name:"undefined-"+r}" 
-                                    style="width: 20px; height: 20px; cursor: pointer; accent-color: #8b5cf6; border-radius: 4px;">
-                                <span style="flex: 1; font-size: 0.95rem; font-weight: 500; color: var(--text-primary);">${a&&a.name?a.name:"undefined-"+r}</span>
-                                <span style="font-size: 0.75rem; opacity: 0; transition: opacity 0.2s;">✓</span>
-                            </label>
-                        `).join(""):'<p style="color: var(--text-muted); text-align: center; padding: 2rem; font-size: 0.9rem;">📭 Предметы не загружены или пустой список</p>'}
+                    ${t&&t.length>0?t.map((r,o)=>{const l=(r==null?void 0:r.id)||(r==null?void 0:r._id)||`undefined-${o}`,d=(r==null?void 0:r.name)||`undefined-${o}`,c=i.map(u=>{const h=(u==null?void 0:u.id)||(u==null?void 0:u._id),g=u!=null&&u.section?`${u.grade||""}${u.section}`:(u==null?void 0:u.grade)||(u==null?void 0:u.name)||"—";return`
+                                <label style="display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.6rem; border-radius: 8px; cursor: pointer;">
+                                    <input type="checkbox" class="teacherSubjectClass" data-subject-id="${l}" value="${h}" style="width: 16px; height: 16px; accent-color: #8b5cf6;">
+                                    <span style="font-size: 0.9rem; color: var(--text-primary);">${g}</span>
+                                </label>
+                            `}).join("");return`
+                            <div style="border: 2px solid transparent; border-radius: 10px; background: var(--bg-secondary);">
+                                <label class="teacher-subject-item" style="display: flex; align-items: center; gap: 0.7rem; padding: 0.75rem 0.9rem; cursor: pointer; border-radius: 8px; transition: all 0.2s ease;" 
+                                    onmouseover="this.style.background='rgba(139, 92, 246, 0.12)'; this.style.borderColor='rgba(139, 92, 246, 0.4)'; this.style.transform='translateX(3px)'" 
+                                    onmouseout="this.style.background='transparent'; this.style.borderColor='transparent'; this.style.transform='translateX(0)'">
+                                    <input type="checkbox" class="teacherSubject" 
+                                        value="${l}" 
+                                        data-name="${d}" 
+                                        style="width: 20px; height: 20px; cursor: pointer; accent-color: #8b5cf6; border-radius: 4px;">
+                                    <span style="flex: 1; font-size: 0.95rem; font-weight: 500; color: var(--text-primary);">${d}</span>
+                                    <span style="font-size: 0.75rem; opacity: 0; transition: opacity 0.2s;">✓</span>
+                                </label>
+                                <div class="teacher-subject-classes" data-subject-id="${l}" style="display: none; padding: 0.5rem 0.9rem 0.9rem 2.2rem; border-top: 1px solid var(--border-color);">
+                                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem;">${e==="uz"?"Sinflar":"Классы"}</div>
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.35rem;">
+                                        ${c}
+                                    </div>
+                                </div>
+                            </div>
+                        `}).join(""):'<p style="color: var(--text-muted); text-align: center; padding: 2rem; font-size: 0.9rem;">📭 Предметы не загружены или пустой список</p>'}
                     </div>
                 </div>
                 
@@ -1475,13 +1488,13 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                 </div>
             </form>
         </div>
-    `,document.body.appendChild(i),setTimeout(()=>i.classList.add("show"),10),setTimeout(()=>{document.querySelectorAll(".teacherSubject").forEach(a=>{a.addEventListener("change",r=>{const o=r.target.closest(".teacher-subject-item"),l=o.querySelector("span:last-child");r.target.checked?(o.style.background="rgba(139, 92, 246, 0.18)",o.style.borderColor="#8b5cf6",o.style.boxShadow="0 2px 8px rgba(139, 92, 246, 0.25)",l&&(l.style.opacity="1")):(o.style.background="var(--bg-secondary)",o.style.borderColor="transparent",o.style.boxShadow="none",l&&(l.style.opacity="0"))})})},50);const s=document.getElementById("addUserAlert"),n=(a,r="info")=>{if(!s)return;const o={success:"✅",error:"❌",warning:"⚠️",info:"ℹ️"};s.className=`inline-alert inline-alert--${r}`,s.innerHTML=`
-            <span style="font-size: 1.1rem;">${o[r]||o.info}</span>
-            <span>${a}</span>
-        `,s.style.display="flex"};document.getElementById("closeAddUserBtn").addEventListener("click",()=>{i.classList.remove("show"),setTimeout(()=>i.remove(),300)}),document.getElementById("addUserForm").addEventListener("submit",async a=>{a.preventDefault();const r=document.getElementById("userFirstName").value.trim(),o=document.getElementById("userLastName").value.trim(),l=document.getElementById("userEmail").value.trim(),d=document.getElementById("userPhone").value.trim();if(!r||!o){n(e==="uz"?"Barcha maydonlarni to'ldiring":"Заполните все обязательные поля","warning");return}if(!l){n(e==="uz"?"Email majburiy":"Email обязателен","warning");return}const c=Array.from(document.querySelectorAll(".teacherSubject:checked")).map(h=>({id:h.value,name:h.dataset.name}));if(c.length===0){n(e==="uz"?"Kamida bitta predmet tanlang":"Выберите хотя бы один предмет","warning");return}const u={role:"teacher",firstName:r,lastName:o,email:l,phone:d||null,subjects:c};try{const h=await A("/api/users/register",{method:"POST",body:JSON.stringify(u)});if(h.success){const g=document.createElement("div");g.className="modal show",g.style.zIndex="10001";const p=h.data.emailSent,m=h.data.username,f=h.data.email;g.innerHTML=`
+    `,document.body.appendChild(s),setTimeout(()=>s.classList.add("show"),10),setTimeout(()=>{document.querySelectorAll(".teacherSubject").forEach(r=>{r.addEventListener("change",o=>{const l=o.target.closest(".teacher-subject-item"),d=l.querySelector("span:last-child"),c=o.target.value,u=document.querySelector(`.teacher-subject-classes[data-subject-id="${c}"]`);o.target.checked?(l.style.background="rgba(139, 92, 246, 0.18)",l.style.borderColor="#8b5cf6",l.style.boxShadow="0 2px 8px rgba(139, 92, 246, 0.25)",d&&(d.style.opacity="1"),u&&(u.style.display="block")):(l.style.background="var(--bg-secondary)",l.style.borderColor="transparent",l.style.boxShadow="none",d&&(d.style.opacity="0"),u&&(u.style.display="none"))})})},50);const n=document.getElementById("addUserAlert"),a=(r,o="info")=>{if(!n)return;const l={success:"✅",error:"❌",warning:"⚠️",info:"ℹ️"};n.className=`inline-alert inline-alert--${o}`,n.innerHTML=`
+            <span style="font-size: 1.1rem;">${l[o]||l.info}</span>
+            <span>${r}</span>
+        `,n.style.display="flex"};document.getElementById("closeAddUserBtn").addEventListener("click",()=>{s.classList.remove("show"),setTimeout(()=>s.remove(),300)}),document.getElementById("addUserForm").addEventListener("submit",async r=>{r.preventDefault();const o=document.getElementById("userFirstName").value.trim(),l=document.getElementById("userLastName").value.trim(),d=document.getElementById("userEmail").value.trim(),c=document.getElementById("userPhone").value.trim();if(!o||!l){a(e==="uz"?"Barcha maydonlarni to'ldiring":"Заполните все обязательные поля","warning");return}if(!d){a(e==="uz"?"Email majburiy":"Email обязателен","warning");return}const u=Array.from(document.querySelectorAll(".teacherSubject:checked")),h=[];let g=!1;if(u.forEach(f=>{const y=f.value,b=f.dataset.name,x=Array.from(document.querySelectorAll(`.teacherSubjectClass[data-subject-id="${y}"]:checked`)).map(v=>v.value).filter(Boolean);x.length===0&&(g=!0),h.push({subjectId:y,subjectName:b,classIds:x})}),h.length===0){a(e==="uz"?"Kamida bitta predmet tanlang":"Выберите хотя бы один предмет","warning");return}if(g){a(e==="uz"?"Har bir fan uchun kamida bitta sinf tanlang":"Выберите хотя бы один класс для каждого предмета","warning");return}const p=h.map(f=>({id:f.subjectId,name:f.subjectName})),m={role:"teacher",firstName:o,lastName:l,email:d,phone:c||null,subjects:p,subjectAssignments:h};try{const f=await A("/api/users/register",{method:"POST",body:JSON.stringify(m)});if(f.success){const y=document.createElement("div");y.className="modal show",y.style.zIndex="10001";const b=f.data.emailSent,x=f.data.username,v=f.data.email;y.innerHTML=`
                     <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
                         <div style="text-align: center; padding: 2rem;">
-                            <div style="font-size: 3rem; margin-bottom: 1rem;">${p?"✅":"⚠️"}</div>
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">${b?"✅":"⚠️"}</div>
                             <h2 style="margin: 0 0 1rem 0; font-size: 1.5rem;">
                                 ${e==="uz"?"Foydalanuvchi yaratildi":"Пользователь создан"}
                             </h2>
@@ -1491,15 +1504,15 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                                     <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">
                                         ${e==="uz"?"Login":"Логин"}:
                                     </div>
-                                    <div style="font-size: 1.3rem; font-weight: 700; font-family: monospace; letter-spacing: 1px;">${m}</div>
+                                    <div style="font-size: 1.3rem; font-weight: 700; font-family: monospace; letter-spacing: 1px;">${x}</div>
                                 </div>
                                 <div>
                                     <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">Email:</div>
-                                    <div style="font-size: 1.1rem; font-weight: 600;">${f}</div>
+                                    <div style="font-size: 1.1rem; font-weight: 600;">${v}</div>
                                 </div>
                             </div>
                             
-                            ${p?`
+                            ${b?`
                                 <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; text-align: left;">
                                     <div style="font-weight: 600; margin-bottom: 0.5rem;">📧 ${e==="uz"?"Email yuborildi":"Email отправлен"}</div>
                                     <ul style="margin: 0; padding-left: 1.2rem; line-height: 1.6;">
@@ -1514,13 +1527,13 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                                     <p style="margin: 0;">
                                         ${e==="uz"?"Parolni qo'lda berish kerak. Server loglarini tekshiring.":"Необходимо передать пароль вручную. Проверьте логи сервера."}
                                     </p>
-                                    ${h.data.otp?`
+                                    ${f.data.otp?`
                                         <div style="margin-top: 1rem;">
                                             <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">
                                                 ${e==="uz"?"Bir martalik parol (OTP)":"Одноразовый пароль (OTP)"}:
                                             </div>
                                             <div style="font-size: 1.5rem; font-weight: 700; font-family: monospace; letter-spacing: 3px; background: rgba(255,255,255,0.2); padding: 0.7rem; border-radius: 8px;">
-                                                ${h.data.otp}
+                                                ${f.data.otp}
                                             </div>
                                         </div>
                                     `:""}
@@ -1532,7 +1545,7 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                             </button>
                         </div>
                     </div>
-                `,document.body.appendChild(g),B(e==="uz"?"Foydalanuvchi muvaffaqiyatli qo'shildi":"Пользователь успешно добавлен","success"),i.classList.remove("show"),setTimeout(()=>{i.remove(),ge()},300)}else n(h.error||(e==="uz"?"Xatolik yuz berdi":"Произошла ошибка"),"error")}catch(h){console.error("Error creating user:",h),n(e==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}})}async function nh(){const e=z.getState().language,t=document.createElement("div");t.className="admin-modal-overlay",t.innerHTML=`
+                `,document.body.appendChild(y),B(e==="uz"?"Foydalanuvchi muvaffaqiyatli qo'shildi":"Пользователь успешно добавлен","success"),s.classList.remove("show"),setTimeout(()=>{s.remove(),ge()},300)}else a(f.error||(e==="uz"?"Xatolik yuz berdi":"Произошла ошибка"),"error")}catch(f){console.error("Error creating user:",f),a(e==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}})}async function nh(){const e=z.getState().language,t=document.createElement("div");t.className="admin-modal-overlay",t.innerHTML=`
         <div class="admin-modal-content modal-content" style="max-width: 450px;">
             <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0; margin: -1.5rem -1.5rem 1.5rem -1.5rem;">
                 <h2 style="margin: 0; font-size: 1.3rem;">🏫 ${e==="uz"?"Sinf qo'shish":"Добавить класс"}</h2>

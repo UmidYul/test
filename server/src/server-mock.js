@@ -833,6 +833,17 @@ app.get('/api/users/me', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, error: 'Пользователь не найден' });
     }
+    if (user?.role === 'teacher') {
+      const { rows: subjectRows } = await pool.query(
+        `SELECT DISTINCT s.id::text as id, s.name
+         FROM teacher_teaching_assignments tta
+         JOIN subjects s ON s.id = tta.subject_id
+         WHERE tta.teacher_id = $1 AND tta.is_active = true
+         ORDER BY s.name`,
+        [user.id]
+      );
+      user.subjects = subjectRows;
+    }
     res.json({ success: true, data: user });
   } catch (error) {
     console.error('[PROFILE] Error:', error);
@@ -855,7 +866,7 @@ app.get('/api/users/:userId', auth, async (req, res) => {
     const user = rows[0];
     if (user.role === 'teacher') {
       const { rows: subjectRows } = await pool.query(
-        `SELECT s.id::text as id, s.name
+        `SELECT DISTINCT s.id::text as id, s.name
          FROM teacher_teaching_assignments tta
          JOIN subjects s ON s.id = tta.subject_id
          WHERE tta.teacher_id = $1 AND tta.is_active = true
@@ -906,7 +917,7 @@ app.get('/api/teacher/classes', auth, async (req, res) => {
     }
     const { rows } = await pool.query(
       `SELECT c.id, c.grade, c.section as name, c.created_at,
-              COUNT(cs.student_id) as "studentCount",
+              COUNT(DISTINCT cs.student_id) as "studentCount",
               CASE WHEN ha.class_id IS NOT NULL THEN true ELSE false END as "isHomeroom"
        FROM classes c
        LEFT JOIN class_students cs ON c.id = cs.class_id AND cs.left_at IS NULL
@@ -1034,22 +1045,47 @@ app.post('/api/users/register', async (req, res) => {
       console.log(`[REGISTER] Added student ${username} to class ${classId}`);
     }
 
-    // Для учителей: сохранить предметы
+    // Для учителей: сохранить предметы и классы
     if (role === 'teacher') {
-      const subjectIds = (Array.isArray(body.subjects) ? body.subjects : [])
-        .map(subject => subject?.id || subject?.subjectId || subject)
-        .filter(Boolean)
-        .map(id => String(id));
+      const subjectAssignments = Array.isArray(body.subjectAssignments) ? body.subjectAssignments : [];
+      const pairs = [];
 
-      if (subjectIds.length > 0) {
+      subjectAssignments.forEach((item) => {
+        const subjectId = item?.subjectId || item?.id || item?.subject || null;
+        const classIds = Array.isArray(item?.classIds) ? item.classIds : [];
+        classIds.forEach((classId) => {
+          if (subjectId && classId) {
+            pairs.push({ subjectId: String(subjectId), classId: String(classId) });
+          }
+        });
+      });
+
+      if (pairs.length > 0) {
+        const subjectIds = pairs.map(p => p.subjectId);
+        const classIds = pairs.map(p => p.classId);
         await pool.query(
-          `INSERT INTO teacher_teaching_assignments (id, teacher_id, subject_id, is_active)
-           SELECT gen_random_uuid(), $1, s.id, true
-           FROM subjects s
-           WHERE s.id = ANY($2::uuid[])`,
-          [userId, subjectIds]
+          `INSERT INTO teacher_teaching_assignments (id, teacher_id, subject_id, class_id, is_active)
+           SELECT gen_random_uuid(), $1, s, c, true
+           FROM UNNEST($2::uuid[], $3::uuid[]) AS t(s, c)`,
+          [userId, subjectIds, classIds]
         );
-        console.log(`[REGISTER] Added ${subjectIds.length} subjects for teacher ${username}`);
+        console.log(`[REGISTER] Added ${pairs.length} subject-class assignments for teacher ${username}`);
+      } else {
+        const subjectIds = (Array.isArray(body.subjects) ? body.subjects : [])
+          .map(subject => subject?.id || subject?.subjectId || subject)
+          .filter(Boolean)
+          .map(id => String(id));
+
+        if (subjectIds.length > 0) {
+          await pool.query(
+            `INSERT INTO teacher_teaching_assignments (id, teacher_id, subject_id, is_active)
+             SELECT gen_random_uuid(), $1, s.id, true
+             FROM subjects s
+             WHERE s.id = ANY($2::uuid[])`,
+            [userId, subjectIds]
+          );
+          console.log(`[REGISTER] Added ${subjectIds.length} subjects for teacher ${username}`);
+        }
       }
     }
 
