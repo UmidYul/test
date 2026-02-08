@@ -738,7 +738,8 @@ app.get('/api/users', auth, async (req, res) => {
   }
   try {
     const { role } = req.query;
-    let query = `SELECT u.id, u.username, u.role, u.first_name as "firstName", u.last_name as "lastName",
+    let query = `SELECT DISTINCT ON (u.id)
+                         u.id, u.username, u.role, u.first_name as "firstName", u.last_name as "lastName",
                          u.created_at, u.updated_at,
                          CASE
                            WHEN u.role = 'student' THEN cs.class_id
@@ -779,6 +780,7 @@ app.get('/api/users', auth, async (req, res) => {
       query += ' WHERE u.role = $1';
       params.push(role);
     }
+    query += ' ORDER BY u.id';
     const { rows } = await pool.query(query, params);
     res.json({ success: true, data: rows });
   } catch (error) {
@@ -850,7 +852,20 @@ app.get('/api/users/:userId', auth, async (req, res) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    res.json({ success: true, data: rows[0] });
+    const user = rows[0];
+    if (user.role === 'teacher') {
+      const { rows: subjectRows } = await pool.query(
+        `SELECT s.id::text as id, s.name
+         FROM teacher_teaching_assignments tta
+         JOIN subjects s ON s.id = tta.subject_id
+         WHERE tta.teacher_id = $1 AND tta.is_active = true
+         ORDER BY s.name`,
+        [req.params.userId]
+      );
+      user.subjects = subjectRows;
+    }
+
+    res.json({ success: true, data: user });
   } catch (error) {
     console.error('Error fetching user:', error);
     res.status(500).json({ success: false, error: 'Database error' });
@@ -1017,6 +1032,25 @@ app.post('/api/users/register', async (req, res) => {
         INSERT INTO class_students (class_id, student_id, enrolled_at) VALUES ($1, $2, NOW())
       `, [classId, userId]);
       console.log(`[REGISTER] Added student ${username} to class ${classId}`);
+    }
+
+    // Для учителей: сохранить предметы
+    if (role === 'teacher') {
+      const subjectIds = (Array.isArray(body.subjects) ? body.subjects : [])
+        .map(subject => subject?.id || subject?.subjectId || subject)
+        .filter(Boolean)
+        .map(id => String(id));
+
+      if (subjectIds.length > 0) {
+        await pool.query(
+          `INSERT INTO teacher_teaching_assignments (id, teacher_id, subject_id, is_active)
+           SELECT gen_random_uuid(), $1, s.id, true
+           FROM subjects s
+           WHERE s.id = ANY($2::uuid[])`,
+          [userId, subjectIds]
+        );
+        console.log(`[REGISTER] Added ${subjectIds.length} subjects for teacher ${username}`);
+      }
     }
 
     const user = result.rows[0];

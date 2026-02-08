@@ -9012,32 +9012,37 @@ async function renderTeacherSubjects() {
         router.navigate('/teacher/classes');
     });
 
-    // Load all subjects
-    const result = await apiRequest('/api/subjects');
+    // Load teacher subjects
+    const teacherSubjectsResult = await apiRequest('/api/teacher/subjects');
+    const container = document.getElementById('teacherSubjects');
 
-    if (result.success && result.data) {
-        const subjects = result.data;
-        const teacherSubjects = Array.isArray(user.subjects) ? user.subjects : [];
-        const teacherSubjectIds = new Set(
-            teacherSubjects
-                .map(s => s?.id || s?._id || s?.subjectId || s)
-                .filter(Boolean)
-        );
-        const subjectsToShow = teacherSubjectIds.size
-            ? subjects.filter(s => teacherSubjectIds.has(s._id || s.id))
-            : subjects;
-        const container = document.getElementById('teacherSubjects');
+    if (!container) return;
 
+    const subjectsToShow = teacherSubjectsResult.success && Array.isArray(teacherSubjectsResult.data)
+        ? teacherSubjectsResult.data
+        : [];
+
+    if (!subjectsToShow.length) {
         container.innerHTML = `
-            <div class="subjects-grid">
-                ${subjectsToShow.map(subject => `
-                    <div class="subject-card" data-subject-id="${subject.id}" style="background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 1px solid var(--border-color); transition: all 0.3s ease; cursor: pointer;">
+            <div class="alert" style="padding: 1.5rem; text-align: center;">
+                ${lang === 'uz' ? 'Sizga fanlar biriktirilmagan' : 'У вас нет назначенных предметов'}
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="subjects-grid">
+            ${subjectsToShow.map(subject => {
+        const subjectId = subject.id || subject._id;
+        return `
+                    <div class="subject-card" data-subject-id="${subjectId}" style="background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 1px solid var(--border-color); transition: all 0.3s ease; cursor: pointer;">
                         <div class="subject-header" style="pointer-events: none;">
                             <div class="subject-icon" style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">${getSubjectIcon(subject.name)}</div>
                             <h3 style="margin: 1rem 0 0.5rem 0; font-size: 1.25rem;">${subject.name}</h3>
                         </div>
                         <div class="subject-info" style="margin: 0.75rem 0; pointer-events: none;">
-                            <p id="subject-${subject.id}-stats" style="color: var(--text-muted); font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <p id="subject-${subjectId}-stats" style="color: var(--text-muted); font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                 <span style="font-size: 1.125rem;">📦</span>
                                 ${lang === 'uz' ? 'Yuklanmoqda...' : 'Загрузка...'}
                             </p>
@@ -9048,36 +9053,36 @@ async function renderTeacherSubjects() {
                             <span>→</span>
                         </button>
                     </div>
-                `).join('')}
-            </div>
-        `;
+                `;
+    }).join('')}
+        </div>
+    `;
 
-        // Add click handlers to subject cards
-        document.querySelectorAll('.subject-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                const subjectId = card.getAttribute('data-subject-id');
-                if (subjectId) {
-                    router.navigate(`/teacher/subject/${subjectId}`);
-                }
-            });
-        });
-
-        // Load module counts for each subject
-        console.log('📊 Loading module counts for subjects...');
-        subjectsToShow.forEach(async (subject) => {
-            console.log('📦 Loading modules for subject:', subject.id);
-            const modulesResult = await apiRequest(`/api/subjects/${subject.id}/modules`);
-            console.log('📦 Modules result for subject ' + subject.id + ':', modulesResult);
-            const statsEl = document.getElementById(`subject-${subject.id}-stats`);
-            if (statsEl && modulesResult.success) {
-                const moduleCount = modulesResult.data.length;
-                console.log('✅ Module count for subject ' + subject.id + ':', moduleCount);
-                statsEl.textContent = `${moduleCount} ${lang === 'uz' ? 'ta modul' : moduleCount === 1 ? 'модуль' : 'модулей'}`;
-            } else {
-                console.error('❌ Failed to load modules for subject ' + subject.id + ':', modulesResult);
+    // Add click handlers to subject cards
+    document.querySelectorAll('.subject-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const subjectId = card.getAttribute('data-subject-id');
+            if (subjectId) {
+                router.navigate(`/teacher/subject/${subjectId}`);
             }
         });
-    }
+    });
+
+    // Load module counts for each subject
+    subjectsToShow.forEach(async (subject) => {
+        const subjectId = subject.id || subject._id;
+        if (!subjectId) return;
+        const modulesResult = await apiRequest(`/api/subjects/${subjectId}/modules`);
+        const statsEl = document.getElementById(`subject-${subjectId}-stats`);
+        if (!statsEl) return;
+
+        if (modulesResult.success) {
+            const moduleCount = Array.isArray(modulesResult.data) ? modulesResult.data.length : 0;
+            statsEl.textContent = `${moduleCount} ${lang === 'uz' ? 'ta modul' : moduleCount === 1 ? 'модуль' : 'модулей'}`;
+        } else {
+            statsEl.textContent = `0 ${lang === 'uz' ? 'ta modul' : 'модулей'}`;
+        }
+    });
 }
 
 // Teacher: Single Subject Management

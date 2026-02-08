@@ -3228,7 +3228,7 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                     50% { transform: translateY(-20px); }
                 }
             </style>
-        `;O(y,"student"),(r=document.getElementById("btnBackToDashboard"))==null||r.addEventListener("click",()=>{k.navigate("/student/dashboard")})}catch(o){console.error("❌ Error submitting control test:",o),B(n==="uz"?"Xatolik yuz berdi: "+o.message:"Ошибка: "+o.message,"error",6e3)}}function ga(){if(!z.getState().user){k.navigate("/login");return}k.navigate("/teacher/subjects")}async function Th(){var n,a,r,o,l;const e=z.getState().user,t=z.getState().language;if(!e){k.navigate("/login");return}const i=`
+        `;O(y,"student"),(r=document.getElementById("btnBackToDashboard"))==null||r.addEventListener("click",()=>{k.navigate("/student/dashboard")})}catch(o){console.error("❌ Error submitting control test:",o),B(n==="uz"?"Xatolik yuz berdi: "+o.message:"Ошибка: "+o.message,"error",6e3)}}function ga(){if(!z.getState().user){k.navigate("/login");return}k.navigate("/teacher/subjects")}async function Th(){var r,o,l,d,c;const e=z.getState().user,t=z.getState().language;if(!e){k.navigate("/login");return}const i=`
         <div class="page-header">
             <h1>${t==="uz"?"Mening fanlarim":"Мои предметы"}</h1>
             <p>${e.firstName} ${e.lastName} • ${C("teacher")}</p>
@@ -3292,16 +3292,20 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                 </div>
             </div>
         </div>
-    `;O(i,"teacher"),(n=document.getElementById("btnTeacherProfile"))==null||n.addEventListener("click",()=>{k.navigate("/teacher/profile")}),(a=document.getElementById("btnTeacherTests"))==null||a.addEventListener("click",()=>{k.navigate("/teacher/tests")}),(r=document.getElementById("btnTeacherModuleAnalytics"))==null||r.addEventListener("click",()=>{k.navigate("/teacher/subject-analytics")}),(o=document.getElementById("btnTeacherControlTests"))==null||o.addEventListener("click",()=>{k.navigate("/teacher/control-tests")}),(l=document.getElementById("btnTeacherClasses"))==null||l.addEventListener("click",()=>{k.navigate("/teacher/classes")});const s=await A("/api/subjects");if(s.success&&s.data){const d=s.data,c=Array.isArray(e.subjects)?e.subjects:[],u=new Set(c.map(p=>(p==null?void 0:p.id)||(p==null?void 0:p._id)||(p==null?void 0:p.subjectId)||p).filter(Boolean)),h=u.size?d.filter(p=>u.has(p._id||p.id)):d,g=document.getElementById("teacherSubjects");g.innerHTML=`
-            <div class="subjects-grid">
-                ${h.map(p=>`
-                    <div class="subject-card" data-subject-id="${p.id}" style="background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 1px solid var(--border-color); transition: all 0.3s ease; cursor: pointer;">
+    `;O(i,"teacher"),(r=document.getElementById("btnTeacherProfile"))==null||r.addEventListener("click",()=>{k.navigate("/teacher/profile")}),(o=document.getElementById("btnTeacherTests"))==null||o.addEventListener("click",()=>{k.navigate("/teacher/tests")}),(l=document.getElementById("btnTeacherModuleAnalytics"))==null||l.addEventListener("click",()=>{k.navigate("/teacher/subject-analytics")}),(d=document.getElementById("btnTeacherControlTests"))==null||d.addEventListener("click",()=>{k.navigate("/teacher/control-tests")}),(c=document.getElementById("btnTeacherClasses"))==null||c.addEventListener("click",()=>{k.navigate("/teacher/classes")});const s=await A("/api/teacher/subjects"),n=document.getElementById("teacherSubjects");if(!n)return;const a=s.success&&Array.isArray(s.data)?s.data:[];if(!a.length){n.innerHTML=`
+            <div class="alert" style="padding: 1.5rem; text-align: center;">
+                ${t==="uz"?"Sizga fanlar biriktirilmagan":"У вас нет назначенных предметов"}
+            </div>
+        `;return}n.innerHTML=`
+        <div class="subjects-grid">
+            ${a.map(u=>{const h=u.id||u._id;return`
+                    <div class="subject-card" data-subject-id="${h}" style="background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 1px solid var(--border-color); transition: all 0.3s ease; cursor: pointer;">
                         <div class="subject-header" style="pointer-events: none;">
-                            <div class="subject-icon" style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">${pr(p.name)}</div>
-                            <h3 style="margin: 1rem 0 0.5rem 0; font-size: 1.25rem;">${p.name}</h3>
+                            <div class="subject-icon" style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">${pr(u.name)}</div>
+                            <h3 style="margin: 1rem 0 0.5rem 0; font-size: 1.25rem;">${u.name}</h3>
                         </div>
                         <div class="subject-info" style="margin: 0.75rem 0; pointer-events: none;">
-                            <p id="subject-${p.id}-stats" style="color: var(--text-muted); font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                            <p id="subject-${h}-stats" style="color: var(--text-muted); font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                 <span style="font-size: 1.125rem;">📦</span>
                                 ${t==="uz"?"Yuklanmoqda...":"Загрузка..."}
                             </p>
@@ -3312,9 +3316,9 @@ var Sr=Object.defineProperty;var Tr=(e,t,i)=>t in e?Sr(e,t,{enumerable:!0,config
                             <span>→</span>
                         </button>
                     </div>
-                `).join("")}
-            </div>
-        `,document.querySelectorAll(".subject-card").forEach(p=>{p.addEventListener("click",m=>{const f=p.getAttribute("data-subject-id");f&&k.navigate(`/teacher/subject/${f}`)})}),console.log("📊 Loading module counts for subjects..."),h.forEach(async p=>{console.log("📦 Loading modules for subject:",p.id);const m=await A(`/api/subjects/${p.id}/modules`);console.log("📦 Modules result for subject "+p.id+":",m);const f=document.getElementById(`subject-${p.id}-stats`);if(f&&m.success){const y=m.data.length;console.log("✅ Module count for subject "+p.id+":",y),f.textContent=`${y} ${t==="uz"?"ta modul":y===1?"модуль":"модулей"}`}else console.error("❌ Failed to load modules for subject "+p.id+":",m)})}}async function Eh(){const e=window.location.pathname.split("/").pop(),t=z.getState().language,i=z.getState().user;console.log("🔍 renderTeacherSubjectManagement called with subjectId:",e),console.log("📍 Current path:",window.location.pathname),O(`
+                `}).join("")}
+        </div>
+    `,document.querySelectorAll(".subject-card").forEach(u=>{u.addEventListener("click",()=>{const h=u.getAttribute("data-subject-id");h&&k.navigate(`/teacher/subject/${h}`)})}),a.forEach(async u=>{const h=u.id||u._id;if(!h)return;const g=await A(`/api/subjects/${h}/modules`),p=document.getElementById(`subject-${h}-stats`);if(p)if(g.success){const m=Array.isArray(g.data)?g.data.length:0;p.textContent=`${m} ${t==="uz"?"ta modul":m===1?"модуль":"модулей"}`}else p.textContent=`0 ${t==="uz"?"ta modul":"модулей"}`})}async function Eh(){const e=window.location.pathname.split("/").pop(),t=z.getState().language,i=z.getState().user;console.log("🔍 renderTeacherSubjectManagement called with subjectId:",e),console.log("📍 Current path:",window.location.pathname),O(`
         <div class="page-header" style="margin-bottom: 2rem;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
