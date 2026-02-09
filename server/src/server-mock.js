@@ -2292,15 +2292,16 @@ app.get('/api/teacher/analytics', auth, async (req, res) => {
     // Get stats by class
     const statsByClassResult = await pool.query(
       `SELECT 
-         u.grade,
+         c.grade,
          COUNT(DISTINCT tr.id) as completed_tests,
          AVG(tr.score) as average_score
        FROM test_results tr
        INNER JOIN tests t ON tr.test_id = t.id
        INNER JOIN users u ON tr.user_id = u.id
-       WHERE t.created_by = $1 AND u.grade IS NOT NULL
-       GROUP BY u.grade
-       ORDER BY u.grade`,
+       LEFT JOIN classes c ON u.class_id = c.id
+       WHERE t.created_by = $1 AND c.grade IS NOT NULL
+       GROUP BY c.grade
+       ORDER BY c.grade`,
       [teacherId]
     );
     const statsByClass = statsByClassResult.rows.map(row => ({
@@ -2336,12 +2337,13 @@ app.get('/api/teacher/analytics', auth, async (req, res) => {
          tr.score,
          tr.submitted_at,
          u.first_name || ' ' || u.last_name as student_name,
-         u.grade as student_grade,
+         c.grade as student_grade,
          s.name as subject_name,
          t.name as test_name
        FROM test_results tr
        INNER JOIN tests t ON tr.test_id = t.id
        INNER JOIN users u ON tr.user_id = u.id
+       LEFT JOIN classes c ON u.class_id = c.id
        INNER JOIN modules m ON t.module_id = m.id
        INNER JOIN subjects s ON m.subject_id = s.id
        WHERE t.created_by = $1
