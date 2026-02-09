@@ -1410,10 +1410,10 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
       console.warn('Could not add OTP columns (might already exist):', e.message);
     }
 
-    // Update user: password, flags, AND otp columns
+    // Update user: password_hash with OTP, flags, AND otp columns for display
     await pool.query(
       `UPDATE users SET 
-        password = $1, 
+        password_hash = $1, 
         is_temporary_password = true, 
         require_password_change = true, 
         otp = $3,
@@ -3739,13 +3739,22 @@ app.post('/api/admin/users/:id/reset-password', auth, async (req, res) => {
     const otp = Math.random().toString(36).slice(-8).toUpperCase();
     const otpExpiresAt = new Date(Date.now() + 1000 * 60 * 60).toISOString(); // 1 hour
 
-    // Persist OTP to users table
+    // Hash OTP for password_hash
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    // Update password_hash with OTP and set flags
     try {
       await pool.query(
-        'UPDATE users SET otp = $1, otp_expires_at = $2 WHERE id = $3',
-        [otp, otpExpiresAt, userId]
+        `UPDATE users SET 
+          password_hash = $1, 
+          is_temporary_password = true, 
+          require_password_change = true,
+          otp = $2, 
+          otp_expires_at = $3 
+         WHERE id = $4`,
+        [hashedOtp, otp, otpExpiresAt, userId]
       );
-      console.log(`✅ OTP saved for user ${userId}: ${otp}`);
+      console.log(`✅ OTP saved as password for user ${userId}: ${otp}`);
     } catch (dbErr) {
       console.error('Failed to persist OTP to DB:', dbErr.message);
       return res.status(500).json({ success: false, error: 'Failed to save OTP to database' });
