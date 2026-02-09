@@ -1358,12 +1358,31 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
     const otpCode = generateOTP();
     const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
     const hashedPassword = await bcrypt.hash(otpCode, 10);
-    // Обновляем пароль и флаги
+
+    // First ensure OTP columns exist (non-breaking)
+    try {
+      await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS otp text,
+        ADD COLUMN IF NOT EXISTS otp_expires_at timestamptz;
+      `);
+    } catch (e) {
+      console.warn('Could not add OTP columns (might already exist):', e.message);
+    }
+
+    // Update user: password, flags, AND otp columns
     await pool.query(
-      'UPDATE users SET password = $1, is_temporary_password = true, require_password_change = true, updated_at = NOW() WHERE id = $2',
-      [hashedPassword, id]
+      `UPDATE users SET 
+        password = $1, 
+        is_temporary_password = true, 
+        require_password_change = true, 
+        otp = $3,
+        otp_expires_at = $4,
+        updated_at = NOW() 
+       WHERE id = $2`,
+      [hashedPassword, id, otpCode, otpExpiresAt.toISOString()]
     );
-    // Можно добавить запись в отдельную таблицу otp_codes, если потребуется хранить историю
+
     console.log(`🔑 Password reset for user: ${user.username}, OTP: ${otpCode}`);
     res.json({
       success: true,
@@ -3384,21 +3403,37 @@ app.post('/api/admin/users/:id/reset-password', auth, async (req, res) => {
     const userId = req.params.id;
     if (!userId) return res.status(400).json({ success: false, error: 'User id required' });
 
+    // Ensure OTP columns exist (non-breaking)
+    try {
+      await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS otp text,
+        ADD COLUMN IF NOT EXISTS otp_expires_at timestamptz;
+      `);
+    } catch (e) {
+      console.warn('Could not add OTP columns (might already exist):', e.message);
+    }
+
     // Generate OTP
     const otp = Math.random().toString(36).slice(-8).toUpperCase();
     const otpExpiresAt = new Date(Date.now() + 1000 * 60 * 60).toISOString(); // 1 hour
 
-    // Persist OTP to users table (columns: otp, otp_expires_at) if available
+    // Persist OTP to users table
     try {
-      await pool.query('UPDATE users SET otp = $1, otp_expires_at = $2 WHERE id::text = $3', [otp, otpExpiresAt, String(userId)]);
+      await pool.query(
+        'UPDATE users SET otp = $1, otp_expires_at = $2 WHERE id = $3',
+        [otp, otpExpiresAt, userId]
+      );
+      console.log(`✅ OTP saved for user ${userId}: ${otp}`);
     } catch (dbErr) {
-      console.warn('Failed to persist OTP to DB, continuing:', dbErr.message);
+      console.error('Failed to persist OTP to DB:', dbErr.message);
+      return res.status(500).json({ success: false, error: 'Failed to save OTP to database' });
     }
 
     // Try to fetch user's email
     let userEmail = null;
     try {
-      const r = await pool.query('SELECT email FROM users WHERE id::text = $1', [String(userId)]);
+      const r = await pool.query('SELECT email FROM users WHERE id = $1', [userId]);
       if (r.rows[0]) userEmail = r.rows[0].email;
     } catch (e) {
       console.warn('Could not fetch user email:', e.message);
