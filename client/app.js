@@ -12621,11 +12621,7 @@ async function viewClassStudents(classId) {
                                 <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 1.1rem;">🔍</span>
                             </div>
                         </div>
-                        ${students.length > 0 ? `
-                        <div style="color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap;">
-                            <span id="filteredCount">${students.length}</span> / <strong style="color: var(--text-primary);">${students.length}</strong>
-                        </div>
-                        ` : ''}
+                        
                     </div>
 
                     <!-- Students Table -->
@@ -12720,10 +12716,9 @@ async function viewClassStudents(classId) {
 // Filter students in real-time
 function filterStudents() {
     const searchInput = document.getElementById('studentSearchInput');
-    const filteredCount = document.getElementById('filteredCount');
     const studentRows = document.querySelectorAll('.student-row');
 
-    if (!searchInput || !filteredCount || !studentRows.length) return;
+    if (!searchInput || !studentRows.length) return;
 
     const searchTerm = searchInput.value.toLowerCase().trim();
     let visibleCount = 0;
@@ -12736,7 +12731,7 @@ function filterStudents() {
         if (isVisible) visibleCount++;
     });
 
-    filteredCount.textContent = visibleCount;
+    // counter removed: no UI element to update
 
     // Show "no results" message if needed
     const tbody = document.getElementById('studentsTableBody');
