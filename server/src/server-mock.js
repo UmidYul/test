@@ -648,10 +648,15 @@ app.get('/api/subjects', auth, async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT id::text as id, name FROM subjects WHERE name IS NOT NULL ORDER BY id');
     console.log(`[SUBJECTS] Fetched all subjects (${rows.length})`);
-    console.log('[SUBJECTS] Sample data:', rows.slice(0, 3));
-    console.log('[SUBJECTS] First row keys:', rows.length > 0 ? Object.keys(rows[0]) : 'no rows');
-    console.log('[SUBJECTS] First row values:', rows.length > 0 ? Object.values(rows[0]) : 'no rows');
-    res.json(rows);
+    const subjects = rows.map(row => {
+      try {
+        const parsed = JSON.parse(row.name);
+        return { ...row, ...parsed, _raw: row.name };
+      } catch (e) {
+        return { ...row, default: row.name, _raw: row.name };
+      }
+    });
+    res.json(subjects);
   } catch (error) {
     console.error('[SUBJECTS] Error fetching:', error);
     res.status(500).json({ error: 'Ошибка при загрузке предметов' });
@@ -663,21 +668,26 @@ app.post('/api/subjects', auth, async (req, res) => {
   if (req.userRole !== 'admin') {
     return res.status(403).json({ message: 'Access denied' });
   }
-  const { name, questionsCount } = req.body || {};
-  if (!name) {
+  const { name, nameUz, nameRu, questionsCount } = req.body || {};
+  if (!name && !nameUz && !nameRu) {
     return res.status(400).json({ message: 'Заполните обязательные поля' });
   }
   try {
-    const exists = await pool.query('SELECT 1 FROM subjects WHERE LOWER(name) = LOWER($1)', [name]);
-    if (exists.rowCount > 0) {
-      return res.status(400).json({ message: 'Предмет уже существует' });
+    // If nameUz/nameRu provided, store as JSON
+    let storedName = name;
+    if (nameUz || nameRu) {
+      storedName = JSON.stringify({
+        uz: nameUz || '',
+        ru: nameRu || '',
+        default: name || ''
+      });
     }
     const subjectId = crypto.randomUUID();
     const result = await pool.query(
       'INSERT INTO subjects (id, name) VALUES ($1, $2) RETURNING id::text, name',
-      [subjectId, name.trim()]
+      [subjectId, storedName]
     );
-    console.log(`[SUBJECTS] Created subject: ${name}`);
+    console.log(`[SUBJECTS] Created subject: ${storedName}`);
     res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     console.error('[SUBJECTS] Error creating:', error);
@@ -691,14 +701,23 @@ app.put('/api/subjects/:subjectId', auth, async (req, res) => {
     return res.status(403).json({ message: 'Access denied' });
   }
   const { subjectId } = req.params;
-  const { name, questionsCount } = req.body || {};
-  if (!name) {
+  const { name, nameUz, nameRu, questionsCount } = req.body || {};
+  if (!name && !nameUz && !nameRu) {
     return res.status(400).json({ message: 'Заполните обязательные поля' });
   }
   try {
+    // If nameUz/nameRu provided, store as JSON
+    let storedName = name;
+    if (nameUz || nameRu) {
+      storedName = JSON.stringify({
+        uz: nameUz || '',
+        ru: nameRu || '',
+        default: name || ''
+      });
+    }
     const result = await pool.query(
       'UPDATE subjects SET name = $1 WHERE id = $2 RETURNING id::text, name',
-      [name.trim(), subjectId]
+      [storedName, subjectId]
     );
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Subject not found' });
@@ -3354,4 +3373,54 @@ app.post('/api/admin/reset-data', auth, async (req, res) => {
 app.listen(PORT, async () => {
   console.log(`🚀 Mock server running on port ${PORT} `);
   console.log('⚠️  Using PostgreSQL database');
+});
+
+// Admin: reset user password (generate temporary OTP and return it)
+app.post('/api/admin/users/:id/reset-password', auth, async (req, res) => {
+  try {
+    if (req.userRole !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+    const userId = req.params.id;
+    if (!userId) return res.status(400).json({ success: false, error: 'User id required' });
+
+    // Generate OTP
+    const otp = Math.random().toString(36).slice(-8).toUpperCase();
+    const otpExpiresAt = new Date(Date.now() + 1000 * 60 * 60).toISOString(); // 1 hour
+
+    // Persist OTP to users table (columns: otp, otp_expires_at) if available
+    try {
+      await pool.query('UPDATE users SET otp = $1, otp_expires_at = $2 WHERE id::text = $3', [otp, otpExpiresAt, String(userId)]);
+    } catch (dbErr) {
+      console.warn('Failed to persist OTP to DB, continuing:', dbErr.message);
+    }
+
+    // Try to fetch user's email
+    let userEmail = null;
+    try {
+      const r = await pool.query('SELECT email FROM users WHERE id::text = $1', [String(userId)]);
+      if (r.rows[0]) userEmail = r.rows[0].email;
+    } catch (e) {
+      console.warn('Could not fetch user email:', e.message);
+    }
+
+    // Optionally send email if configured
+    let emailSent = false;
+    if (userEmail) {
+      try {
+        // Reuse existing sendMail helper if present
+        if (typeof sendMail === 'function') {
+          await sendMail({ to: userEmail, subject: 'Password reset', text: `Your temporary password: ${otp}` });
+          emailSent = true;
+        }
+      } catch (mailErr) {
+        console.warn('Failed to send reset email:', mailErr.message);
+      }
+    }
+
+    res.json({ success: true, data: { userId, otp, otpExpiresAt, emailSent, email: userEmail } });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ success: false, error: 'Failed to reset password' });
+  }
 });
