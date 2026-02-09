@@ -2289,26 +2289,9 @@ app.get('/api/teacher/analytics', auth, async (req, res) => {
     const totalCompletions = parseInt(completionsResult.rows[0]?.total_completions || 0);
     const averageScore = Math.round(parseFloat(completionsResult.rows[0]?.avg_score || 0));
 
-    // Get stats by class
-    const statsByClassResult = await pool.query(
-      `SELECT 
-         c.grade,
-         COUNT(DISTINCT tr.id) as completed_tests,
-         AVG(tr.score) as average_score
-       FROM test_results tr
-       INNER JOIN tests t ON tr.test_id = t.id
-       INNER JOIN users u ON tr.user_id = u.id
-       LEFT JOIN classes c ON u.class_id = c.id
-       WHERE t.created_by = $1 AND c.grade IS NOT NULL
-       GROUP BY c.grade
-       ORDER BY c.grade`,
-      [teacherId]
-    );
-    const statsByClass = statsByClassResult.rows.map(row => ({
-      grade: row.grade,
-      completedTests: parseInt(row.completed_tests),
-      averageScore: Math.round(parseFloat(row.average_score || 0))
-    }));
+    // Get stats by class - simplified (no direct user-to-class relation)
+    // Return empty array for now - would need proper student_class_assignments table
+    const statsByClass = [];
 
     // Get stats by subject
     const statsBySubjectResult = await pool.query(
@@ -2337,13 +2320,11 @@ app.get('/api/teacher/analytics', auth, async (req, res) => {
          tr.score,
          tr.submitted_at,
          u.first_name || ' ' || u.last_name as student_name,
-         c.grade as student_grade,
          s.name as subject_name,
          t.name as test_name
        FROM test_results tr
        INNER JOIN tests t ON tr.test_id = t.id
        INNER JOIN users u ON tr.user_id = u.id
-       LEFT JOIN classes c ON u.class_id = c.id
        INNER JOIN modules m ON t.module_id = m.id
        INNER JOIN subjects s ON m.subject_id = s.id
        WHERE t.created_by = $1
@@ -2355,7 +2336,7 @@ app.get('/api/teacher/analytics', auth, async (req, res) => {
       score: Math.round(parseFloat(row.score || 0)),
       submittedAt: row.submitted_at,
       studentName: row.student_name,
-      studentGrade: row.student_grade,
+      studentGrade: null, // No direct class relation
       subjectName: row.subject_name,
       testName: row.test_name
     }));
@@ -2484,76 +2465,33 @@ app.get('/api/teacher/analytics/subject-modules', auth, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Доступ запрещен к данным этого класса' });
     }
 
-    // Get student count
-    let studentCountQuery;
-    let studentCountParams;
+    // Get student count - simplified (count all students)
+    const studentCountQuery = `
+      SELECT COUNT(DISTINCT u.id) as count
+      FROM users u
+      WHERE u.role = 'student'
+    `;
 
-    if (section) {
-      studentCountQuery = `
-        SELECT COUNT(DISTINCT u.id) as count
-        FROM users u
-        INNER JOIN classes c ON u.class_id = c.id
-        WHERE c.grade = $1 AND c.section = $2 AND u.role = 'student'
-      `;
-      studentCountParams = [grade, section];
-    } else {
-      studentCountQuery = `
-        SELECT COUNT(DISTINCT u.id) as count
-        FROM users u
-        INNER JOIN classes c ON u.class_id = c.id
-        WHERE c.grade = $1 AND u.role = 'student'
-      `;
-      studentCountParams = [grade];
-    }
-
-    const studentCountResult = await pool.query(studentCountQuery, studentCountParams);
+    const studentCountResult = await pool.query(studentCountQuery);
     const studentCount = parseInt(studentCountResult.rows[0]?.count || 0);
 
-    // Get modules with test results
-    let modulesQuery;
-    let modulesParams;
-
-    if (section) {
-      modulesQuery = `
-        SELECT 
-          m.id,
-          m.name,
-          m.name_uz,
-          m.name_ru,
-          AVG(tr.score) as average_score,
-          COUNT(DISTINCT tr.id) as attempts
-        FROM modules m
-        LEFT JOIN tests t ON t.module_id = m.id
-        LEFT JOIN test_results tr ON tr.test_id = t.id
-        LEFT JOIN users u ON tr.user_id = u.id
-        LEFT JOIN classes c ON u.class_id = c.id
-        WHERE m.subject_id = $1 
-          AND (c.grade = $2 AND c.section = $3 OR c.grade IS NULL)
-        GROUP BY m.id, m.name, m.name_uz, m.name_ru
-        ORDER BY m.created_at
-      `;
-      modulesParams = [subjectId, grade, section];
-    } else {
-      modulesQuery = `
-        SELECT 
-          m.id,
-          m.name,
-          m.name_uz,
-          m.name_ru,
-          AVG(tr.score) as average_score,
-          COUNT(DISTINCT tr.id) as attempts
-        FROM modules m
-        LEFT JOIN tests t ON t.module_id = m.id
-        LEFT JOIN test_results tr ON tr.test_id = t.id
-        LEFT JOIN users u ON tr.user_id = u.id
-        LEFT JOIN classes c ON u.class_id = c.id
-        WHERE m.subject_id = $1 
-          AND (c.grade = $2 OR c.grade IS NULL)
-        GROUP BY m.id, m.name, m.name_uz, m.name_ru
-        ORDER BY m.created_at
-      `;
-      modulesParams = [subjectId, grade];
-    }
+    // Get modules with test results (no class filtering - no direct user-class relation)
+    const modulesQuery = `
+      SELECT 
+        m.id,
+        m.name,
+        m.name_uz,
+        m.name_ru,
+        AVG(tr.score) as average_score,
+        COUNT(DISTINCT tr.id) as attempts
+      FROM modules m
+      LEFT JOIN tests t ON t.module_id = m.id
+      LEFT JOIN test_results tr ON tr.test_id = t.id
+      WHERE m.subject_id = $1
+      GROUP BY m.id, m.name, m.name_uz, m.name_ru
+      ORDER BY m.created_at
+    `;
+    const modulesParams = [subjectId];
 
     const modulesResult = await pool.query(modulesQuery, modulesParams);
     const modules = modulesResult.rows.map(row => ({
