@@ -2402,20 +2402,25 @@ app.get('/api/teacher/analytics/subject-modules/options', auth, async (req, res)
 
     // Get classes where teacher teaches
     const classesResult = await pool.query(
-      `SELECT DISTINCT c.id, c.name, c.grade, c.section
+      `SELECT DISTINCT c.id, c.grade, c.section
        FROM classes c
        INNER JOIN teacher_teaching_assignments tta ON tta.class_id = c.id
        WHERE tta.teacher_id = $1
        ORDER BY c.grade, c.section`,
       [teacherId]
     );
-    const classes = classesResult.rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      grade: row.grade,
-      section: row.section,
-      sections: row.section ? [row.section] : []
-    }));
+    const classes = classesResult.rows.map(row => {
+      const grade = row.grade ? String(row.grade).trim() : '';
+      const section = row.section ? String(row.section).trim() : '';
+      const name = section ? `${grade}-${section}` : grade;
+      return {
+        id: row.id,
+        name,
+        grade: row.grade,
+        section: row.section,
+        sections: row.section ? [row.section] : []
+      };
+    });
 
     // Get unique grades
     const grades = [...new Set(classes.map(c => c.grade))].filter(Boolean).sort((a, b) => {
