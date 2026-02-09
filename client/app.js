@@ -3968,6 +3968,23 @@ async function renderAdminDashboard() {
     console.log('  - user.username:', user.username);
 
     try {
+        // Fetch data from API
+        const [usersRes, classesRes, testsRes] = await Promise.all([
+            apiRequest('/api/users'),
+            apiRequest('/api/classes'),
+            apiRequest('/api/teacher-tests')
+        ]);
+
+        const users = usersRes.success ? (usersRes.data || []) : [];
+        const classes = classesRes.success ? (classesRes.data || []) : [];
+        const tests = testsRes.success ? (testsRes.data || []) : [];
+
+        const students = users.filter(u => u.role === 'student');
+        const totalStudents = students.length;
+        const totalClasses = classes.length;
+        const totalTests = tests.length;
+        const maxTableRows = 4;
+
         const content = `
         <style>
             @media (max-width: 768px) {
@@ -4071,8 +4088,64 @@ async function renderAdminDashboard() {
                         <div style="color: #22c55e; font-size: 1.5rem; font-weight: 600; flex-shrink: 0;"><i class="fas fa-arrow-right"></i></div>
                     </div>
 
-
                 </div>
+
+                <!-- Tests Section -->
+                <div style="margin-top: 2rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${lang === 'uz' ? 'Barcha Testlar' : 'Все тесты'}</h2>
+                        <div style="background: rgba(59, 130, 246, 0.2); color: #3B82F6; padding: 0.35rem 0.75rem; border-radius: 999px; font-weight: 600; font-size: 0.85rem;">${totalTests}</div>
+                    </div>
+                    
+                    ${totalTests === 0 ? `
+                        <div style="background: var(--bg-secondary); border: 2px dashed var(--border-color); border-radius: 12px; padding: 3rem 2rem; text-align: center;">
+                            <div style="font-size: 2.5rem; margin-bottom: 1rem;">📋</div>
+                            <p style="margin: 0; color: var(--text-secondary); font-size: 0.95rem;">${lang === 'uz' ? 'Hali testlar yaratilmagan' : 'Тесты еще не созданы'}</p>
+                        </div>
+                    ` : `
+                        <div style="display: grid; gap: 1rem;">
+                            ${tests.slice(0, maxTableRows).map(test => {
+                    const testId = test._id || test.id || '';
+                    const created = test.createdAt || test.created_at || '';
+                    const createdDate = created ? new Date(created).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'ru-RU') : '-';
+                    const questionsCount = test.questionsCount || test.questions?.length || 0;
+                    const duration = test.duration || 30;
+                    return `
+                                    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: center;">
+                                        <div>
+                                            <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 700; color: var(--text-primary);">${test.title || 'Untitled'}</h3>
+                                            <p style="margin: 0 0 0.75rem 0; color: var(--text-secondary); font-size: 0.85rem;">${test.description || ''}</p>
+                                            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+                                                    <span>📝</span>
+                                                    <span>${questionsCount} ${lang === 'uz' ? 'savol' : 'вопрос'}</span>
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+                                                    <span>⏱</span>
+                                                    <span>${duration} ${lang === 'uz' ? 'min' : 'мин'}</span>
+                                                </div>
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">
+                                                    <span>📅</span>
+                                                    <span>${createdDate}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div onclick="window.router.navigate('/admin/teacher-tests')" style="cursor: pointer; padding: 0.75rem 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #3B82F6; font-weight: 600; font-size: 0.85rem; transition: all 0.3s; white-space: nowrap;" onmouseover="this.style.background='rgba(59, 130, 246, 0.2)';" onmouseout="this.style.background='rgba(59, 130, 246, 0.1)';">${lang === 'uz' ? 'Ko\'rish' : 'Просм.'}</div>
+                                    </div>
+                                `;
+                }).join('')}
+                        </div>
+                        ${tests.length > maxTableRows ? `
+                            <div style="margin-top: 1.5rem; text-align: center;">
+                                <button onclick="window.router.navigate('/admin/teacher-tests')" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #3B82F6 0%, #1e40af 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 16px rgba(59, 130, 246, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                                    ${lang === 'uz' ? 'Barcha testlarni ko\'rish' : 'Показать все тесты'} (${tests.length})
+                                </button>
+                            </div>
+                        ` : ''}
+                    `}
+                </div>
+            </div>
+        </div>
         `;
 
         renderLayout(content, 'admin');
