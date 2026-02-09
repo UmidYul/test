@@ -14017,6 +14017,240 @@ function closeModal() {
     modals.forEach(modal => modal.remove());
 }
 
+function renderDesignPreview() {
+    const app = document.getElementById('app');
+    const isLight = document.documentElement.classList.contains('light-theme');
+    const themeLabel = isLight ? 'Light' : 'Dark';
+
+    app.innerHTML = `
+        <div class="design-preview">
+            <div class="dp-topbar">
+                <div class="dp-brand">
+                    <span class="dp-brand-mark"><i class="fa-solid fa-graduation-cap"></i></span>
+                    <span class="dp-brand-text">Zedly</span>
+                </div>
+                <div class="dp-nav">
+                    <a href="#" class="dp-link">Dashboard</a>
+                    <a href="#" class="dp-link">Courses</a>
+                    <a href="#" class="dp-link">Analytics</a>
+                    <a href="#" class="dp-link">Support</a>
+                </div>
+                <div class="dp-actions">
+                    <button class="dp-icon-btn" id="dpThemeToggle" title="Toggle theme">
+                        <i class="fa-solid fa-circle-half-stroke"></i>
+                        <span>${themeLabel}</span>
+                    </button>
+                    <button class="dp-primary-btn">
+                        <i class="fa-solid fa-plus"></i>
+                        New Module
+                    </button>
+                </div>
+            </div>
+
+            <div class="dp-hero">
+                <div class="dp-hero-content">
+                    <div class="dp-pill">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        Secure and structured learning
+                    </div>
+                    <h1>Modern learning platform for schools and tutors</h1>
+                    <p>Clean, focused UI with clear hierarchy, professional colors, and accessible data views. Built for long sessions without fatigue.</p>
+                    <div class="dp-hero-actions">
+                        <button class="dp-primary-btn">
+                            <i class="fa-solid fa-play"></i>
+                            Start lesson
+                        </button>
+                        <button class="dp-ghost-btn">
+                            <i class="fa-solid fa-file-lines"></i>
+                            View syllabus
+                        </button>
+                    </div>
+                </div>
+                <div class="dp-hero-panel">
+                    <div class="dp-panel-header">
+                        <div>
+                            <div class="dp-panel-title">Weekly progress</div>
+                            <div class="dp-panel-sub">Class 7-A, Algebra</div>
+                        </div>
+                        <div class="dp-panel-badge">
+                            <i class="fa-solid fa-arrow-trend-up"></i>
+                            +12%
+                        </div>
+                    </div>
+                    <div class="dp-kpis">
+                        <div class="dp-kpi">
+                            <div class="dp-kpi-label">Completion</div>
+                            <div class="dp-kpi-value">78%</div>
+                        </div>
+                        <div class="dp-kpi">
+                            <div class="dp-kpi-label">Avg. score</div>
+                            <div class="dp-kpi-value">82</div>
+                        </div>
+                        <div class="dp-kpi">
+                            <div class="dp-kpi-label">Active learners</div>
+                            <div class="dp-kpi-value">146</div>
+                        </div>
+                    </div>
+                    <div class="dp-mini-chart">
+                        <div class="dp-bar" style="height: 40%"></div>
+                        <div class="dp-bar" style="height: 55%"></div>
+                        <div class="dp-bar" style="height: 70%"></div>
+                        <div class="dp-bar" style="height: 60%"></div>
+                        <div class="dp-bar" style="height: 85%"></div>
+                        <div class="dp-bar" style="height: 75%"></div>
+                        <div class="dp-bar" style="height: 90%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dp-grid">
+                <div class="dp-card">
+                    <div class="dp-card-title">
+                        <i class="fa-solid fa-book"></i>
+                        Active modules
+                    </div>
+                    <div class="dp-card-value">24</div>
+                    <div class="dp-card-foot">3 awaiting review</div>
+                </div>
+                <div class="dp-card">
+                    <div class="dp-card-title">
+                        <i class="fa-solid fa-user-group"></i>
+                        Students enrolled
+                    </div>
+                    <div class="dp-card-value">1,248</div>
+                    <div class="dp-card-foot">+68 this month</div>
+                </div>
+                <div class="dp-card">
+                    <div class="dp-card-title">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                        Tests completed
+                    </div>
+                    <div class="dp-card-value">9,302</div>
+                    <div class="dp-card-foot">Average 2.1 per student</div>
+                </div>
+                <div class="dp-card">
+                    <div class="dp-card-title">
+                        <i class="fa-solid fa-award"></i>
+                        Pass rate
+                    </div>
+                    <div class="dp-card-value">84%</div>
+                    <div class="dp-card-foot">Stable last 4 weeks</div>
+                </div>
+            </div>
+
+            <div class="dp-section">
+                <div class="dp-section-header">
+                    <h2>Recommended courses</h2>
+                    <button class="dp-ghost-btn"><i class="fa-solid fa-sliders"></i> Filters</button>
+                </div>
+                <div class="dp-cards">
+                    <div class="dp-course">
+                        <div class="dp-course-icon"><i class="fa-solid fa-calculator"></i></div>
+                        <div class="dp-course-title">Algebra Foundations</div>
+                        <div class="dp-course-meta">12 lessons · 6 quizzes</div>
+                        <div class="dp-course-actions">
+                            <button class="dp-ghost-btn">Details</button>
+                            <button class="dp-primary-btn">Assign</button>
+                        </div>
+                    </div>
+                    <div class="dp-course">
+                        <div class="dp-course-icon"><i class="fa-solid fa-flask"></i></div>
+                        <div class="dp-course-title">Intro to Chemistry</div>
+                        <div class="dp-course-meta">9 lessons · 4 quizzes</div>
+                        <div class="dp-course-actions">
+                            <button class="dp-ghost-btn">Details</button>
+                            <button class="dp-primary-btn">Assign</button>
+                        </div>
+                    </div>
+                    <div class="dp-course">
+                        <div class="dp-course-icon"><i class="fa-solid fa-language"></i></div>
+                        <div class="dp-course-title">English Grammar</div>
+                        <div class="dp-course-meta">10 lessons · 5 quizzes</div>
+                        <div class="dp-course-actions">
+                            <button class="dp-ghost-btn">Details</button>
+                            <button class="dp-primary-btn">Assign</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dp-split">
+                <div class="dp-table-card">
+                    <div class="dp-section-header">
+                        <h2>Recent assessments</h2>
+                        <button class="dp-ghost-btn"><i class="fa-solid fa-arrow-right"></i> View all</button>
+                    </div>
+                    <table class="dp-table">
+                        <thead>
+                            <tr>
+                                <th>Test</th>
+                                <th>Class</th>
+                                <th>Avg. score</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Quadratic equations</td>
+                                <td>7-A</td>
+                                <td>78</td>
+                                <td><span class="dp-status success">Published</span></td>
+                            </tr>
+                            <tr>
+                                <td>Chemical reactions</td>
+                                <td>8-B</td>
+                                <td>81</td>
+                                <td><span class="dp-status warning">Draft</span></td>
+                            </tr>
+                            <tr>
+                                <td>Grammar basics</td>
+                                <td>7-B</td>
+                                <td>85</td>
+                                <td><span class="dp-status success">Published</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="dp-form-card">
+                    <div class="dp-section-header">
+                        <h2>Quick create</h2>
+                    </div>
+                    <div class="dp-field">
+                        <label>Module title</label>
+                        <input type="text" placeholder="e.g. Linear functions" />
+                    </div>
+                    <div class="dp-field">
+                        <label>Duration</label>
+                        <select>
+                            <option>30 minutes</option>
+                            <option>45 minutes</option>
+                            <option>60 minutes</option>
+                        </select>
+                    </div>
+                    <div class="dp-field">
+                        <label>Difficulty</label>
+                        <div class="dp-segment">
+                            <button class="active">Beginner</button>
+                            <button>Intermediate</button>
+                            <button>Advanced</button>
+                        </div>
+                    </div>
+                    <button class="dp-primary-btn dp-full">
+                        <i class="fa-solid fa-check"></i>
+                        Create module
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('dpThemeToggle')?.addEventListener('click', () => {
+        document.documentElement.classList.toggle('light-theme');
+        localStorage.setItem('theme', document.documentElement.classList.contains('light-theme') ? 'light' : 'dark');
+        renderDesignPreview();
+    });
+}
+
 // Password reset functionality removed - will be added to student settings in the future
 
 router.register('/login', renderLoginPage);
@@ -14059,6 +14293,7 @@ router.register('/admin/teacher-tests', renderAdminTeacherTests);
 router.register('/admin/teacher-tests/:testId', ({ testId }) => renderAdminTeacherTestEditor({ testId }));
 router.register('/admin/student/:studentId', ({ studentId }) => renderAdminStudentDetail(studentId));
 router.register('/admin/teacher/:teacherId', ({ teacherId }) => renderAdminTeacherDetail(teacherId));
+router.register('/design-preview', renderDesignPreview);
 
 // Student Profile Helper Functions
 function switchProfileTab(tabName) {
