@@ -1530,8 +1530,9 @@ div[style*="transform"]:has(select),
 /* Subject Tests */
 .subjects-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 300px));
     gap: 20px;
+    justify-content: start;
 }
 
 .subject-card {
@@ -3343,8 +3344,9 @@ tbody tr:hover {
 /* Subject Tests */
 .subjects-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 300px));
     gap: 24px;
+    justify-content: start;
 }
 
 .subject-card {

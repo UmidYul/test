@@ -2236,17 +2236,140 @@ app.get('/api/teacher/analytics', auth, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
 
-    // Stub implementation - returns empty data
+    const teacherId = req.userId;
+
+    // Get teacher's subjects
+    const subjectsResult = await pool.query(
+      `SELECT DISTINCT s.id, s.name 
+       FROM subjects s
+       INNER JOIN teacher_teaching_assignments tta ON tta.subject_id = s.id
+       WHERE tta.teacher_id = $1`,
+      [teacherId]
+    );
+    const teacherSubjects = subjectsResult.rows;
+    const subjectIds = teacherSubjects.map(s => s.id);
+
+    if (subjectIds.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          totalModules: 0,
+          totalTests: 0,
+          totalCompletions: 0,
+          averageScore: 0,
+          statsByClass: [],
+          statsBySubject: [],
+          recentCompletions: []
+        }
+      });
+    }
+
+    // Get total modules for teacher's subjects
+    const modulesResult = await pool.query(
+      `SELECT COUNT(*) as count FROM modules WHERE subject_id = ANY($1::uuid[])`,
+      [subjectIds]
+    );
+    const totalModules = parseInt(modulesResult.rows[0]?.count || 0);
+
+    // Get total tests created by this teacher
+    const testsResult = await pool.query(
+      `SELECT COUNT(*) as count FROM tests WHERE created_by = $1`,
+      [teacherId]
+    );
+    const totalTests = parseInt(testsResult.rows[0]?.count || 0);
+
+    // Get total completions and average score
+    const completionsResult = await pool.query(
+      `SELECT 
+         COUNT(*) as total_completions,
+         AVG(score) as avg_score
+       FROM test_results tr
+       INNER JOIN tests t ON tr.test_id = t.id
+       WHERE t.created_by = $1`,
+      [teacherId]
+    );
+    const totalCompletions = parseInt(completionsResult.rows[0]?.total_completions || 0);
+    const averageScore = Math.round(parseFloat(completionsResult.rows[0]?.avg_score || 0));
+
+    // Get stats by class
+    const statsByClassResult = await pool.query(
+      `SELECT 
+         u.grade,
+         COUNT(DISTINCT tr.id) as completed_tests,
+         AVG(tr.score) as average_score
+       FROM test_results tr
+       INNER JOIN tests t ON tr.test_id = t.id
+       INNER JOIN users u ON tr.user_id = u.id
+       WHERE t.created_by = $1 AND u.grade IS NOT NULL
+       GROUP BY u.grade
+       ORDER BY u.grade`,
+      [teacherId]
+    );
+    const statsByClass = statsByClassResult.rows.map(row => ({
+      grade: row.grade,
+      completedTests: parseInt(row.completed_tests),
+      averageScore: Math.round(parseFloat(row.average_score || 0))
+    }));
+
+    // Get stats by subject
+    const statsBySubjectResult = await pool.query(
+      `SELECT 
+         s.name as subject,
+         AVG(tr.score) as average_score,
+         COUNT(tr.id) as completions
+       FROM test_results tr
+       INNER JOIN tests t ON tr.test_id = t.id
+       INNER JOIN modules m ON t.module_id = m.id
+       INNER JOIN subjects s ON m.subject_id = s.id
+       WHERE t.created_by = $1
+       GROUP BY s.id, s.name
+       ORDER BY completions DESC`,
+      [teacherId]
+    );
+    const statsBySubject = statsBySubjectResult.rows.map(row => ({
+      subject: row.subject,
+      averageScore: Math.round(parseFloat(row.average_score || 0)),
+      completions: parseInt(row.completions)
+    }));
+
+    // Get recent completions
+    const recentCompletionsResult = await pool.query(
+      `SELECT 
+         tr.score,
+         tr.submitted_at,
+         u.first_name || ' ' || u.last_name as student_name,
+         u.grade as student_grade,
+         s.name as subject_name,
+         t.name as test_name
+       FROM test_results tr
+       INNER JOIN tests t ON tr.test_id = t.id
+       INNER JOIN users u ON tr.user_id = u.id
+       INNER JOIN modules m ON t.module_id = m.id
+       INNER JOIN subjects s ON m.subject_id = s.id
+       WHERE t.created_by = $1
+       ORDER BY tr.submitted_at DESC
+       LIMIT 10`,
+      [teacherId]
+    );
+    const recentCompletions = recentCompletionsResult.rows.map(row => ({
+      score: Math.round(parseFloat(row.score || 0)),
+      submittedAt: row.submitted_at,
+      studentName: row.student_name,
+      studentGrade: row.student_grade,
+      subjectName: row.subject_name,
+      testName: row.test_name
+    }));
+
     res.json({
       success: true,
       data: {
-        totalModules: 0,
-        totalTests: 0,
-        totalCompletions: 0,
-        averageScore: 0,
-        statsByClass: [],
-        statsBySubject: [],
-        recentCompletions: []
+        totalModules,
+        totalTests,
+        totalCompletions,
+        averageScore,
+        statsByClass,
+        statsBySubject,
+        recentCompletions
       }
     });
   } catch (error) {
@@ -2262,12 +2385,50 @@ app.get('/api/teacher/analytics/subject-modules/options', auth, async (req, res)
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
 
-    // Stub implementation
+    const teacherId = req.userId;
+
+    // Get teacher's subjects
+    const subjectsResult = await pool.query(
+      `SELECT DISTINCT s.id, s.name 
+       FROM subjects s
+       INNER JOIN teacher_teaching_assignments tta ON tta.subject_id = s.id
+       WHERE tta.teacher_id = $1
+       ORDER BY s.name`,
+      [teacherId]
+    );
+    const subjects = subjectsResult.rows;
+
+    // Get classes where teacher teaches
+    const classesResult = await pool.query(
+      `SELECT DISTINCT c.id, c.name, c.grade, c.section
+       FROM classes c
+       INNER JOIN teacher_teaching_assignments tta ON tta.class_id = c.id
+       WHERE tta.teacher_id = $1
+       ORDER BY c.grade, c.section`,
+      [teacherId]
+    );
+    const classes = classesResult.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      grade: row.grade,
+      section: row.section,
+      sections: row.section ? [row.section] : []
+    }));
+
+    // Get unique grades
+    const grades = [...new Set(classes.map(c => c.grade))].filter(Boolean).sort((a, b) => {
+      const numA = parseInt(a);
+      const numB = parseInt(b);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return String(a).localeCompare(String(b));
+    });
+
     res.json({
       success: true,
       data: {
-        subjects: [],
-        grades: []
+        subjects,
+        classes,
+        grades
       }
     });
   } catch (error) {
@@ -2283,14 +2444,134 @@ app.get('/api/teacher/analytics/subject-modules', auth, async (req, res) => {
       return res.status(403).json({ success: false, error: 'Доступ запрещен' });
     }
 
-    // Stub implementation
+    const { subjectId, grade, section } = req.query;
+
+    if (!subjectId || !grade) {
+      return res.status(400).json({ success: false, error: 'SubjectId and grade are required' });
+    }
+
+    const teacherId = req.userId;
+
+    // Verify teacher teaches this subject to this class
+    let verifyQuery;
+    let verifyParams;
+
+    if (section) {
+      verifyQuery = `
+        SELECT COUNT(*) as count 
+        FROM teacher_teaching_assignments tta
+        INNER JOIN classes c ON tta.class_id = c.id
+        WHERE tta.teacher_id = $1 
+          AND tta.subject_id = $2 
+          AND c.grade = $3 
+          AND c.section = $4
+      `;
+      verifyParams = [teacherId, subjectId, grade, section];
+    } else {
+      verifyQuery = `
+        SELECT COUNT(*) as count 
+        FROM teacher_teaching_assignments tta
+        INNER JOIN classes c ON tta.class_id = c.id
+        WHERE tta.teacher_id = $1 
+          AND tta.subject_id = $2 
+          AND c.grade = $3
+      `;
+      verifyParams = [teacherId, subjectId, grade];
+    }
+
+    const verifyResult = await pool.query(verifyQuery, verifyParams);
+    if (parseInt(verifyResult.rows[0]?.count || 0) === 0) {
+      return res.status(403).json({ success: false, error: 'Доступ запрещен к данным этого класса' });
+    }
+
+    // Get student count
+    let studentCountQuery;
+    let studentCountParams;
+
+    if (section) {
+      studentCountQuery = `
+        SELECT COUNT(DISTINCT u.id) as count
+        FROM users u
+        INNER JOIN classes c ON u.class_id = c.id
+        WHERE c.grade = $1 AND c.section = $2 AND u.role = 'student'
+      `;
+      studentCountParams = [grade, section];
+    } else {
+      studentCountQuery = `
+        SELECT COUNT(DISTINCT u.id) as count
+        FROM users u
+        INNER JOIN classes c ON u.class_id = c.id
+        WHERE c.grade = $1 AND u.role = 'student'
+      `;
+      studentCountParams = [grade];
+    }
+
+    const studentCountResult = await pool.query(studentCountQuery, studentCountParams);
+    const studentCount = parseInt(studentCountResult.rows[0]?.count || 0);
+
+    // Get modules with test results
+    let modulesQuery;
+    let modulesParams;
+
+    if (section) {
+      modulesQuery = `
+        SELECT 
+          m.id,
+          m.name,
+          m.name_uz,
+          m.name_ru,
+          AVG(tr.score) as average_score,
+          COUNT(DISTINCT tr.id) as attempts
+        FROM modules m
+        LEFT JOIN tests t ON t.module_id = m.id
+        LEFT JOIN test_results tr ON tr.test_id = t.id
+        LEFT JOIN users u ON tr.user_id = u.id
+        LEFT JOIN classes c ON u.class_id = c.id
+        WHERE m.subject_id = $1 
+          AND (c.grade = $2 AND c.section = $3 OR c.grade IS NULL)
+        GROUP BY m.id, m.name, m.name_uz, m.name_ru
+        ORDER BY m.created_at
+      `;
+      modulesParams = [subjectId, grade, section];
+    } else {
+      modulesQuery = `
+        SELECT 
+          m.id,
+          m.name,
+          m.name_uz,
+          m.name_ru,
+          AVG(tr.score) as average_score,
+          COUNT(DISTINCT tr.id) as attempts
+        FROM modules m
+        LEFT JOIN tests t ON t.module_id = m.id
+        LEFT JOIN test_results tr ON tr.test_id = t.id
+        LEFT JOIN users u ON tr.user_id = u.id
+        LEFT JOIN classes c ON u.class_id = c.id
+        WHERE m.subject_id = $1 
+          AND (c.grade = $2 OR c.grade IS NULL)
+        GROUP BY m.id, m.name, m.name_uz, m.name_ru
+        ORDER BY m.created_at
+      `;
+      modulesParams = [subjectId, grade];
+    }
+
+    const modulesResult = await pool.query(modulesQuery, modulesParams);
+    const modules = modulesResult.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      nameUz: row.name_uz,
+      nameRu: row.name_ru,
+      averageScore: row.average_score ? Math.round(parseFloat(row.average_score)) : null,
+      attempts: parseInt(row.attempts || 0)
+    }));
+
     res.json({
       success: true,
       data: {
-        grade: null,
-        section: null,
-        studentCount: 0,
-        modules: []
+        grade,
+        section: section || null,
+        studentCount,
+        modules
       }
     });
   } catch (error) {

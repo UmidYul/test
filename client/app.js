@@ -4344,8 +4344,9 @@ async function renderAdminSubjects() {
                 }
                 .subjects-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    grid-template-columns: repeat(auto-fill, minmax(250px, 280px));
                     gap: 1rem;
+                    justify-content: start;
                 }
                 .subjects-card {
                     background: var(--bg-primary);
@@ -9263,12 +9264,19 @@ async function renderTeacherSubjects() {
     }
 
     const content = `
-        <div class="page-header">
-            <h1>${lang === 'uz' ? 'Mening fanlarim' : 'Мои предметы'}</h1>
-            <p>${user.firstName} ${user.lastName} • ${t('teacher')}</p>
+        <div class="page-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2.5rem 2rem; border-radius: 20px; margin-bottom: 2rem; box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);">
+            <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1rem;">
+                <div style="width: 64px; height: 64px; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                    👨‍🏫
+                </div>
+                <div>
+                    <h1 style="margin: 0; font-size: 2rem; font-weight: 700;">${user.firstName} ${user.lastName}</h1>
+                    <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 1rem;">${t('teacher')} • ${lang === 'uz' ? 'Mening fanlarim' : 'Мои предметы'}</p>
+                </div>
+            </div>
         </div>
 
-        <div class="dashboard-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="dashboard-cards" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 320px)); gap: 1.5rem; margin-bottom: 2rem; justify-content: start;">
             <div class="dashboard-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); cursor: pointer;" id="btnTeacherProfile">
                 <div class="card-icon">📊</div>
                 <div class="card-content">
@@ -9315,11 +9323,18 @@ async function renderTeacherSubjects() {
             </div>
         </div>
         
-        <div class="card" style="margin-bottom: 2rem;">
-            <h3>${lang === 'uz' ? 'Tanlangan fanlar' : 'Выбранные предметы'}</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
-                ${lang === 'uz' ? 'Quyidagi fanlarni o\'qitasiz. Har bir fan uchun modullar va testlar yaratishingiz mumkin.' : 'Вы преподаете следующие предметы. Вы можете создавать модули и тесты для каждого предмета.'}
-            </p>
+        <div class="card" style="margin-bottom: 2rem; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    📚
+                </div>
+                <div>
+                    <h3 style="margin: 0;">${lang === 'uz' ? 'Tanlangan fanlar' : 'Выбранные предметы'}</h3>
+                    <p style="color: var(--text-muted); margin: 0.25rem 0 0 0; font-size: 0.9rem;">
+                        ${lang === 'uz' ? 'Har bir fan uchun modullar va testlar yaratishingiz mumkin' : 'Создавайте модули и тесты для каждого предмета'}
+                    </p>
+                </div>
+            </div>
             <div id="teacherSubjects">
                 <div class="loading">
                     <div class="spinner"></div>

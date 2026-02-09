@@ -1249,8 +1249,9 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                 }
                 .subjects-grid {
                     display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    grid-template-columns: repeat(auto-fill, minmax(250px, 280px));
                     gap: 1rem;
+                    justify-content: start;
                 }
                 .subjects-card {
                     background: var(--bg-primary);
@@ -3280,12 +3281,19 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                 }
             </style>
         `;O(y,"student"),(r=document.getElementById("btnBackToDashboard"))==null||r.addEventListener("click",()=>{$.navigate("/student/dashboard")})}catch(o){console.error("❌ Error submitting control test:",o),I(n==="uz"?"Xatolik yuz berdi: "+o.message:"Ошибка: "+o.message,"error",6e3)}}function ha(){if(!k.getState().user){$.navigate("/login");return}$.navigate("/teacher/subjects")}async function Eh(){var r,o,l,d,c;const e=k.getState().user,t=k.getState().language;if(!e){$.navigate("/login");return}const i=`
-        <div class="page-header">
-            <h1>${t==="uz"?"Mening fanlarim":"Мои предметы"}</h1>
-            <p>${e.firstName} ${e.lastName} • ${L("teacher")}</p>
+        <div class="page-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2.5rem 2rem; border-radius: 20px; margin-bottom: 2rem; box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);">
+            <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1rem;">
+                <div style="width: 64px; height: 64px; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                    👨‍🏫
+                </div>
+                <div>
+                    <h1 style="margin: 0; font-size: 2rem; font-weight: 700;">${e.firstName} ${e.lastName}</h1>
+                    <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 1rem;">${L("teacher")} • ${t==="uz"?"Mening fanlarim":"Мои предметы"}</p>
+                </div>
+            </div>
         </div>
 
-        <div class="dashboard-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="dashboard-cards" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 320px)); gap: 1.5rem; margin-bottom: 2rem; justify-content: start;">
             <div class="dashboard-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); cursor: pointer;" id="btnTeacherProfile">
                 <div class="card-icon">📊</div>
                 <div class="card-content">
@@ -3332,11 +3340,18 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
             </div>
         </div>
         
-        <div class="card" style="margin-bottom: 2rem;">
-            <h3>${t==="uz"?"Tanlangan fanlar":"Выбранные предметы"}</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
-                ${t==="uz"?"Quyidagi fanlarni o'qitasiz. Har bir fan uchun modullar va testlar yaratishingiz mumkin.":"Вы преподаете следующие предметы. Вы можете создавать модули и тесты для каждого предмета."}
-            </p>
+        <div class="card" style="margin-bottom: 2rem; border-radius: 16px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                    📚
+                </div>
+                <div>
+                    <h3 style="margin: 0;">${t==="uz"?"Tanlangan fanlar":"Выбранные предметы"}</h3>
+                    <p style="color: var(--text-muted); margin: 0.25rem 0 0 0; font-size: 0.9rem;">
+                        ${t==="uz"?"Har bir fan uchun modullar va testlar yaratishingiz mumkin":"Создавайте модули и тесты для каждого предмета"}
+                    </p>
+                </div>
+            </div>
             <div id="teacherSubjects">
                 <div class="loading">
                     <div class="spinner"></div>
