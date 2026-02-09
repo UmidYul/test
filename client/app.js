@@ -3968,23 +3968,6 @@ async function renderAdminDashboard() {
     console.log('  - user.username:', user.username);
 
     try {
-        // Fetch data from API
-        const [usersRes, classesRes, testsRes] = await Promise.all([
-            apiRequest('/api/users'),
-            apiRequest('/api/classes'),
-            apiRequest('/api/teacher-tests')
-        ]);
-
-        const users = usersRes.success ? (usersRes.data || []) : [];
-        const classes = classesRes.success ? (classesRes.data || []) : [];
-        const tests = testsRes.success ? (testsRes.data || []) : [];
-
-        const students = users.filter(u => u.role === 'student');
-        const totalStudents = students.length;
-        const totalClasses = classes.length;
-        const totalTests = tests.length;
-        const maxTableRows = 4;
-
         const content = `
         <style>
             @media (max-width: 768px) {
@@ -4088,64 +4071,8 @@ async function renderAdminDashboard() {
                         <div style="color: #22c55e; font-size: 1.5rem; font-weight: 600; flex-shrink: 0;"><i class="fas fa-arrow-right"></i></div>
                     </div>
 
-                </div>
 
-                <!-- Tests Section -->
-                <div style="margin-top: 2rem;">
-                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${lang === 'uz' ? 'Barcha Testlar' : 'Все тесты'}</h2>
-                        <div style="background: rgba(59, 130, 246, 0.2); color: #3B82F6; padding: 0.35rem 0.75rem; border-radius: 999px; font-weight: 600; font-size: 0.85rem;">${totalTests}</div>
-                    </div>
-                    
-                    ${totalTests === 0 ? `
-                        <div style="background: var(--bg-secondary); border: 2px dashed var(--border-color); border-radius: 12px; padding: 3rem 2rem; text-align: center;">
-                            <div style="font-size: 2.5rem; margin-bottom: 1rem;">📋</div>
-                            <p style="margin: 0; color: var(--text-secondary); font-size: 0.95rem;">${lang === 'uz' ? 'Hali testlar yaratilmagan' : 'Тесты еще не созданы'}</p>
-                        </div>
-                    ` : `
-                        <div style="display: grid; gap: 1rem;">
-                            ${tests.slice(0, maxTableRows).map(test => {
-                    const testId = test._id || test.id || '';
-                    const created = test.createdAt || test.created_at || '';
-                    const createdDate = created ? new Date(created).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'ru-RU') : '-';
-                    const questionsCount = test.questionsCount || test.questions?.length || 0;
-                    const duration = test.duration || 30;
-                    return `
-                                    <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: center;">
-                                        <div>
-                                            <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 700; color: var(--text-primary);">${test.title || 'Untitled'}</h3>
-                                            <p style="margin: 0 0 0.75rem 0; color: var(--text-secondary); font-size: 0.85rem;">${test.description || ''}</p>
-                                            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
-                                                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">
-                                                    <span>📝</span>
-                                                    <span>${questionsCount} ${lang === 'uz' ? 'savol' : 'вопрос'}</span>
-                                                </div>
-                                                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">
-                                                    <span>⏱</span>
-                                                    <span>${duration} ${lang === 'uz' ? 'min' : 'мин'}</span>
-                                                </div>
-                                                <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.85rem;">
-                                                    <span>📅</span>
-                                                    <span>${createdDate}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div onclick="window.router.navigate('/admin/teacher-tests')" style="cursor: pointer; padding: 0.75rem 1rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; color: #3B82F6; font-weight: 600; font-size: 0.85rem; transition: all 0.3s; white-space: nowrap;" onmouseover="this.style.background='rgba(59, 130, 246, 0.2)';" onmouseout="this.style.background='rgba(59, 130, 246, 0.1)';">${lang === 'uz' ? 'Ko\'rish' : 'Просм.'}</div>
-                                    </div>
-                                `;
-                }).join('')}
-                        </div>
-                        ${tests.length > maxTableRows ? `
-                            <div style="margin-top: 1.5rem; text-align: center;">
-                                <button onclick="window.router.navigate('/admin/teacher-tests')" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #3B82F6 0%, #1e40af 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 16px rgba(59, 130, 246, 0.3)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                                    ${lang === 'uz' ? 'Barcha testlarni ko\'rish' : 'Показать все тесты'} (${tests.length})
-                                </button>
-                            </div>
-                        ` : ''}
-                    `}
                 </div>
-            </div>
-        </div>
         `;
 
         renderLayout(content, 'admin');
@@ -6226,119 +6153,197 @@ async function renderAdminTeacherTests() {
 
     const content = `
         <style>
-            .teacher-tests-header { background: linear-gradient(135deg, rgba(245,158,11,0.10), rgba(124,58,237,0.06)); border: 1px solid rgba(245,158,11,0.16); border-radius: 14px; padding: 1rem; gap: 1rem; align-items: flex-start; }
-            .teacher-tests-header h1 { margin: 0; font-size: 1.6rem; font-weight: 800; }
-            .teacher-tests-header p { margin: 0.25rem 0 0 0; color: var(--text-secondary); font-size: 0.9rem; }
-            .teacher-tests-controls { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-top: 1rem; }
-            .teacher-tests-search { min-width: 220px; padding: 0.65rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); }
-            .teacher-tests-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
-            .teacher-test-card { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; transition: all 0.2s; }
-            .teacher-test-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateY(-2px); }
-            .teacher-test-card h3 { margin: 0 0 0.25rem 0; font-size: 1.1rem; }
-            .teacher-test-card .desc { color: var(--text-muted); font-size: 0.9rem; margin: 0; }
-            .teacher-test-card .stats { color: var(--text-secondary); font-size: 0.85rem; display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 0.5rem 0; }
-            .teacher-test-card .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+            .teacher-tests-hero {
+                background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(124, 58, 237, 0.12) 100%);
+                border: 1px solid rgba(245, 158, 11, 0.28);
+                border-radius: 18px;
+                padding: 1.5rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+            .teacher-tests-hero__title {
+                margin: 0;
+                font-size: 2.1rem;
+                font-weight: 800;
+                color: var(--text-primary);
+            }
+            .teacher-tests-hero__desc {
+                margin: 0.5rem 0 0 0;
+                color: var(--text-secondary);
+                font-size: 0.95rem;
+            }
+            .teacher-tests-hero__meta {
+                display: flex;
+                gap: 0.75rem;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .teacher-tests-pill {
+                padding: 0.45rem 0.9rem;
+                border-radius: 999px;
+                background: rgba(245, 158, 11, 0.16);
+                color: #fde68a;
+                border: 1px solid rgba(245, 158, 11, 0.4);
+                font-weight: 600;
+                font-size: 0.8rem;
+            }
+            .teacher-tests-panel {
+                background: var(--bg-secondary);
+                border: 1px solid var(--border-color);
+                border-radius: 16px;
+                padding: 1.25rem;
+                display: grid;
+                gap: 1rem;
+            }
             @media (max-width: 768px) {
-                .teacher-tests-grid { grid-template-columns: 1fr; }
-                .teacher-test-card .actions { justify-content: space-between; }
-                .teacher-test-card .actions button { flex: 1 1 auto; min-width: 60px; }
+                .teacher-tests-hero { padding: 1.25rem; }
+                .teacher-tests-hero__title { font-size: 1.75rem; }
+            }
+            @media (max-width: 420px) {
+                .teacher-tests-hero { padding: 1rem; border-radius: 14px; }
+                .teacher-tests-hero__title { font-size: 1.5rem; }
+                .teacher-tests-hero__desc { font-size: 0.85rem; }
             }
         </style>
-        <div>
-            <div class="teacher-tests-header">
-                <h1>${lang === 'uz' ? "O'qituvchilar uchun testlar" : 'Тесты для учителей'}</h1>
-                <p>${lang === 'uz' ? 'Yarating, tayinlang va natijalalarni ko\'ring' : 'Создавайте, назначайте и просматривайте результаты'}</p>
-                <div class="teacher-tests-controls">
-                    <input id="teacherTestsSearch" class="teacher-tests-search" type="text" placeholder="${lang === 'uz' ? 'Qidirish...' : 'Поиск...'}" />
-                    <button id="btnCreateTeacherTest" class="button button-primary" style="white-space: nowrap;">➕ ${lang === 'uz' ? "Yangi test" : 'Создать'}</button>
-                    <button id="btnBackToAdmin" class="btn-secondary" style="white-space: nowrap;">← ${t('back')}</button>
+        <div style="display: grid; gap: 1.5rem;">
+            <div class="teacher-tests-hero">
+                <div>
+                    <h1 class="teacher-tests-hero__title">${lang === 'uz' ? 'O\'qituvchilar uchun testlar' : 'Тесты для учителей'}</h1>
+                    <p class="teacher-tests-hero__desc">${lang === 'uz' ? 'O\'qituvchilarning malakasini baholash uchun testlar yaratish va boshqarish' : 'Создание и управление тестами для оценки компетенций учителей'}</p>
+                </div>
+                <div class="teacher-tests-hero__meta">
+                    <span class="teacher-tests-pill">${lang === 'uz' ? 'Testlar' : 'Тесты'}</span>
                 </div>
             </div>
-            <div id="teacherTestsList" class="teacher-tests-grid">
-                <div class="loading"><div class="spinner"></div></div>
+
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+                <div>
+                    <button class="btn-secondary" id="btnBackToAdmin" style="padding: 0.5rem 0.9rem; font-size: 0.85rem; border: 1px solid var(--border-color);">← ${t('back')}</button>
+                </div>
+                <div class="teacher-tests-panel">
+                <button class="button button-primary" id="btnCreateTeacherTest" style="width: 100%;">
+                    <span>➕</span>
+                    <span>${lang === 'uz' ? 'Yangi test yaratish' : 'Создать новый тест'}</span>
+                </button>
+                </div>
+
+            <div class="teacher-tests-panel" style="overflow: hidden;">
+                <h2 style="margin: 0 0 1.25rem 0;">${lang === 'uz' ? 'Mavjud testlar' : 'Существующие тесты'}</h2>
+                <div id="teacherTestsList">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
             </div>
         </div>
     `;
 
     renderLayout(content, 'admin');
 
-    document.getElementById('btnBackToAdmin')?.addEventListener('click', () => window.router.navigate('/admin/dashboard'));
-    document.getElementById('btnCreateTeacherTest')?.addEventListener('click', () => showCreateTeacherTestModal());
-    document.getElementById('teacherTestsSearch')?.addEventListener('input', debounceTeacherTestsLoad(220));
+    document.getElementById('btnBackToAdmin')?.addEventListener('click', () => {
+        window.router.navigate('/admin/dashboard');
+    });
 
+    document.getElementById('btnCreateTeacherTest')?.addEventListener('click', () => {
+        showCreateTeacherTestModal();
+    });
+
+    // Load teacher tests
     await loadTeacherTests();
 }
 
-// Simple debounce helper for search
-function debounceTeacherTestsLoad(wait) {
-    let timer;
-    return () => {
-        clearTimeout(timer);
-        timer = setTimeout(() => loadTeacherTests(), wait);
-    };
-}
-
-// Load teacher tests list with client-side searching
+// Load teacher tests list
 async function loadTeacherTests() {
     const lang = store.getState().language;
     const container = document.getElementById('teacherTestsList');
-    const searchInput = document.getElementById('teacherTestsSearch');
 
-    if (!container) return;
+    if (!container) {
+        console.error('teacherTestsList container not found');
+        return;
+    }
 
     try {
+        console.log('Loading teacher tests...');
         const response = await apiRequest('/api/teacher-tests');
+        console.log('Teacher tests response:', response);
 
         if (!response.success || !response.data || response.data.length === 0) {
-            container.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-secondary);">${lang === 'uz' ? 'Hali testlar yaratilmagan' : 'Тесты еще не созданы'}</div>`;
-            return;
-        }
-
-        const searchTerm = (searchInput?.value || '').toLowerCase().trim();
-        let tests = response.data;
-
-        // Client-side filtering
-        if (searchTerm) {
-            tests = tests.filter(t => (
-                (t.title || '').toLowerCase().includes(searchTerm) ||
-                (t.description || '').toLowerCase().includes(searchTerm)
-            ));
-        }
-
-        if (tests.length === 0) {
-            container.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-secondary);">${lang === 'uz' ? 'Hech narsa topilmadi' : 'Ничего не найдено'}</div>`;
-            return;
-        }
-
-        container.innerHTML = tests.map(test => {
-            const testId = test._id || test.id || '';
-            const created = test.createdAt || test.created_at || '';
-            const createdDate = created ? new Date(created).toLocaleDateString(lang === 'uz' ? 'uz-UZ' : 'ru-RU') : '-';
-            const teacherNames = (test.assignedTeachers || test.teachers || []).map(t => `${t.firstName || ''} ${t.lastName || ''}`.trim()).filter(Boolean).join(', ') || '—';
-
-            return `
-                <div class="teacher-test-card">
-                    <h3>${test.title || 'Untitled'}</h3>
-                    <p class="desc">${test.description || ''}</p>
-                    <div class="stats">
-                        <span>📝 ${test.questionsCount || 0}</span>
-                        <span>⏱ ${test.duration || 30}м</span>
-                        <span>📅 ${createdDate}</span>
-                        <span>👩‍🏫 ${teacherNames}</span>
-                    </div>
-                    <div class="actions">
-                        <button class="button button-primary button-inline" onclick="editTeacherTest('${testId}')">✏️</button>
-                        <button class="button button-secondary button-inline" onclick="viewTeacherTestResults('${testId}')">📊</button>
-                        <button class="button button-primary button-inline" onclick="assignTestToTeachers('${testId}')">👥</button>
-                        <button class="button button-inline" style="background:#ef4444;color:#fff;" onclick="deleteTeacherTest('${testId}')">🗑</button>
-                    </div>
+            container.innerHTML = `
+                <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                    <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;">📝</div>
+                    <p>${lang === 'uz' ? 'Hali testlar yaratilmagan' : 'Тесты еще не созданы'}</p>
                 </div>
             `;
+            return;
+        }
+
+        const tests = response.data;
+        console.log('Rendering', tests.length, 'tests');
+
+        const getTeacherTestId = (test) => test?._id || test?.id || test?.testId || test?.test_id;
+        const getTeacherTestDate = (test) => test?.createdAt || test?.created_at || test?.updatedAt || test?.updated_at;
+
+        container.innerHTML = tests.map(test => {
+            const testId = getTeacherTestId(test);
+            const createdAt = getTeacherTestDate(test);
+            const locale = lang === 'uz' ? 'uz-UZ' : 'ru-RU';
+            const createdDate = createdAt ? new Date(createdAt).toLocaleDateString(locale) : '-';
+            const title = test?.title || '';
+            const description = test?.description || '';
+            const actions = testId ? `
+                <button class="button button-primary button-inline" onclick="editTeacherTest('${testId}')" style="padding: 0.5rem 1rem;">
+                    <span>✏️</span>
+                    <span>${lang === 'uz' ? 'Tahrirlash' : 'Редактировать'}</span>
+                </button>
+                <button class="button button-secondary button-inline" onclick="viewTeacherTestResults('${testId}')" style="padding: 0.5rem 1rem;">
+                    <span>📊</span>
+                    <span>${lang === 'uz' ? 'Natijalar' : 'Результаты'}</span>
+                </button>
+                <button class="button button-primary button-inline" onclick="assignTestToTeachers('${testId}')" style="padding: 0.5rem 1rem;">
+                    <span>👥</span>
+                    <span>${lang === 'uz' ? 'Tayinlash' : 'Назначить'}</span>
+                </button>
+                <button class="button button-inline" onclick="deleteTeacherTest('${testId}')" style="padding: 0.5rem 1rem; background: #ef4444; color: white; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <span>🗑️</span>
+                    <span class="delete-text">${lang === 'uz' ? 'O\'chirish' : 'Удалить'}</span>
+                </button>
+            ` : `
+                <span style="color: var(--text-muted); font-size: 0.9rem;">${lang === 'uz' ? 'ID topilmadi' : 'ID не найден'}</span>
+            `;
+
+            return `
+            <div class="card" style="margin-bottom: 1rem; border-left: 4px solid var(--primary); overflow: hidden;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 0.5rem 0;">${title}</h3>
+                        <p style="color: var(--text-muted); margin: 0 0 0.5rem 0;">${description}</p>
+                        <div style="display: flex; gap: 1rem; font-size: 0.9rem; color: var(--text-muted);">
+                            <span>📝 ${test.questionsCount || 0} ${lang === 'uz' ? 'ta savol' : 'вопросов'}</span>
+                            <span>⏱️ ${test.duration || 30} ${lang === 'uz' ? 'daqiqa' : 'минут'}</span>
+                            <span>📅 ${createdDate}</span>
+                            <span>👩‍🏫 ${(() => {
+                    const teachers = test.assignedTeachers || test.teachers || test.teachingStaff || [];
+                    if (!teachers || teachers.length === 0) return '—';
+                    return teachers.map(t => `${(t.firstName || t.name || '').trim()} ${(t.lastName || '').trim()}`.trim()).filter(Boolean).join(', ');
+                })()}</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        ${actions}
+                    </div>
+                </div>
+            </div>
+        `;
         }).join('');
 
     } catch (error) {
         console.error('Error loading teacher tests:', error);
-        container.innerHTML = `<div style="text-align:center;padding:2rem;color:#ef4444;">${lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка'}</div>`;
+        container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: #ef4444;">
+                <p>${lang === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка'}</p>
+            </div>
+        `;
     }
 }
 
