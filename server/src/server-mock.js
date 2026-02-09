@@ -2318,7 +2318,7 @@ app.get('/api/teacher/analytics', auth, async (req, res) => {
     const recentCompletionsResult = await pool.query(
       `SELECT 
          tr.score,
-         tr.submitted_at,
+         tr.completed_at,
          u.first_name || ' ' || u.last_name as student_name,
          s.name as subject_name,
          t.name as test_name
@@ -2328,13 +2328,13 @@ app.get('/api/teacher/analytics', auth, async (req, res) => {
        INNER JOIN modules m ON t.module_id = m.id
        INNER JOIN subjects s ON m.subject_id = s.id
        WHERE t.created_by = $1
-       ORDER BY tr.submitted_at DESC
+       ORDER BY tr.completed_at DESC
        LIMIT 10`,
       [teacherId]
     );
     const recentCompletions = recentCompletionsResult.rows.map(row => ({
       score: Math.round(parseFloat(row.score || 0)),
-      submittedAt: row.submitted_at,
+      submittedAt: row.completed_at,
       studentName: row.student_name,
       studentGrade: null, // No direct class relation
       subjectName: row.subject_name,
