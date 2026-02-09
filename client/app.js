@@ -11699,32 +11699,47 @@ async function renderModuleTests() {
     console.log('📍 Full path:', window.location.pathname);
 
     const content = `
-        <div class="page-header" style="margin-bottom: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1 id="moduleName" style="background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem;">${lang === 'uz' ? 'Yuklanmoqda...' : 'Загрузка...'}</h1>
-                    <p style="color: var(--text-muted); margin: 0;">${lang === 'uz' ? 'Testlarni yarating va tahrirlang' : 'Создание и редактирование тестов'}</p>
+        <!-- Modern Gradient Header -->
+        <div class="page-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2.5rem 2rem; border-radius: 20px; box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3); margin-bottom: 2.5rem; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; filter: blur(40px);"></div>
+            <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; filter: blur(40px);"></div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="width: 56px; height: 56px; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+                            📝
+                        </div>
+                        <div>
+                            <h1 id="moduleName" style="font-size: 2rem; font-weight: 700; margin: 0; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">${lang === 'uz' ? 'Yuklanmoqda...' : 'Загрузка...'}</h1>
+                            <p style="margin: 0.5rem 0 0 0; font-size: 1rem; opacity: 0.95;">${lang === 'uz' ? 'Testlarni yarating va boshqaring' : 'Создавайте и управляйте тестами'}</p>
+                        </div>
+                    </div>
                 </div>
-                <button class="button button-secondary" id="btnBackToSubject" style="display: flex; align-items: center; gap: 0.5rem; padding: 12px 20px; border-radius: 10px; transition: all 0.3s ease;">
-                    <span>←</span>
-                    <span>${lang === 'uz' ? 'Modulga qaytish' : 'Вернуться к модулю'}</span>
+                <button class="button" id="btnBackToSubject" style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); color: white; border: 1px solid rgba(255, 255, 255, 0.3); display: flex; align-items: center; gap: 0.75rem; padding: 14px 24px; border-radius: 12px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); cursor: pointer;">
+                    <span style="font-size: 1.25rem;">←</span>
+                    <span>${lang === 'uz' ? 'Orqaga' : 'Назад'}</span>
                 </button>
             </div>
         </div>
         
         <!-- Create Test Section -->
-        <div class="card test-create">
-            <div class="test-create__header">
-                <div class="test-create__icon">🧩</div>
-                <div>
-                    <h3>${lang === 'uz' ? 'Yangi test' : 'Новый тест'}</h3>
-                    <p>${lang === 'uz' ? 'Testni yaratish va tahrirlash' : 'Создание и редактирование тестов'}</p>
+        <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 2rem; border-radius: 20px; box-shadow: 0 8px 24px rgba(245, 87, 108, 0.3); margin-bottom: 2.5rem; border: none; position: relative; overflow: hidden; transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 32px rgba(245, 87, 108, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(245, 87, 108, 0.3)'">
+            <div style="position: absolute; top: -40px; right: -40px; width: 180px; height: 180px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; filter: blur(40px);"></div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <div style="width: 72px; height: 72px; background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(10px); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);">
+                        ✨
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.5rem; font-weight: 700; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">${lang === 'uz' ? 'Yangi test yaratish' : 'Создать новый тест'}</h3>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 1rem; opacity: 0.95;">${lang === 'uz' ? 'Modul uchun yangi test qo\'shing' : 'Добавьте новый тест для модуля'}</p>
+                    </div>
                 </div>
-            </div>
-            <div class="test-create__actions">
-                <button type="button" class="button button-primary" id="btnCreateModuleTest">
-                    <span>➕</span>
-                    <span>${lang === 'uz' ? 'Test yaratish' : 'Создать тест'}</span>
+                <button type="button" class="button" id="btnCreateModuleTest" style="background: white; color: #f5576c; border: none; display: flex; align-items: center; gap: 0.75rem; padding: 16px 28px; border-radius: 12px; font-weight: 700; font-size: 1rem; transition: all 0.3s ease; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); cursor: pointer;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(0, 0, 0, 0.2)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.15)'">
+                    <span style="font-size: 1.25rem;">➕</span>
+                    <span>${lang === 'uz' ? 'Yaratish' : 'Создать'}</span>
                 </button>
             </div>
         </div>
@@ -11735,14 +11750,14 @@ async function renderModuleTests() {
         </div>
         
         <!-- Tests List -->
-        <div class="card" style="border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
-            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
-                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--accent), #06b6d4); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+        <div class="card" style="background: white; border: none; border-radius: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); padding: 2rem;">
+            <div style="display: flex; align-items: center; gap: 1.25rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #f3f4f6;">
+                <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);">
                     📋
                 </div>
                 <div>
-                    <h3 style="margin: 0; font-size: 1.25rem;">${lang === 'uz' ? 'Mavjud testlar' : 'Существующие тесты'}</h3>
-                    <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.875rem;">${lang === 'uz' ? 'Modulning barcha testlari' : 'Все тесты модуля'}</p>
+                    <h3 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #1f2937;">${lang === 'uz' ? 'Barcha testlar' : 'Все тесты'}</h3>
+                    <p style="margin: 0.5rem 0 0 0; color: #6b7280; font-size: 0.95rem;">${lang === 'uz' ? 'Modulning barcha testlari ro\'yxati' : 'Список всех тестов модуля'}</p>
                 </div>
             </div>
             <div id="testsList">
@@ -11788,35 +11803,57 @@ function showCreateModuleTestModal(moduleId) {
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h2 style="margin: 0;">${lang === 'uz' ? 'Yangi test yaratish' : 'Создать новый тест'}</h2>
-                <button class="modal-close" id="closeModuleTestModal">✕</button>
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto; border-radius: 24px; border: none; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 24px 24px 0 0; margin: -2rem -2rem 2rem -2rem; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -30px; right: -30px; width: 150px; height: 150px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; filter: blur(40px);"></div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="width: 48px; height: 48px; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem;">
+                            ✨
+                        </div>
+                        <h2 style="margin: 0; font-size: 1.75rem; font-weight: 700; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">${lang === 'uz' ? 'Yangi test yaratish' : 'Создать новый тест'}</h2>
+                    </div>
+                    <button class="modal-close" id="closeModuleTestModal" style="background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3); width: 40px; height: 40px; border-radius: 10px; font-size: 1.5rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">✕</button>
+                </div>
             </div>
             
             <form id="createModuleTestForm" style="display: grid; gap: 1rem;">
                 <div>
-                    <label class="form-label">${lang === 'uz' ? 'Test nomi' : 'Название теста'}</label>
-                    <input type="text" name="title" class="form-input" required placeholder="${lang === 'uz' ? 'Test nomini kiriting' : 'Введите название теста'}">
+                    <label class="form-label" style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block; font-size: 0.95rem;">
+                        <span style="margin-right: 0.5rem;">📝</span>
+                        ${lang === 'uz' ? 'Test nomi' : 'Название теста'}
+                    </label>
+                    <input type="text" name="title" class="form-input" required placeholder="${lang === 'uz' ? 'Test nomini kiriting' : 'Введите название теста'}" style="padding: 14px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; transition: all 0.3s ease; width: 100%; box-sizing: border-box;" onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'" onblur="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'">
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div>
-                        <label class="form-label">${lang === 'uz' ? 'Davomiyligi (daqiqa)' : 'Длительность (минуты)'}</label>
-                        <input type="number" name="duration" class="form-input" value="30" min="5" max="180">
+                        <label class="form-label" style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block; font-size: 0.95rem;">
+                            <span style="margin-right: 0.5rem;">⏱️</span>
+                            ${lang === 'uz' ? 'Davomiyligi (daqiqa)' : 'Длительность (минуты)'}
+                        </label>
+                        <input type="number" name="duration" class="form-input" value="30" min="5" max="180" style="padding: 14px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; transition: all 0.3s ease; width: 100%; box-sizing: border-box;" onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'" onblur="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'">
                     </div>
                     <div>
-                        <label class="form-label">${lang === 'uz' ? 'O\'tish bali (%)' : 'Проходной балл (%)'}</label>
-                        <input type="number" name="passPercent" class="form-input" value="70" min="0" max="100">
+                        <label class="form-label" style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block; font-size: 0.95rem;">
+                            <span style="margin-right: 0.5rem;">🎯</span>
+                            ${lang === 'uz' ? 'O\'tish bali (%)' : 'Проходной балл (%)'}
+                        </label>
+                        <input type="number" name="passPercent" class="form-input" value="70" min="0" max="100" style="padding: 14px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; transition: all 0.3s ease; width: 100%; box-sizing: border-box;" onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'" onblur="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'">
                     </div>
                 </div>
 
-                <div class="info-message" style="padding: 0.75rem 1rem;">
+                <div class="info-message" style="padding: 1rem 1.25rem; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px; border-left: 4px solid #3b82f6; color: #1e40af; font-weight: 500;">
+                    <span style="font-size: 1.25rem; margin-right: 0.5rem;">💡</span>
                     ${lang === 'uz' ? 'Savollar test yaratilgandan keyin alohida sahifada qo\'shiladi.' : 'Вопросы добавляются после создания теста на отдельной странице.'}
                 </div>
                 
                 <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
-                    <button type="button" class="button button-secondary" id="btnCancelModuleTest">${lang === 'uz' ? 'Bekor qilish' : 'Отмена'}</button>
-                    <button type="submit" class="button button-primary">${lang === 'uz' ? 'Saqlash' : 'Сохранить'}</button>
+                    <button type="button" class="button" id="btnCancelModuleTest" style="padding: 14px 24px; border: 2px solid #e5e7eb; background: white; color: #6b7280; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-size: 1rem;" onmouseover="this.style.borderColor='#d1d5db'; this.style.background='#f9fafb'" onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='white'">${lang === 'uz' ? 'Bekor qilish' : 'Отмена'}</button>
+                    <button type="submit" class="button" style="padding: 14px 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3); transition: all 0.3s ease; font-size: 1rem; display: flex; align-items: center; gap: 0.625rem;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(102, 126, 234, 0.3)'">
+                        <span style="font-size: 1.25rem;">💾</span>
+                        <span>${lang === 'uz' ? 'Saqlash' : 'Сохранить'}</span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -11887,35 +11924,47 @@ async function loadModuleTests(moduleId) {
             console.log(`  Test "${test.nameRu}" (ID: ${test._id}): ${test.questionsCount || 0} questions`);
         });
         testsList.innerHTML = testsData.map(test => `
-            <div class="card test-card" data-test-id="${test._id}" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 1px solid var(--border-color); border-left: 4px solid var(--primary); transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem;">
+            <div class="card test-card" data-test-id="${test._id}" style="margin-bottom: 1.5rem; background: white; border: 2px solid #e5e7eb; border-radius: 16px; transition: all 0.3s ease; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); overflow: hidden; position: relative; cursor: pointer;" onmouseover="this.style.borderColor='#667eea'; this.style.boxShadow='0 8px 24px rgba(102, 126, 234, 0.15)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='0 2px 12px rgba(0, 0, 0, 0.06)'; this.style.transform='translateY(0)'">
+                <div style="position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);"></div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; padding: 1.75rem;">
                     <div style="flex: 1;">
-                        <div style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem;">
-                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
+                        <div style="display: flex; align-items: flex-start; gap: 1.25rem; margin-bottom: 1.25rem;">
+                            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; flex-shrink: 0; box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);">
                                 📝
                             </div>
                             <div style="flex: 1;">
-                                <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; font-weight: 600;">${lang === 'uz' ? test.nameUz : test.nameRu}</h4>
-                                <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">
-                                    <span style="display: inline-block; margin-right: 1.5rem;">📝 ${test.questionsCount || 0} ${lang === 'uz' ? 'savol' : 'вопросов'}</span>
-                                    <span style="display: inline-block; margin-right: 1.5rem;">⏱️ ${test.duration} мин</span>
-                                    <span style="display: inline-block;">🎯 ${test.maxScore} баллов</span>
-                                </p>
+                                <h4 style="margin: 0 0 0.75rem 0; font-size: 1.25rem; font-weight: 700; color: #1f2937; line-height: 1.4;">${lang === 'uz' ? test.nameUz : test.nameRu}</h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 6px 12px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px; color: #0369a1; font-size: 0.875rem; font-weight: 600;">
+                                        <span style="font-size: 1.1rem;">📝</span>
+                                        <span>${test.questionsCount || 0} ${lang === 'uz' ? 'savol' : 'вопросов'}</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 6px 12px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 8px; color: #92400e; font-size: 0.875rem; font-weight: 600;">
+                                        <span style="font-size: 1.1rem;">⏱️</span>
+                                        <span>${test.duration} ${lang === 'uz' ? 'daq' : 'мин'}</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 6px 12px; background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); border-radius: 8px; color: #9f1239; font-size: 0.875rem; font-weight: 600;">
+                                        <span style="font-size: 1.1rem;">🎯</span>
+                                        <span>${test.maxScore} ${lang === 'uz' ? 'ball' : 'баллов'}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                            <span style="display: inline-block; padding: 6px 12px; background: ${test.status === 'published' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)'}; color: ${test.status === 'published' ? 'var(--success)' : 'var(--warning)'}; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">
-                                ${test.status === 'published' ? '✓ ' : '◉ '}${lang === 'uz' ? (test.status === 'published' ? 'Nashr qilingan' : 'Qoralama') : (test.status === 'published' ? 'Опубликовано' : 'Черновик')}
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 8px 14px; background: ${test.status === 'published' ? 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)' : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'}; color: ${test.status === 'published' ? '#065f46' : '#92400e'}; border-radius: 10px; font-size: 0.875rem; font-weight: 700; box-shadow: 0 2px 8px ${test.status === 'published' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'};">
+                                <span style="font-size: 1.1rem;">${test.status === 'published' ? '✓' : '◉'}</span>
+                                <span>${lang === 'uz' ? (test.status === 'published' ? 'Nashr qilingan' : 'Qoralama') : (test.status === 'published' ? 'Опубликовано' : 'Черновик')}</span>
                             </span>
                         </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 0.75rem; min-width: 140px;">
-                        <button class="btn-edit-test button button-primary" data-test-id="${test._id}" style="width: 100%; padding: 12px 18px; font-size: 0.9rem; font-weight: 600; background: linear-gradient(135deg, var(--primary), var(--accent)); border: none; border-radius: 10px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: white; cursor: pointer;">
-                            <span>✏️</span>
+                    <div style="display: flex; flex-direction: column; gap: 0.875rem; min-width: 160px;">
+                        <button class="btn-edit-test button button-primary" data-test-id="${test._id}" style="width: 100%; padding: 14px 20px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.625rem; color: white; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(102, 126, 234, 0.3)'">
+                            <span style="font-size: 1.15rem;">✏️</span>
                             <span>${lang === 'uz' ? 'Tahrirlash' : 'Редактировать'}</span>
                         </button>
-                        <button class="btn-delete-test button button-danger" data-test-id="${test._id}" data-module-id="${moduleId}" style="width: 100%; padding: 12px 18px; font-size: 0.9rem; font-weight: 600; border: none; border-radius: 10px; background: rgba(239, 68, 68, 0.2); color: var(--danger); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer;">
-                            <span>🗑️</span>
+                        <button class="btn-delete-test button button-danger" data-test-id="${test._id}" data-module-id="${moduleId}" style="width: 100%; padding: 14px 20px; font-size: 0.95rem; font-weight: 700; border: 2px solid #fecaca; background: white; color: #dc2626; border-radius: 12px; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.625rem; cursor: pointer;" onmouseover="this.style.background='linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)'; this.style.borderColor='#f87171'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 16px rgba(220, 38, 38, 0.2)'" onmouseout="this.style.background='white'; this.style.borderColor='#fecaca'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            <span style="font-size: 1.15rem;">🗑️</span>
                             <span>${lang === 'uz' ? 'O\'chirish' : 'Удалить'}</span>
                         </button>
                     </div>
@@ -11947,11 +11996,25 @@ async function loadModuleTests(moduleId) {
     } else {
         console.log('❌ No tests found or empty result. Success:', result.success, 'Array?', Array.isArray(testsData), 'Length:', testsData.length);
         testsList.innerHTML = `
-            <div class="card" style="text-align: center; padding: 4rem 2rem; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 2px dashed var(--border-color); border-radius: 12px;">
-                <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">📝</div>
-                <p style="color: var(--text-muted); font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">
+            <div style="text-align: center; padding: 5rem 2rem; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px dashed #d1d5db; border-radius: 20px; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: 20px; right: 20px; width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); opacity: 0.05; border-radius: 50%; filter: blur(40px);"></div>
+                <div style="position: absolute; bottom: 20px; left: 20px; width: 120px; height: 120px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); opacity: 0.05; border-radius: 50%; filter: blur(40px);"></div>
+                
+                <div style="position: relative; z-index: 1;">
+                    <div style="width: 100px; height: 100px; background: linear-gradient(135deg, #ddd6fe 0%, #e9d5ff 100%); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 3rem; margin-bottom: 1.5rem; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);">
+                        📝
+                    </div>
+                    <h3 style="color: #374151; font-size: 1.5rem; font-weight: 700; margin: 0 0 0.75rem 0;">
+                        ${lang === 'uz' ? 'Testlar mavjud emas' : 'Тесты отсутствуют'}
+                    </h3>
+                    <p style="color: #6b7280; font-size: 1.05rem; font-weight: 500; margin: 0 0 2rem 0;">
                     ${lang === 'uz' ? 'Hali testlar yaratilmagan' : 'Тесты еще не созданы'}
-                </p>
+                    </p>
+                    <button onclick="document.getElementById('btnCreateModuleTest').click()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 14px 28px; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.75rem;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(102, 126, 234, 0.3)'">
+                        <span style="font-size: 1.25rem;">➕</span>
+                        <span>${lang === 'uz' ? 'Birinchi testni yaratish' : 'Создать первый тест'}</span>
+                    </button>
+                </div>
             </div>
         `;
     }

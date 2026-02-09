@@ -4346,32 +4346,47 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
             </div>
         </div>
     `:"";if(n.innerHTML=r+o+l,a.statsByClass&&a.statsByClass.length>0){const c=document.getElementById("classByClassChart");new yt(c,{type:"bar",data:{labels:a.statsByClass.map(u=>u.grade+(t==="uz"?"-sinf":" класс")),datasets:[{label:t==="uz"?"Bajarilgan testlar":"Пройдено тестов",data:a.statsByClass.map(u=>u.completedTests),backgroundColor:"rgba(102, 126, 234, 0.8)",borderRadius:8},{label:t==="uz"?"O'rtacha ball":"Средний балл",data:a.statsByClass.map(u=>u.averageScore),backgroundColor:"rgba(245, 158, 11, 0.8)",borderRadius:8}]},options:{responsive:!0,maintainAspectRatio:!0,plugins:{legend:{position:"bottom"}},scales:{y:{beginAtZero:!0}}}})}if(a.statsBySubject&&a.statsBySubject.length>0){const c=document.getElementById("subjectScoresChart");new yt(c,{type:"doughnut",data:{labels:a.statsBySubject.map(u=>u.subject),datasets:[{data:a.statsBySubject.map(u=>u.averageScore),backgroundColor:["rgba(102, 126, 234, 0.8)","rgba(245, 158, 11, 0.8)","rgba(239, 68, 68, 0.8)","rgba(16, 185, 129, 0.8)","rgba(99, 102, 241, 0.8)","rgba(236, 72, 153, 0.8)"],borderWidth:0}]},options:{responsive:!0,maintainAspectRatio:!0,plugins:{legend:{position:"bottom"}}}})}}async function Hh(){var a;const e=window.location.pathname.split("/"),t=e[e.length-2],i=k.getState().language;console.log("🔍 renderModuleTests called"),console.log("📍 moduleId extracted:",t),console.log("📍 Full path:",window.location.pathname),O(`
-        <div class="page-header" style="margin-bottom: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1 id="moduleName" style="background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 0.5rem;">${i==="uz"?"Yuklanmoqda...":"Загрузка..."}</h1>
-                    <p style="color: var(--text-muted); margin: 0;">${i==="uz"?"Testlarni yarating va tahrirlang":"Создание и редактирование тестов"}</p>
+        <!-- Modern Gradient Header -->
+        <div class="page-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2.5rem 2rem; border-radius: 20px; box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3); margin-bottom: 2.5rem; position: relative; overflow: hidden;">
+            <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; filter: blur(40px);"></div>
+            <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; filter: blur(40px);"></div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="width: 56px; height: 56px; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+                            📝
+                        </div>
+                        <div>
+                            <h1 id="moduleName" style="font-size: 2rem; font-weight: 700; margin: 0; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">${i==="uz"?"Yuklanmoqda...":"Загрузка..."}</h1>
+                            <p style="margin: 0.5rem 0 0 0; font-size: 1rem; opacity: 0.95;">${i==="uz"?"Testlarni yarating va boshqaring":"Создавайте и управляйте тестами"}</p>
+                        </div>
+                    </div>
                 </div>
-                <button class="button button-secondary" id="btnBackToSubject" style="display: flex; align-items: center; gap: 0.5rem; padding: 12px 20px; border-radius: 10px; transition: all 0.3s ease;">
-                    <span>←</span>
-                    <span>${i==="uz"?"Modulga qaytish":"Вернуться к модулю"}</span>
+                <button class="button" id="btnBackToSubject" style="background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); color: white; border: 1px solid rgba(255, 255, 255, 0.3); display: flex; align-items: center; gap: 0.75rem; padding: 14px 24px; border-radius: 12px; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); cursor: pointer;">
+                    <span style="font-size: 1.25rem;">←</span>
+                    <span>${i==="uz"?"Orqaga":"Назад"}</span>
                 </button>
             </div>
         </div>
         
         <!-- Create Test Section -->
-        <div class="card test-create">
-            <div class="test-create__header">
-                <div class="test-create__icon">🧩</div>
-                <div>
-                    <h3>${i==="uz"?"Yangi test":"Новый тест"}</h3>
-                    <p>${i==="uz"?"Testni yaratish va tahrirlash":"Создание и редактирование тестов"}</p>
+        <div class="card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 2rem; border-radius: 20px; box-shadow: 0 8px 24px rgba(245, 87, 108, 0.3); margin-bottom: 2.5rem; border: none; position: relative; overflow: hidden; transition: all 0.3s ease; cursor: pointer;" onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 32px rgba(245, 87, 108, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 24px rgba(245, 87, 108, 0.3)'">
+            <div style="position: absolute; top: -40px; right: -40px; width: 180px; height: 180px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; filter: blur(40px);"></div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <div style="width: 72px; height: 72px; background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(10px); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);">
+                        ✨
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.5rem; font-weight: 700; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">${i==="uz"?"Yangi test yaratish":"Создать новый тест"}</h3>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 1rem; opacity: 0.95;">${i==="uz"?"Modul uchun yangi test qo'shing":"Добавьте новый тест для модуля"}</p>
+                    </div>
                 </div>
-            </div>
-            <div class="test-create__actions">
-                <button type="button" class="button button-primary" id="btnCreateModuleTest">
-                    <span>➕</span>
-                    <span>${i==="uz"?"Test yaratish":"Создать тест"}</span>
+                <button type="button" class="button" id="btnCreateModuleTest" style="background: white; color: #f5576c; border: none; display: flex; align-items: center; gap: 0.75rem; padding: 16px 28px; border-radius: 12px; font-weight: 700; font-size: 1rem; transition: all 0.3s ease; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); cursor: pointer;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(0, 0, 0, 0.2)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 16px rgba(0, 0, 0, 0.15)'">
+                    <span style="font-size: 1.25rem;">➕</span>
+                    <span>${i==="uz"?"Yaratish":"Создать"}</span>
                 </button>
             </div>
         </div>
@@ -4382,14 +4397,14 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
         </div>
         
         <!-- Tests List -->
-        <div class="card" style="border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
-            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
-                <div style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--accent), #06b6d4); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+        <div class="card" style="background: white; border: none; border-radius: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); padding: 2rem;">
+            <div style="display: flex; align-items: center; gap: 1.25rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid #f3f4f6;">
+                <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);">
                     📋
                 </div>
                 <div>
-                    <h3 style="margin: 0; font-size: 1.25rem;">${i==="uz"?"Mavjud testlar":"Существующие тесты"}</h3>
-                    <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.875rem;">${i==="uz"?"Modulning barcha testlari":"Все тесты модуля"}</p>
+                    <h3 style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #1f2937;">${i==="uz"?"Barcha testlar":"Все тесты"}</h3>
+                    <p style="margin: 0.5rem 0 0 0; color: #6b7280; font-size: 0.95rem;">${i==="uz"?"Modulning barcha testlari ro'yxati":"Список всех тестов модуля"}</p>
                 </div>
             </div>
             <div id="testsList">
@@ -4399,79 +4414,127 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
             </div>
         </div>
     `,"teacher"),document.getElementById("btnBackToSubject").addEventListener("click",()=>{$.navigate("/teacher/subjects")});const n=await C(`/api/modules/${t}`);if(console.log("📦 Module API response:",n),n.success){const r=n.data;document.getElementById("moduleName").textContent=i==="uz"?r.nameUz:r.nameRu,window.currentModule=r,console.log("✅ Module loaded:",r)}else console.error("❌ Failed to load module:",n.error);console.log("⏳ Loading tests for module:",t),await Ps(t),(a=document.getElementById("btnCreateModuleTest"))==null||a.addEventListener("click",()=>{Vh(t)})}function Vh(e){var n,a,r;const t=k.getState().language,i=document.createElement("div");i.className="modal",i.innerHTML=`
-        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h2 style="margin: 0;">${t==="uz"?"Yangi test yaratish":"Создать новый тест"}</h2>
-                <button class="modal-close" id="closeModuleTestModal">✕</button>
+        <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto; border-radius: 24px; border: none; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 24px 24px 0 0; margin: -2rem -2rem 2rem -2rem; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: -30px; right: -30px; width: 150px; height: 150px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; filter: blur(40px);"></div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="width: 48px; height: 48px; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem;">
+                            ✨
+                        </div>
+                        <h2 style="margin: 0; font-size: 1.75rem; font-weight: 700; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">${t==="uz"?"Yangi test yaratish":"Создать новый тест"}</h2>
+                    </div>
+                    <button class="modal-close" id="closeModuleTestModal" style="background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3); width: 40px; height: 40px; border-radius: 10px; font-size: 1.5rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);" onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">✕</button>
+                </div>
             </div>
             
             <form id="createModuleTestForm" style="display: grid; gap: 1rem;">
                 <div>
-                    <label class="form-label">${t==="uz"?"Test nomi":"Название теста"}</label>
-                    <input type="text" name="title" class="form-input" required placeholder="${t==="uz"?"Test nomini kiriting":"Введите название теста"}">
+                    <label class="form-label" style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block; font-size: 0.95rem;">
+                        <span style="margin-right: 0.5rem;">📝</span>
+                        ${t==="uz"?"Test nomi":"Название теста"}
+                    </label>
+                    <input type="text" name="title" class="form-input" required placeholder="${t==="uz"?"Test nomini kiriting":"Введите название теста"}" style="padding: 14px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; transition: all 0.3s ease; width: 100%; box-sizing: border-box;" onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'" onblur="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'">
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div>
-                        <label class="form-label">${t==="uz"?"Davomiyligi (daqiqa)":"Длительность (минуты)"}</label>
-                        <input type="number" name="duration" class="form-input" value="30" min="5" max="180">
+                        <label class="form-label" style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block; font-size: 0.95rem;">
+                            <span style="margin-right: 0.5rem;">⏱️</span>
+                            ${t==="uz"?"Davomiyligi (daqiqa)":"Длительность (минуты)"}
+                        </label>
+                        <input type="number" name="duration" class="form-input" value="30" min="5" max="180" style="padding: 14px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; transition: all 0.3s ease; width: 100%; box-sizing: border-box;" onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'" onblur="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'">
                     </div>
                     <div>
-                        <label class="form-label">${t==="uz"?"O'tish bali (%)":"Проходной балл (%)"}</label>
-                        <input type="number" name="passPercent" class="form-input" value="70" min="0" max="100">
+                        <label class="form-label" style="font-weight: 600; color: #374151; margin-bottom: 0.5rem; display: block; font-size: 0.95rem;">
+                            <span style="margin-right: 0.5rem;">🎯</span>
+                            ${t==="uz"?"O'tish bali (%)":"Проходной балл (%)"}
+                        </label>
+                        <input type="number" name="passPercent" class="form-input" value="70" min="0" max="100" style="padding: 14px 16px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 1rem; transition: all 0.3s ease; width: 100%; box-sizing: border-box;" onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'" onblur="this.style.borderColor='#e5e7eb'; this.style.boxShadow='none'">
                     </div>
                 </div>
 
-                <div class="info-message" style="padding: 0.75rem 1rem;">
+                <div class="info-message" style="padding: 1rem 1.25rem; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px; border-left: 4px solid #3b82f6; color: #1e40af; font-weight: 500;">
+                    <span style="font-size: 1.25rem; margin-right: 0.5rem;">💡</span>
                     ${t==="uz"?"Savollar test yaratilgandan keyin alohida sahifada qo'shiladi.":"Вопросы добавляются после создания теста на отдельной странице."}
                 </div>
                 
                 <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
-                    <button type="button" class="button button-secondary" id="btnCancelModuleTest">${t==="uz"?"Bekor qilish":"Отмена"}</button>
-                    <button type="submit" class="button button-primary">${t==="uz"?"Saqlash":"Сохранить"}</button>
+                    <button type="button" class="button" id="btnCancelModuleTest" style="padding: 14px 24px; border: 2px solid #e5e7eb; background: white; color: #6b7280; border-radius: 12px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; font-size: 1rem;" onmouseover="this.style.borderColor='#d1d5db'; this.style.background='#f9fafb'" onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='white'">${t==="uz"?"Bekor qilish":"Отмена"}</button>
+                    <button type="submit" class="button" style="padding: 14px 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3); transition: all 0.3s ease; font-size: 1rem; display: flex; align-items: center; gap: 0.625rem;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(102, 126, 234, 0.3)'">
+                        <span style="font-size: 1.25rem;">💾</span>
+                        <span>${t==="uz"?"Saqlash":"Сохранить"}</span>
+                    </button>
                 </div>
             </form>
         </div>
     `,document.body.appendChild(i),setTimeout(()=>i.classList.add("show"),10);const s=()=>{i.classList.remove("show"),setTimeout(()=>i.remove(),300)};(n=document.getElementById("closeModuleTestModal"))==null||n.addEventListener("click",s),(a=document.getElementById("btnCancelModuleTest"))==null||a.addEventListener("click",s),(r=document.getElementById("createModuleTestForm"))==null||r.addEventListener("submit",async o=>{o.preventDefault();const l=new FormData(o.target),d=String(l.get("title")||"").trim(),c=parseInt(l.get("duration"),10),u=parseInt(l.get("passPercent"),10);if(!d)return;const h=await C(`/api/modules/${e}/tests`,{method:"POST",body:JSON.stringify({nameRu:d,nameUz:d,duration:Number.isFinite(c)?c:30,passPercent:Number.isFinite(u)?u:70,status:"published"})});h.success?(s(),await Ps(e)):await I(h.error||L("error"),"error")})}async function Ps(e){var a;const t=k.getState().language,i=document.getElementById("testsList");console.log("🔍 loadModuleTests called for moduleId:",e),i.innerHTML='<div class="loading"><div class="spinner"></div></div>';const s=await C(`/api/modules/${e}/tests`);console.log("📦 Tests API response:",s),console.log("📊 result.success:",s.success),console.log("📊 result.data:",s.data);const n=((a=s.data)==null?void 0:a.data)||s.data||[];console.log("📊 testsData:",n),console.log("📊 testsData type:",typeof n),console.log("📊 Is array?",Array.isArray(n)),console.log("📊 testsData length:",n.length),s.success&&Array.isArray(n)&&n.length>0?(console.log("✅ Found",n.length,"tests"),n.forEach(r=>{console.log(`  Test "${r.nameRu}" (ID: ${r._id}): ${r.questionsCount||0} questions`)}),i.innerHTML=n.map(r=>`
-            <div class="card test-card" data-test-id="${r._id}" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 1px solid var(--border-color); border-left: 4px solid var(--primary); transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem;">
+            <div class="card test-card" data-test-id="${r._id}" style="margin-bottom: 1.5rem; background: white; border: 2px solid #e5e7eb; border-radius: 16px; transition: all 0.3s ease; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); overflow: hidden; position: relative; cursor: pointer;" onmouseover="this.style.borderColor='#667eea'; this.style.boxShadow='0 8px 24px rgba(102, 126, 234, 0.15)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#e5e7eb'; this.style.boxShadow='0 2px 12px rgba(0, 0, 0, 0.06)'; this.style.transform='translateY(0)'">
+                <div style="position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);"></div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; padding: 1.75rem;">
                     <div style="flex: 1;">
-                        <div style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem;">
-                            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
+                        <div style="display: flex; align-items: flex-start; gap: 1.25rem; margin-bottom: 1.25rem;">
+                            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; flex-shrink: 0; box-shadow: 0 4px 16px rgba(102, 126, 234, 0.25);">
                                 📝
                             </div>
                             <div style="flex: 1;">
-                                <h4 style="margin: 0 0 0.5rem 0; font-size: 1.1rem; font-weight: 600;">${t==="uz"?r.nameUz:r.nameRu}</h4>
-                                <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">
-                                    <span style="display: inline-block; margin-right: 1.5rem;">📝 ${r.questionsCount||0} ${t==="uz"?"savol":"вопросов"}</span>
-                                    <span style="display: inline-block; margin-right: 1.5rem;">⏱️ ${r.duration} мин</span>
-                                    <span style="display: inline-block;">🎯 ${r.maxScore} баллов</span>
-                                </p>
+                                <h4 style="margin: 0 0 0.75rem 0; font-size: 1.25rem; font-weight: 700; color: #1f2937; line-height: 1.4;">${t==="uz"?r.nameUz:r.nameRu}</h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 6px 12px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 8px; color: #0369a1; font-size: 0.875rem; font-weight: 600;">
+                                        <span style="font-size: 1.1rem;">📝</span>
+                                        <span>${r.questionsCount||0} ${t==="uz"?"savol":"вопросов"}</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 6px 12px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 8px; color: #92400e; font-size: 0.875rem; font-weight: 600;">
+                                        <span style="font-size: 1.1rem;">⏱️</span>
+                                        <span>${r.duration} ${t==="uz"?"daq":"мин"}</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 6px 12px; background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); border-radius: 8px; color: #9f1239; font-size: 0.875rem; font-weight: 600;">
+                                        <span style="font-size: 1.1rem;">🎯</span>
+                                        <span>${r.maxScore} ${t==="uz"?"ball":"баллов"}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                            <span style="display: inline-block; padding: 6px 12px; background: ${r.status==="published"?"rgba(16, 185, 129, 0.15)":"rgba(245, 158, 11, 0.15)"}; color: ${r.status==="published"?"var(--success)":"var(--warning)"}; border-radius: 6px; font-size: 0.8rem; font-weight: 600;">
-                                ${r.status==="published"?"✓ ":"◉ "}${t==="uz"?r.status==="published"?"Nashr qilingan":"Qoralama":r.status==="published"?"Опубликовано":"Черновик"}
+                        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                            <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 8px 14px; background: ${r.status==="published"?"linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)":"linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)"}; color: ${r.status==="published"?"#065f46":"#92400e"}; border-radius: 10px; font-size: 0.875rem; font-weight: 700; box-shadow: 0 2px 8px ${r.status==="published"?"rgba(16, 185, 129, 0.2)":"rgba(245, 158, 11, 0.2)"};">
+                                <span style="font-size: 1.1rem;">${r.status==="published"?"✓":"◉"}</span>
+                                <span>${t==="uz"?r.status==="published"?"Nashr qilingan":"Qoralama":r.status==="published"?"Опубликовано":"Черновик"}</span>
                             </span>
                         </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 0.75rem; min-width: 140px;">
-                        <button class="btn-edit-test button button-primary" data-test-id="${r._id}" style="width: 100%; padding: 12px 18px; font-size: 0.9rem; font-weight: 600; background: linear-gradient(135deg, var(--primary), var(--accent)); border: none; border-radius: 10px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: white; cursor: pointer;">
-                            <span>✏️</span>
+                    <div style="display: flex; flex-direction: column; gap: 0.875rem; min-width: 160px;">
+                        <button class="btn-edit-test button button-primary" data-test-id="${r._id}" style="width: 100%; padding: 14px 20px; font-size: 0.95rem; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 12px; box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.625rem; color: white; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(102, 126, 234, 0.3)'">
+                            <span style="font-size: 1.15rem;">✏️</span>
                             <span>${t==="uz"?"Tahrirlash":"Редактировать"}</span>
                         </button>
-                        <button class="btn-delete-test button button-danger" data-test-id="${r._id}" data-module-id="${e}" style="width: 100%; padding: 12px 18px; font-size: 0.9rem; font-weight: 600; border: none; border-radius: 10px; background: rgba(239, 68, 68, 0.2); color: var(--danger); transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer;">
-                            <span>🗑️</span>
+                        <button class="btn-delete-test button button-danger" data-test-id="${r._id}" data-module-id="${e}" style="width: 100%; padding: 14px 20px; font-size: 0.95rem; font-weight: 700; border: 2px solid #fecaca; background: white; color: #dc2626; border-radius: 12px; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 0.625rem; cursor: pointer;" onmouseover="this.style.background='linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)'; this.style.borderColor='#f87171'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 16px rgba(220, 38, 38, 0.2)'" onmouseout="this.style.background='white'; this.style.borderColor='#fecaca'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            <span style="font-size: 1.15rem;">🗑️</span>
                             <span>${t==="uz"?"O'chirish":"Удалить"}</span>
                         </button>
                     </div>
                 </div>
             </div>
         `).join(""),document.querySelectorAll(".btn-edit-test").forEach(r=>{r.addEventListener("click",async()=>{const o=r.getAttribute("data-test-id");console.log("🖱️ Edit button clicked for test:",o),await zr(o,e)})}),document.querySelectorAll(".btn-delete-test").forEach(r=>{r.addEventListener("click",async()=>{const o=r.getAttribute("data-test-id"),l=r.getAttribute("data-module-id");confirm(t==="uz"?"Testni o'chirishga ishonchingiz komilmi?":"Вы уверены, что хотите удалить тест?")&&(await C(`/api/tests/${o}`,{method:"DELETE"})).success&&await Ps(l)})})):(console.log("❌ No tests found or empty result. Success:",s.success,"Array?",Array.isArray(n),"Length:",n.length),i.innerHTML=`
-            <div class="card" style="text-align: center; padding: 4rem 2rem; background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%); border: 2px dashed var(--border-color); border-radius: 12px;">
-                <div style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.5;">📝</div>
-                <p style="color: var(--text-muted); font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">
+            <div style="text-align: center; padding: 5rem 2rem; background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); border: 2px dashed #d1d5db; border-radius: 20px; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: 20px; right: 20px; width: 100px; height: 100px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); opacity: 0.05; border-radius: 50%; filter: blur(40px);"></div>
+                <div style="position: absolute; bottom: 20px; left: 20px; width: 120px; height: 120px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); opacity: 0.05; border-radius: 50%; filter: blur(40px);"></div>
+                
+                <div style="position: relative; z-index: 1;">
+                    <div style="width: 100px; height: 100px; background: linear-gradient(135deg, #ddd6fe 0%, #e9d5ff 100%); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 3rem; margin-bottom: 1.5rem; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);">
+                        📝
+                    </div>
+                    <h3 style="color: #374151; font-size: 1.5rem; font-weight: 700; margin: 0 0 0.75rem 0;">
+                        ${t==="uz"?"Testlar mavjud emas":"Тесты отсутствуют"}
+                    </h3>
+                    <p style="color: #6b7280; font-size: 1.05rem; font-weight: 500; margin: 0 0 2rem 0;">
                     ${t==="uz"?"Hali testlar yaratilmagan":"Тесты еще не созданы"}
-                </p>
+                    </p>
+                    <button onclick="document.getElementById('btnCreateModuleTest').click()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 14px 28px; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3); transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 0.75rem;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 16px rgba(102, 126, 234, 0.3)'">
+                        <span style="font-size: 1.25rem;">➕</span>
+                        <span>${t==="uz"?"Birinchi testni yaratish":"Создать первый тест"}</span>
+                    </button>
+                </div>
             </div>
         `)}async function zr(e,t){const i=k.getState().language,s=document.getElementById("app");console.log("🔍 renderTestEditor called with testId:",e,"moduleId:",t),window.currentTestId=e,window.currentModuleId=t;const n=await C(`/api/tests/${e}`);console.log("📦 Test fetch result:",n);const a=n.data;console.log("📝 Test data:",a),console.log("❓ Test questions:",a==null?void 0:a.questions),s.innerHTML=`
         <div class="layout">
