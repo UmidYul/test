@@ -409,7 +409,7 @@ class Store {
                 success: true,
                 user: data.user,
                 forcePasswordChange: false,
-                requirePasswordChange: data.requirePasswordChange || data.user.isTemporaryPassword || false
+                requirePasswordChange: data.requirePasswordChange || data.user.requirePasswordChange || false
             };
         } catch (error) {
             console.error('Login error:', error);
@@ -533,8 +533,8 @@ class Store {
                 return { success: false, error: data.message || 'Password change failed' };
             }
 
-            // Update user state
-            const updatedUser = { ...this.state.user, isTemporaryPassword: false };
+            // Update user state (flags already cleared on backend)
+            const updatedUser = { ...this.state.user, requirePasswordChange: false };
             this.setState({ user: updatedUser });
 
             return { success: true };
@@ -1885,7 +1885,7 @@ function selectRole(role) {
             if (result.forcePasswordChange) {
                 console.log('🔄 Navigating to /change-password (FORCE)');
                 router.navigate('/change-password');
-            } else if (result.requirePasswordChange || result.user.isTemporaryPassword) {
+            } else if (result.requirePasswordChange || result.user.requirePasswordChange) {
                 console.log('🔄 Navigating to /change-password');
                 router.navigate('/change-password');
             } else {
