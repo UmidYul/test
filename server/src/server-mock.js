@@ -1137,14 +1137,8 @@ app.post('/api/users/register', async (req, res) => {
     const hashedOTP = await bcrypt.hash(otp, 10);
     const userId = crypto.randomUUID();
 
-    // If neither email nor phone provided, set a non-null placeholder for phone
-    // to satisfy DB CHECK constraint requiring at least one contact method.
-    let dbEmail = email || null;
-    let dbPhone = phone || null;
-    if (!dbEmail && !dbPhone) {
-      dbPhone = `no-contact-${userId}`;
-      console.log('[REGISTER] No contact provided; using placeholder phone:', dbPhone);
-    }
+    const dbEmail = email || null;
+    const dbPhone = phone || null;
 
     const result = await pool.query(
       `INSERT INTO users (id, username, password_hash, role, first_name, last_name, email, phone, status, created_at, updated_at)
