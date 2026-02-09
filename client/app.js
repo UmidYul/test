@@ -6181,6 +6181,28 @@ async function renderAdminTeacherTests() {
                 flex-wrap: wrap;
                 align-items: center;
             }
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+            .card-header .meta {
+                flex: 1 1 220px;
+                min-width: 220px;
+            }
+            .card-header .actions {
+                display: flex;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            @media (max-width: 768px) {
+                .card-header { flex-direction: column; align-items: stretch; }
+                .card-header .actions { width: 100%; justify-content: flex-start; }
+                .card-header .actions .button-inline { flex: 1 1 auto; }
+            }
             .teacher-tests-pill {
                 padding: 0.45rem 0.9rem;
                 border-radius: 999px;
@@ -6314,11 +6336,11 @@ async function loadTeacherTests() {
 
             return `
             <div class="card" style="margin-bottom: 1rem; border-left: 4px solid var(--primary); overflow: hidden;">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                    <div style="flex: 1;">
+                <div class="card-header" style="margin-bottom: 1rem;">
+                    <div class="meta" style="flex: 1;">
                         <h3 style="margin: 0 0 0.5rem 0;">${title}</h3>
                         <p style="color: var(--text-muted); margin: 0 0 0.5rem 0;">${description}</p>
-                        <div style="display: flex; gap: 1rem; font-size: 0.9rem; color: var(--text-muted);">
+                        <div style="display: flex; gap: 1rem; font-size: 0.9rem; color: var(--text-muted); flex-wrap:wrap;">
                             <span>📝 ${test.questionsCount || 0} ${lang === 'uz' ? 'ta savol' : 'вопросов'}</span>
                             <span>⏱️ ${test.duration || 30} ${lang === 'uz' ? 'daqiqa' : 'минут'}</span>
                             <span>📅 ${createdDate}</span>
@@ -6329,7 +6351,7 @@ async function loadTeacherTests() {
                 })()}</span>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <div class="actions">
                         ${actions}
                     </div>
                 </div>

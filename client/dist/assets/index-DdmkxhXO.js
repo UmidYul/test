@@ -2135,6 +2135,28 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                 flex-wrap: wrap;
                 align-items: center;
             }
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+            .card-header .meta {
+                flex: 1 1 220px;
+                min-width: 220px;
+            }
+            .card-header .actions {
+                display: flex;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            @media (max-width: 768px) {
+                .card-header { flex-direction: column; align-items: stretch; }
+                .card-header .actions { width: 100%; justify-content: flex-start; }
+                .card-header .actions .button-inline { flex: 1 1 auto; }
+            }
             .teacher-tests-pill {
                 padding: 0.45rem 0.9rem;
                 border-radius: 999px;
@@ -2217,18 +2239,18 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                 <span style="color: var(--text-muted); font-size: 0.9rem;">${e==="uz"?"ID topilmadi":"ID не найден"}</span>
             `;return`
             <div class="card" style="margin-bottom: 1rem; border-left: 4px solid var(--primary); overflow: hidden;">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                    <div style="flex: 1;">
+                <div class="card-header" style="margin-bottom: 1rem;">
+                    <div class="meta" style="flex: 1;">
                         <h3 style="margin: 0 0 0.5rem 0;">${u}</h3>
                         <p style="color: var(--text-muted); margin: 0 0 0.5rem 0;">${h}</p>
-                        <div style="display: flex; gap: 1rem; font-size: 0.9rem; color: var(--text-muted);">
+                        <div style="display: flex; gap: 1rem; font-size: 0.9rem; color: var(--text-muted); flex-wrap:wrap;">
                             <span>📝 ${r.questionsCount||0} ${e==="uz"?"ta savol":"вопросов"}</span>
                             <span>⏱️ ${r.duration||30} ${e==="uz"?"daqiqa":"минут"}</span>
                             <span>📅 ${c}</span>
                             <span>👩‍🏫 ${(()=>{const p=r.assignedTeachers||r.teachers||r.teachingStaff||[];return!p||p.length===0?"—":p.map(g=>`${(g.firstName||g.name||"").trim()} ${(g.lastName||"").trim()}`.trim()).filter(Boolean).join(", ")})()}</span>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <div class="actions">
                         ${m}
                     </div>
                 </div>
