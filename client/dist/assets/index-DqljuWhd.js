@@ -1421,12 +1421,12 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                     </div>
                 </div>
                 
-                <div class="add-user-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="add-user-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                            Email <span style="color: #ef4444;">*</span>
+                            Email
                         </label>
-                        <input id="userEmail" type="email" placeholder="user@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
+                        <input id="userEmail" type="email" placeholder="user@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
                     </div>
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
@@ -1440,8 +1440,8 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                     ${e==="uz"?"✨ Логин автоматически генерируется системой. Временный пароль будет отправлен на указанный email.":"✨ Логин автоматически создается системой. Временный пароль будет отправлен на указанный email."}
                 </div>
                 
-                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: #ef4444;">
-                    ${e==="uz"?"⚠️ Email kiritish majburiy!":"⚠️ Email обязателен!"}
+                <div style="background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.08); padding: 0.7rem; border-radius: 8px; font-size: 0.85rem; color: var(--text-muted);">
+                    ${e==="uz"?"Email va telefon — необязательные. Если email указан, придёт временный пароль на него.":"Email и телефон необязательны. Если указан email — временный пароль будет отправлен на него."}
                 </div>
                 
                 <div style="display: flex; gap: 1rem; margin-top: 1rem;">
@@ -1457,10 +1457,10 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
     `,document.body.appendChild(t),setTimeout(()=>t.classList.add("show"),10);const i=document.getElementById("addUserAlert"),s=(n,a="info")=>{if(!i)return;const r={success:"✅",error:"❌",warning:"⚠️",info:"ℹ️"};i.className=`inline-alert inline-alert--${a}`,i.innerHTML=`
             <span style="font-size: 1.1rem;">${r[a]||r.info}</span>
             <span>${n}</span>
-        `,i.style.display="flex"};document.getElementById("closeAddUserBtn").addEventListener("click",()=>{t.classList.remove("show"),setTimeout(()=>t.remove(),300)}),document.getElementById("addUserForm").addEventListener("submit",async n=>{n.preventDefault();const a=document.getElementById("userFirstName").value.trim(),r=document.getElementById("userLastName").value.trim(),o=document.getElementById("userEmail").value.trim(),l=document.getElementById("userPhone").value.trim();if(!a||!r){s(e==="uz"?"Barcha maydonlarni to'ldiring":"Заполните все обязательные поля","warning");return}if(!o){s(e==="uz"?"Email majburiy":"Email обязателен","warning");return}const d={role:"teacher",firstName:a,lastName:r,email:o,phone:l||null};try{const c=await C("/api/users/register",{method:"POST",body:JSON.stringify(d)});if(c.success){const u=document.createElement("div");u.className="modal show",u.style.zIndex="10001";const h=c.data.emailSent,m=c.data.username,p=c.data.email;u.innerHTML=`
+        `,i.style.display="flex"};document.getElementById("closeAddUserBtn").addEventListener("click",()=>{t.classList.remove("show"),setTimeout(()=>t.remove(),300)}),document.getElementById("addUserForm").addEventListener("submit",async n=>{var c;n.preventDefault();const a=document.getElementById("userFirstName").value.trim(),r=document.getElementById("userLastName").value.trim(),o=document.getElementById("userEmail").value.trim(),l=document.getElementById("userPhone").value.trim();if(!a||!r){s(e==="uz"?"Barcha maydonlarni to'ldiring":"Заполните все обязательные поля","warning");return}const d={role:"teacher",firstName:a,lastName:r};o&&(d.email=o),l&&(d.phone=l);try{const u=await C("/api/users/register",{method:"POST",body:JSON.stringify(d)});if(u.success){const h=document.createElement("div");h.className="modal show",h.style.zIndex="10001";const m=u.data.emailSent,p=u.data.username,g=u.data.email;h.innerHTML=`
                     <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
                         <div style="text-align: center; padding: 2rem;">
-                            <div style="font-size: 3rem; margin-bottom: 1rem;">${h?"✅":"⚠️"}</div>
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">${m?"✅":"⚠️"}</div>
                             <h2 style="margin: 0 0 1rem 0; font-size: 1.5rem;">
                                 ${e==="uz"?"Foydalanuvchi yaratildi":"Пользователь создан"}
                             </h2>
@@ -1470,48 +1470,33 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                                     <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">
                                         ${e==="uz"?"Login":"Логин"}:
                                     </div>
-                                    <div style="font-size: 1.3rem; font-weight: 700; font-family: monospace; letter-spacing: 1px;">${m}</div>
+                                    <div style="font-size: 1.3rem; font-weight: 700; font-family: monospace; letter-spacing: 1px;">${p}</div>
                                 </div>
                                 <div>
                                     <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">Email:</div>
-                                    <div style="font-size: 1.1rem; font-weight: 600;">${p}</div>
+                                    <div style="font-size: 1.1rem; font-weight: 600;">${g}</div>
                                 </div>
                             </div>
                             
-                            ${h?`
-                                <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; text-align: left;">
-                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">📧 ${e==="uz"?"Email yuborildi":"Email отправлен"}</div>
-                                    <ul style="margin: 0; padding-left: 1.2rem; line-height: 1.6;">
-                                        <li>${e==="uz"?"Temporary parol yuborildi":"Временный пароль отправлен на email"}</li>
-                                        <li>${e==="uz"?"Foydalanuvchi emailini tekshirishi kerak":"Пользователь должен проверить email"}</li>
-                                        <li>${e==="uz"?"Birinchi kirishda parolni o'zgartirishi kerak":"При первом входе нужно сменить пароль"}</li>
-                                    </ul>
+                            <div style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem; text-align: left;">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">${m?e==="uz"?"📧 Email yuborildi":"📧 Email отправлен":e==="uz"?"⚠️ Email yuborilmadi":"⚠️ Email не отправлен"}</div>
+                                <div style="margin-bottom: 0.5rem; color: var(--text-muted);">
+                                    ${m?e==="uz"?"Vaqtinchalik parolga email yuborildi":"Временный пароль отправлен на email":e==="uz"?"Parolni admin ko'rsatadi: ko'rsatilgan OTP quyida":"Пароль показан ниже как OTP"}
                                 </div>
-                            `:`
-                                <div style="background: rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem;">
-                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ ${e==="uz"?"Email yuborilmadi":"Email не отправлен"}</div>
-                                    <p style="margin: 0;">
-                                        ${e==="uz"?"Parolni qo'lda berish kerak. Server loglarini tekshiring.":"Необходимо передать пароль вручную. Проверьте логи сервера."}
-                                    </p>
-                                    ${c.data.otp?`
-                                        <div style="margin-top: 1rem;">
-                                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">
-                                                ${e==="uz"?"Bir martalik parol (OTP)":"Одноразовый пароль (OTP)"}:
-                                            </div>
-                                            <div style="font-size: 1.5rem; font-weight: 700; font-family: monospace; letter-spacing: 3px; background: rgba(255,255,255,0.2); padding: 0.7rem; border-radius: 8px;">
-                                                ${c.data.otp}
-                                            </div>
-                                        </div>
-                                    `:""}
-                                </div>
-                            `}
+                                ${(c=u.data)!=null&&c.otp?`
+                                    <div style="margin-top: 0.5rem;">
+                                        <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">${e==="uz"?"Vaqtinchalik parol (OTP)":"Временный пароль (OTP)"}:</div>
+                                        <div style="font-size: 1.5rem; font-weight: 700; font-family: monospace; letter-spacing: 2px; background: rgba(0,0,0,0.08); padding: 0.7rem; border-radius: 8px;">${u.data.otp}</div>
+                                    </div>
+                                `:""}
+                            </div>
                             
                             <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 0.9rem; background: white; color: #059669; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
                                 ${e==="uz"?"Yopish":"Закрыть"}
                             </button>
                         </div>
                     </div>
-                `,document.body.appendChild(u),I(e==="uz"?"Foydalanuvchi muvaffaqiyatli qo'shildi":"Пользователь успешно добавлен","success"),t.classList.remove("show"),setTimeout(()=>{t.remove(),ge()},300)}else s(c.error||(e==="uz"?"Xatolik yuz berdi":"Произошла ошибка"),"error")}catch(c){console.error("Error creating user:",c),s(e==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}})}async function ah(){const e=k.getState().language,t=document.createElement("div");t.className="admin-modal-overlay",t.innerHTML=`
+                `,document.body.appendChild(h),I(e==="uz"?"Foydalanuvchi muvaffaqiyatli qo'shildi":"Пользователь успешно добавлен","success"),t.classList.remove("show"),setTimeout(()=>{t.remove(),ge()},300)}else s(u.error||(e==="uz"?"Xatolik yuz berdi":"Произошла ошибка"),"error")}catch(u){console.error("Error creating user:",u),s(e==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}})}async function ah(){const e=k.getState().language,t=document.createElement("div");t.className="admin-modal-overlay",t.innerHTML=`
         <div class="admin-modal-content modal-content" style="max-width: 450px;">
             <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0; margin: -1.5rem -1.5rem 1.5rem -1.5rem;">
                 <h2 style="margin: 0; font-size: 1.3rem;">🏫 ${e==="uz"?"Sinf qo'shish":"Добавить класс"}</h2>
@@ -5001,9 +4986,9 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                 
                 <div>
                     <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                        Email <span style="color: #ef4444;">*</span>
+                        Email
                     </label>
-                    <input id="studentEmail" type="email" placeholder="student@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
+                    <input id="studentEmail" type="email" placeholder="student@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
                 </div>
                 
                 <div>
@@ -5017,8 +5002,8 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                     ✅ ${i==="uz"?`Ushbu o'quvchi avtomatik ravishda ${t} sinfiga qo'shiladi`:`Ученик будет автоматически добавлен в класс ${t}`}
                 </div>
                 
-                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: #3b82f6;">
-                    ${i==="uz"?"✨ Login avtomatik yaratiladi. Vaqtinchalik parol emailga yuboriladi.":"✨ Логин создается автоматически. Временный пароль будет отправлен на email."}
+                <div style="background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.08); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: var(--text-muted);">
+                    ${i==="uz"?"✨ Login avtomatik yaratiladi. Email majburiy emas; agar kiritilsa — parol yuboriladi.":"✨ Логин создается автоматически. Email не обязателен; если указан — пароль будет отправлен."}
                 </div>
                 
                 <div style="display: flex; gap: 1rem; margin-top: 1rem;">
@@ -5034,10 +5019,10 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
     `,document.body.appendChild(s),setTimeout(()=>s.classList.add("show"),10);const n=document.getElementById("addStudentAlert"),a=(r,o="info")=>{if(!n)return;const l={success:"✅",error:"❌",warning:"⚠️",info:"ℹ️"};n.className=`inline-alert inline-alert--${o}`,n.innerHTML=`
             <span style="font-size: 1.1rem;">${l[o]||l.info}</span>
             <span>${r}</span>
-        `,n.style.display="flex"};document.getElementById("closeAddStudentBtn").addEventListener("click",()=>{s.classList.remove("show"),setTimeout(()=>s.remove(),300)}),document.getElementById("addStudentToClassForm").addEventListener("submit",async r=>{r.preventDefault();const o=document.getElementById("studentFirstName").value.trim(),l=document.getElementById("studentLastName").value.trim(),d=document.getElementById("studentEmail").value.trim(),c=document.getElementById("studentPhone").value.trim();if(!o||!l||!d){a(i==="uz"?"Barcha majburiy maydonlarni to'ldiring":"Заполните все обязательные поля","warning");return}const u={role:"student",firstName:o,lastName:l,email:d,phone:c||null,classId:e};try{const h=await C("/api/users/register",{method:"POST",body:JSON.stringify(u)});if(h.success){const m=document.createElement("div");m.className="modal show",m.style.zIndex="10001";const p=h.data.emailSent,g=h.data.username,f=h.data.email;m.innerHTML=`
+        `,n.style.display="flex"};document.getElementById("closeAddStudentBtn").addEventListener("click",()=>{s.classList.remove("show"),setTimeout(()=>s.remove(),300)}),document.getElementById("addStudentToClassForm").addEventListener("submit",async r=>{var h;r.preventDefault();const o=document.getElementById("studentFirstName").value.trim(),l=document.getElementById("studentLastName").value.trim(),d=document.getElementById("studentEmail").value.trim(),c=document.getElementById("studentPhone").value.trim();if(!o||!l){a(i==="uz"?"Barcha majburiy maydonlarni to'ldiring":"Заполните все обязательные поля","warning");return}const u={role:"student",firstName:o,lastName:l,classId:e};d&&(u.email=d),c&&(u.phone=c);try{const m=await C("/api/users/register",{method:"POST",body:JSON.stringify(u)});if(m.success){const p=document.createElement("div");p.className="modal show",p.style.zIndex="10001";const g=m.data.emailSent,f=m.data.username,y=m.data.email;p.innerHTML=`
                     <div class="modal-content" style="max-width: 500px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white;">
                         <div style="text-align: center; padding: 2rem;">
-                            <div style="font-size: 3rem; margin-bottom: 1rem;">${p?"✅":"⚠️"}</div>
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">${g?"✅":"⚠️"}</div>
                             <h2 style="margin: 0 0 1rem 0; font-size: 1.5rem;">
                                 ${i==="uz"?"O'quvchi qo'shildi":"Ученик добавлен"}
                             </h2>
@@ -5053,41 +5038,31 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                                     <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">
                                         ${i==="uz"?"Login":"Логин"}:
                                     </div>
-                                    <div style="font-size: 1.1rem; font-weight: 600; font-family: monospace;">${g}</div>
+                                    <div style="font-size: 1.1rem; font-weight: 600; font-family: monospace;">${f}</div>
                                 </div>
                                 <div>
                                     <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">Email:</div>
-                                    <div style="font-size: 1rem; font-weight: 500;">${f}</div>
+                                    <div style="font-size: 1rem; font-weight: 500;">${y}</div>
                                 </div>
                             </div>
                             
-                            ${p?`
-                                <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; text-align: left;">
-                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">📧 ${i==="uz"?"Email yuborildi":"Email отправлен"}</div>
-                                    <p style="margin: 0; line-height: 1.6;">
-                                        ${i==="uz"?"Vaqtinchalik parol emailga yuborildi":"Временный пароль отправлен на email"}
-                                    </p>
-                                </div>
-                            `:`
-                                <div style="background: rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem;">
-                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ ${i==="uz"?"Email yuborilmadi":"Email не отправлен"}</div>
-                                    ${h.data.otp?`
-                                        <div style="margin-top: 0.5rem;">
-                                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">OTP:</div>
-                                            <div style="font-size: 1.3rem; font-weight: 700; font-family: monospace; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 0.5rem; border-radius: 6px;">
-                                                ${h.data.otp}
-                                            </div>
-                                        </div>
-                                    `:""}
-                                </div>
-                            `}
+                            <div style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem; text-align: left;">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">${g?i==="uz"?"📧 Email yuborildi":"📧 Email отправлен":i==="uz"?"⚠️ Email yuborilmadi":"⚠️ Email не отправлен"}</div>
+                                <div style="margin-bottom: 0.5rem; color: var(--text-muted);">${g?i==="uz"?"Vaqtinchalik parol emailga yuborildi":"Временный пароль отправлен на email":i==="uz"?"Parol ko'rsatildi: quyidagi OTP":"Пароль показан ниже как OTP"}</div>
+                                ${(h=m.data)!=null&&h.otp?`
+                                    <div style="margin-top: 0.5rem;">
+                                        <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">${i==="uz"?"Vaqtinchalik parol (OTP)":"Временный пароль (OTP)"}:</div>
+                                        <div style="font-size: 1.3rem; font-weight: 700; font-family: monospace; letter-spacing: 2px; background: rgba(255,255,255,0.12); padding: 0.5rem; border-radius: 6px;">${m.data.otp}</div>
+                                    </div>
+                                `:""}
+                            </div>
                             
                             <button onclick="this.closest('.modal').remove(); window.viewClassStudents('${e}')" style="width: 100%; padding: 0.9rem; background: white; color: #059669; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
                                 ${i==="uz"?"Yopish":"Закрыть"}
                             </button>
                         </div>
                     </div>
-                `,document.body.appendChild(m),s.classList.remove("show"),setTimeout(()=>{s.remove(),Li(e)},300)}else a(h.error||(i==="uz"?"Xatolik yuz berdi":"Произошла ошибка"),"error")}catch(h){console.error("Error creating student:",h),a(i==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}})}async function tg(e,t,i){const s=k.getState().language,n=k.getState().token;if(await Vt(s==="uz"?"O'quvchini o'chirish?":"Удалить ученика из класса?",`${i}`))try{const r=await fetch(`${Y}/api/classes/${e}/students/${t}`,{method:"DELETE",headers:{Authorization:`Bearer ${n}`}});if(!r.ok){const o=await r.json();throw new Error(o.error||"Failed to remove student")}I(s==="uz"?"O'quvchi o'chirildi":"Ученик удален из класса","success"),Li(e)}catch(r){console.error("Error removing student from class:",r),I(s==="uz"?"Xatolik yuz berdi":"Ошибка при удалении ученика","error")}}async function Os(){var s;const e=k.getState(),t=e.language,i=e.token;if(!e.isAuthenticated||!e.user||e.user.role!=="admin"){console.log("❌ Unauthorized access to classes"),$.navigate("/login");return}try{const n=await fetch(`${Y}/api/classes`,{headers:{Authorization:`Bearer ${i}`}});if(!n.ok)throw new Error("Failed to fetch classes");const r=(await n.json()).data||[];console.log("📚 Classes from API:",r),r.length>0&&console.log("📚 First class structure:",r[0]);const o=`
+                `,document.body.appendChild(p),s.classList.remove("show"),setTimeout(()=>{s.remove(),Li(e)},300)}else a(m.error||(i==="uz"?"Xatolik yuz berdi":"Произошла ошибка"),"error")}catch(m){console.error("Error creating student:",m),a(i==="uz"?"Xatolik yuz berdi":"Произошла ошибка","error")}})}async function tg(e,t,i){const s=k.getState().language,n=k.getState().token;if(await Vt(s==="uz"?"O'quvchini o'chirish?":"Удалить ученика из класса?",`${i}`))try{const r=await fetch(`${Y}/api/classes/${e}/students/${t}`,{method:"DELETE",headers:{Authorization:`Bearer ${n}`}});if(!r.ok){const o=await r.json();throw new Error(o.error||"Failed to remove student")}I(s==="uz"?"O'quvchi o'chirildi":"Ученик удален из класса","success"),Li(e)}catch(r){console.error("Error removing student from class:",r),I(s==="uz"?"Xatolik yuz berdi":"Ошибка при удалении ученика","error")}}async function Os(){var s;const e=k.getState(),t=e.language,i=e.token;if(!e.isAuthenticated||!e.user||e.user.role!=="admin"){console.log("❌ Unauthorized access to classes"),$.navigate("/login");return}try{const n=await fetch(`${Y}/api/classes`,{headers:{Authorization:`Bearer ${i}`}});if(!n.ok)throw new Error("Failed to fetch classes");const r=(await n.json()).data||[];console.log("📚 Classes from API:",r),r.length>0&&console.log("📚 First class structure:",r[0]);const o=`
             <style>
                 .classes-hero {
                     background: linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(59, 130, 246, 0.12) 100%);

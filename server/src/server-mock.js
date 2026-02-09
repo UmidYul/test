@@ -1104,19 +1104,19 @@ app.post('/api/users/register', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Заполните обязательные поля' });
     }
 
-    if (!email) {
-      return res.status(400).json({ success: false, error: 'Email обязателен для отправки пароля' });
-    }
+    // Email is optional now. If provided, we'll try to send OTP by email.
 
     // Для учеников обязательно указывать класс
     if (role === 'student' && !classId) {
       return res.status(400).json({ success: false, error: 'Для ученика необходимо выбрать класс' });
     }
 
-    // Check if email exists
-    const emailExists = await pool.query('SELECT 1 FROM users WHERE email = $1', [email]);
-    if (emailExists.rowCount > 0) {
-      return res.status(400).json({ success: false, error: 'Пользователь с таким email уже существует' });
+    // If email provided, ensure uniqueness
+    if (email) {
+      const emailExists = await pool.query('SELECT 1 FROM users WHERE email = $1', [email]);
+      if (emailExists.rowCount > 0) {
+        return res.status(400).json({ success: false, error: 'Пользователь с таким email уже существует' });
+      }
     }
 
     // Generate username based on role
@@ -1229,14 +1229,25 @@ app.post('/api/users/register', async (req, res) => {
     const user = result.rows[0];
     console.log(`[REGISTER] User created: ${username} (${role})`);
 
-    const emailSent = await sendOTPEmail(email, username, otp, firstName, lastName);
+    // Try to send OTP email only if email provided
+    let emailSent = false;
+    if (email) {
+      try {
+        emailSent = await sendOTPEmail(email, username, otp, firstName, lastName);
+      } catch (err) {
+        console.error('[REGISTER] Error sending email:', err);
+        emailSent = false;
+      }
+    }
 
+    // Return username and the OTP in the response so the admin can immediately see it in the UI.
+    // Note: returning plaintext OTP is intentional per admin UX request.
     res.status(201).json({
       success: true,
       data: {
         ...user,
         emailSent,
-        otp: emailSent ? undefined : otp,
+        otp,
         otpExpiresAt: otpExpiresAt.toISOString()
       }
     });

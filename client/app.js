@@ -4825,12 +4825,12 @@ async function showAddUserModal() {
                     </div>
                 </div>
                 
-                <div class="add-user-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="add-user-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                            Email <span style="color: #ef4444;">*</span>
+                            Email
                         </label>
-                        <input id="userEmail" type="email" placeholder="user@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
+                        <input id="userEmail" type="email" placeholder="user@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
                     </div>
                     <div>
                         <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
@@ -4846,10 +4846,10 @@ async function showAddUserModal() {
             : '✨ Логин автоматически создается системой. Временный пароль будет отправлен на указанный email.'}
                 </div>
                 
-                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: #ef4444;">
+                <div style="background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.08); padding: 0.7rem; border-radius: 8px; font-size: 0.85rem; color: var(--text-muted);">
                     ${lang === 'uz'
-            ? '⚠️ Email kiritish majburiy!'
-            : '⚠️ Email обязателен!'}
+            ? 'Email va telefon — необязательные. Если email указан, придёт временный пароль на него.'
+            : 'Email и телефон необязательны. Если указан email — временный пароль будет отправлен на него.'}
                 </div>
                 
                 <div style="display: flex; gap: 1rem; margin-top: 1rem;">
@@ -4905,18 +4905,14 @@ async function showAddUserModal() {
             return;
         }
 
-        if (!email) {
-            showAddUserAlert(lang === 'uz' ? 'Email majburiy' : 'Email обязателен', 'warning');
-            return;
-        }
-
+        // Build payload: include email/phone only if provided
         const userData = {
             role: 'teacher',
             firstName,
-            lastName,
-            email,
-            phone: phone || null,
+            lastName
         };
+        if (email) userData.email = email;
+        if (phone) userData.phone = phone;
 
         try {
             const response = await apiRequest('/api/users/register', {
@@ -4955,35 +4951,18 @@ async function showAddUserModal() {
                                 </div>
                             </div>
                             
-                            ${emailSent ? `
-                                <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; text-align: left;">
-                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">📧 ${lang === 'uz' ? 'Email yuborildi' : 'Email отправлен'}</div>
-                                    <ul style="margin: 0; padding-left: 1.2rem; line-height: 1.6;">
-                                        <li>${lang === 'uz' ? 'Temporary parol yuborildi' : 'Временный пароль отправлен на email'}</li>
-                                        <li>${lang === 'uz' ? 'Foydalanuvchi emailini tekshirishi kerak' : 'Пользователь должен проверить email'}</li>
-                                        <li>${lang === 'uz' ? 'Birinchi kirishda parolni o\'zgartirishi kerak' : 'При первом входе нужно сменить пароль'}</li>
-                                    </ul>
+                            <div style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem; text-align: left;">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">${emailSent ? (lang === 'uz' ? '📧 Email yuborildi' : '📧 Email отправлен') : (lang === 'uz' ? '⚠️ Email yuborilmadi' : '⚠️ Email не отправлен')}</div>
+                                <div style="margin-bottom: 0.5rem; color: var(--text-muted);">
+                                    ${emailSent ? (lang === 'uz' ? 'Vaqtinchalik parolga email yuborildi' : 'Временный пароль отправлен на email') : (lang === 'uz' ? 'Parolni admin ko\'rsatadi: ko\'rsatilgan OTP quyida' : 'Пароль показан ниже как OTP')}
                                 </div>
-                            ` : `
-                                <div style="background: rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem;">
-                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ ${lang === 'uz' ? 'Email yuborilmadi' : 'Email не отправлен'}</div>
-                                    <p style="margin: 0;">
-                                        ${lang === 'uz'
-                        ? 'Parolni qo\'lda berish kerak. Server loglarini tekshiring.'
-                        : 'Необходимо передать пароль вручную. Проверьте логи сервера.'}
-                                    </p>
-                                    ${response.data.otp ? `
-                                        <div style="margin-top: 1rem;">
-                                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">
-                                                ${lang === 'uz' ? 'Bir martalik parol (OTP)' : 'Одноразовый пароль (OTP)'}:
-                                            </div>
-                                            <div style="font-size: 1.5rem; font-weight: 700; font-family: monospace; letter-spacing: 3px; background: rgba(255,255,255,0.2); padding: 0.7rem; border-radius: 8px;">
-                                                ${response.data.otp}
-                                            </div>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            `}
+                                ${response.data?.otp ? `
+                                    <div style="margin-top: 0.5rem;">
+                                        <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">${lang === 'uz' ? 'Vaqtinchalik parol (OTP)' : 'Временный пароль (OTP)'}:</div>
+                                        <div style="font-size: 1.5rem; font-weight: 700; font-family: monospace; letter-spacing: 2px; background: rgba(0,0,0,0.08); padding: 0.7rem; border-radius: 8px;">${response.data.otp}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
                             
                             <button onclick="this.closest('.modal').remove()" style="width: 100%; padding: 0.9rem; background: white; color: #059669; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
                                 ${lang === 'uz' ? 'Yopish' : 'Закрыть'}
@@ -13140,9 +13119,9 @@ async function showAddStudentToClassModal(classId, classLabel) {
                 
                 <div>
                     <label style="display: block; font-weight: 600; margin-bottom: 0.4rem; font-size: 0.9rem;">
-                        Email <span style="color: #ef4444;">*</span>
+                        Email
                     </label>
-                    <input id="studentEmail" type="email" placeholder="student@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);" required>
+                    <input id="studentEmail" type="email" placeholder="student@example.com" style="width: 100%; padding: 0.75rem; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary);">
                 </div>
                 
                 <div>
@@ -13156,10 +13135,10 @@ async function showAddStudentToClassModal(classId, classLabel) {
                     ✅ ${lang === 'uz' ? `Ushbu o'quvchi avtomatik ravishda ${classLabel} sinfiga qo'shiladi` : `Ученик будет автоматически добавлен в класс ${classLabel}`}
                 </div>
                 
-                <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: #3b82f6;">
+                <div style="background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.08); padding: 0.9rem; border-radius: 8px; font-size: 0.85rem; color: var(--text-muted);">
                     ${lang === 'uz'
-            ? '✨ Login avtomatik yaratiladi. Vaqtinchalik parol emailga yuboriladi.'
-            : '✨ Логин создается автоматически. Временный пароль будет отправлен на email.'}
+            ? '✨ Login avtomatik yaratiladi. Email majburiy emas; agar kiritilsa — parol yuboriladi.'
+            : '✨ Логин создается автоматически. Email не обязателен; если указан — пароль будет отправлен.'}
                 </div>
                 
                 <div style="display: flex; gap: 1rem; margin-top: 1rem;">
@@ -13210,19 +13189,14 @@ async function showAddStudentToClassModal(classId, classLabel) {
         const email = document.getElementById('studentEmail').value.trim();
         const phone = document.getElementById('studentPhone').value.trim();
 
-        if (!firstName || !lastName || !email) {
+        if (!firstName || !lastName) {
             showAlert(lang === 'uz' ? 'Barcha majburiy maydonlarni to\'ldiring' : 'Заполните все обязательные поля', 'warning');
             return;
         }
 
-        const userData = {
-            role: 'student',
-            firstName,
-            lastName,
-            email,
-            phone: phone || null,
-            classId: classId
-        };
+        const userData = { role: 'student', firstName, lastName, classId };
+        if (email) userData.email = email;
+        if (phone) userData.phone = phone;
 
         try {
             const response = await apiRequest('/api/users/register', {
@@ -13267,26 +13241,16 @@ async function showAddStudentToClassModal(classId, classLabel) {
                                 </div>
                             </div>
                             
-                            ${emailSent ? `
-                                <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; text-align: left;">
-                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">📧 ${lang === 'uz' ? 'Email yuborildi' : 'Email отправлен'}</div>
-                                    <p style="margin: 0; line-height: 1.6;">
-                                        ${lang === 'uz' ? 'Vaqtinchalik parol emailga yuborildi' : 'Временный пароль отправлен на email'}
-                                    </p>
-                                </div>
-                            ` : `
-                                <div style="background: rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem;">
-                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">⚠️ ${lang === 'uz' ? 'Email yuborilmadi' : 'Email не отправлен'}</div>
-                                    ${response.data.otp ? `
-                                        <div style="margin-top: 0.5rem;">
-                                            <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">OTP:</div>
-                                            <div style="font-size: 1.3rem; font-weight: 700; font-family: monospace; letter-spacing: 2px; background: rgba(255,255,255,0.2); padding: 0.5rem; border-radius: 6px;">
-                                                ${response.data.otp}
-                                            </div>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            `}
+                            <div style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; font-size: 0.85rem; text-align: left;">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">${emailSent ? (lang === 'uz' ? '📧 Email yuborildi' : '📧 Email отправлен') : (lang === 'uz' ? '⚠️ Email yuborilmadi' : '⚠️ Email не отправлен')}</div>
+                                <div style="margin-bottom: 0.5rem; color: var(--text-muted);">${emailSent ? (lang === 'uz' ? 'Vaqtinchalik parol emailga yuborildi' : 'Временный пароль отправлен на email') : (lang === 'uz' ? 'Parol ko\'rsatildi: quyidagi OTP' : 'Пароль показан ниже как OTP')}</div>
+                                ${response.data?.otp ? `
+                                    <div style="margin-top: 0.5rem;">
+                                        <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 0.3rem;">${lang === 'uz' ? 'Vaqtinchalik parol (OTP)' : 'Временный пароль (OTP)'}:</div>
+                                        <div style="font-size: 1.3rem; font-weight: 700; font-family: monospace; letter-spacing: 2px; background: rgba(255,255,255,0.12); padding: 0.5rem; border-radius: 6px;">${response.data.otp}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
                             
                             <button onclick="this.closest('.modal').remove(); window.viewClassStudents('${classId}')" style="width: 100%; padding: 0.9rem; background: white; color: #059669; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: all 0.2s;">
                                 ${lang === 'uz' ? 'Yopish' : 'Закрыть'}
