@@ -224,8 +224,8 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Check if password reset is required
-    if (user.password_reset_required) {
+    // Check if password reset is required (includes OTP-based resets)
+    if (user.password_reset_required || user.is_temporary_password || user.require_password_change) {
       // Return special token for forced password change
       const resetToken = jwt.sign(
         {
@@ -237,17 +237,51 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
         { expiresIn: '1h' }  // Short expiry for security
       );
 
-      console.log(`[LOGIN] Success for ${username} (FORCE PASSWORD CHANGE)`);
+      console.log(`[LOGIN] Success for ${username} (FORCE PASSWORD CHANGE) - flags: password_reset_required=${user.password_reset_required}, is_temporary_password=${user.is_temporary_password}, require_password_change=${user.require_password_change}`);
+
+      // Generate access token for forced password change flow
+      const accessToken = jwt.sign(
+        { userId: user.id, role: user.role, type: 'access', forcePasswordChange: true },
+        JWT_SECRET,
+        { expiresIn: '1h' }  // Extended expiry for password change flow
+      );
+
+      // Generate refresh token for forced password change flow
+      const refreshToken = jwt.sign(
+        { userId: user.id, type: 'refresh' },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      // Store refresh token in database
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      await pool.query(
+        `INSERT INTO refresh_tokens (user_id, token, expires_at, ip_address, user_agent)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          user.id,
+          refreshToken,
+          expiresAt,
+          req.ip || null,
+          req.headers['user-agent'] || null
+        ]
+      );
+
       return res.json({
         success: true,
         forcePasswordChange: true,
-        token: resetToken,
+        requirePasswordChange: true,
+        isTemporaryPassword: user.is_temporary_password,
+        accessToken,
+        refreshToken,
         user: {
           id: user.id,
           username: user.username,
           role: user.role,
           firstName: user.first_name,
-          lastName: user.last_name
+          lastName: user.last_name,
+          isTemporaryPassword: user.is_temporary_password,
+          requirePasswordChange: user.require_password_change
         },
         message: 'Password change required'
       });
@@ -631,11 +665,17 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }
     const hashed = await bcrypt.hash(newPassword, 10);
+    // Clear password reset flags after successful password change
     await pool.query(
-      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      `UPDATE users SET password_hash = $1, 
+       is_temporary_password = false, 
+       require_password_change = false,
+       password_reset_required = false,
+       updated_at = NOW() 
+       WHERE id = $2`,
       [hashed, req.userId]
     );
-    console.log(`✅ Password changed for user: ${user.username}`);
+    console.log(`✅ Password changed for user: ${user.username} - reset flags cleared`);
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
     console.error('Change password error:', error);
