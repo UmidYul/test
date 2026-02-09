@@ -4015,42 +4015,38 @@ async function renderAdminDashboard() {
 
                 <!-- Action Cards -->
                 <div class="admin-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;">
-                    <!-- Analytics -->
-                    <div onclick="window.router.navigate('/admin/analytics')" style="cursor: pointer; background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%); border: 2px solid #3B82F6; border-radius: 16px; padding: 1.75rem; transition: all 0.3s; display: flex; gap: 1rem; align-items: flex-start;" onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 32px rgba(59, 130, 246, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                        <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0; box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);"><i class="fas fa-chart-bar"></i></div>
-                        <div style="flex: 1;">
-                            <h3 style="margin: 0 0 0.4rem 0; font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">${t('analytics')}</h3>
-                            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">${t('analyticsDesc')}</p>
+                        <!-- Classes: Top by size -->
+                        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;">
+                            <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                                <h3 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-primary);">${lang === 'uz' ? "Eng katta sinflar" : 'Топ классов'}</h3>
+                                <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.85rem;">${lang === 'uz' ? 'Sinf hajmi bo\'yicha reyting' : 'Классы по размеру (число учеников)'}</p>
+                            </div>
+                            <div style="padding: 1.25rem;">
+                                ${totalClasses === 0 ? '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">Нет данных</div>' : `
+                                    <div style="display: grid; gap: 0.75rem;">
+                                        ${(() => {
+                    const cls = classes.slice().sort((a, b) => (b.studentCount ?? b.students?.length ?? 0) - (a.studentCount ?? a.students?.length ?? 0)).slice(0, maxTableRows);
+                    return cls.map(c => {
+                        const count = c.studentCount ?? c.students?.length ?? 0;
+                        const label = c.name ? `${c.grade || ''}${c.name}` : (c.sections?.length ? `${c.grade || ''} (${c.sections.join(', ')})` : (c.grade || '—'));
+                        const pct = totalStudents > 0 ? Math.round(count / totalStudents * 100) : 0;
+                        return `
+                                                <div style="display: flex; flex-direction: column; gap: 0.35rem; padding: 0.5rem; border-radius: 8px; background: var(--bg-tertiary);">
+                                                    <div style="display:flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                                                        <div style="font-weight:600; color: var(--text-primary);">${label}</div>
+                                                        <div style="font-weight:700; color: #3B82F6;">${count}</div>
+                                                    </div>
+                                                    <div style="height: 8px; background: rgba(0,0,0,0.06); border-radius: 999px; overflow: hidden;">
+                                                        <div style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, #3B82F6, #60A5FA);"></div>
+                                                    </div>
+                                                    <div style="color: var(--text-secondary); font-size: 0.8rem;">${pct}% ${lang === 'uz' ? 'tizimdan' : 'от системы'}</div>
+                                                </div>`;
+                    }).join('');
+                })()}
+                                    </div>
+                                `}
+                            </div>
                         </div>
-                        <div style="color: #3B82F6; font-size: 1.5rem; font-weight: 600; flex-shrink: 0;"><i class="fas fa-arrow-right"></i></div>
-                    </div>
-
-                    <!-- Classes -->
-                    <div onclick="window.router.navigate('/admin/classes')" style="cursor: pointer; background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.02) 100%); border: 2px solid #10b981; border-radius: 16px; padding: 1.75rem; transition: all 0.3s; display: flex; gap: 1rem; align-items: flex-start;" onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 32px rgba(16, 185, 129, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                        <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0; box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);"><i class="fas fa-school"></i></div>
-                        <div style="flex: 1;">
-                            <h3 style="margin: 0 0 0.4rem 0; font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">${t('classes')}</h3>
-                            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">${t('classesManagement')}</p>
-                        </div>
-                        <div style="color: #10b981; font-size: 1.5rem; font-weight: 600; flex-shrink: 0;"><i class="fas fa-arrow-right"></i></div>
-                    </div>
-
-                    <!-- Teacher Tests -->
-                    <div onclick="window.router.navigate('/admin/teacher-tests')" style="cursor: pointer; background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(245, 158, 11, 0.02) 100%); border: 2px solid #f59e0b; border-radius: 16px; padding: 1.75rem; transition: all 0.3s; display: flex; gap: 1rem; align-items: flex-start;" onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 32px rgba(245, 158, 11, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                        <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0; box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);"><i class="fas fa-clipboard-list"></i></div>
-                        <div style="flex: 1;">
-                            <h3 style="margin: 0 0 0.4rem 0; font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">${t('teacherTests')}</h3>
-                            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">${t('teacherTestsDesc')}</p>
-                        </div>
-                        <div style="color: #f59e0b; font-size: 1.5rem; font-weight: 600; flex-shrink: 0;"><i class="fas fa-arrow-right"></i></div>
-                    </div>
-
-                    <!-- Subjects Management -->
-                    <div onclick="window.router.navigate('/admin/subjects')" style="cursor: pointer; background: linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(124, 58, 237, 0.02) 100%); border: 2px solid #7c3aed; border-radius: 16px; padding: 1.75rem; transition: all 0.3s; display: flex; gap: 1rem; align-items: flex-start;" onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 16px 32px rgba(124, 58, 237, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                        <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0; box-shadow: 0 8px 16px rgba(124, 58, 237, 0.3);"><i class="fas fa-book"></i></div>
-                        <div style="flex: 1;">
-                            <h3 style="margin: 0 0 0.4rem 0; font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">${t('subjectsManagement')}</h3>
-                            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">${t('subjectsManagementDesc')}</p>
                         </div>
                         <div style="color: #7c3aed; font-size: 1.5rem; font-weight: 600; flex-shrink: 0;"><i class="fas fa-arrow-right"></i></div>
                     </div>
@@ -6219,17 +6215,20 @@ async function renderAdminTeacherTests() {
                     <p class="teacher-tests-hero__desc">${lang === 'uz' ? 'O\'qituvchilarning malakasini baholash uchun testlar yaratish va boshqarish' : 'Создание и управление тестами для оценки компетенций учителей'}</p>
                 </div>
                 <div class="teacher-tests-hero__meta">
-                    <button class="btn-secondary" id="btnBackToAdmin" style="padding: 0.7rem 1.2rem; font-size: 0.9rem; border: 1px solid var(--border-color);">← ${t('back')}</button>
                     <span class="teacher-tests-pill">${lang === 'uz' ? 'Testlar' : 'Тесты'}</span>
                 </div>
             </div>
 
-            <div class="teacher-tests-panel">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+                <div>
+                    <button class="btn-secondary" id="btnBackToAdmin" style="padding: 0.5rem 0.9rem; font-size: 0.85rem; border: 1px solid var(--border-color);">← ${t('back')}</button>
+                </div>
+                <div class="teacher-tests-panel">
                 <button class="button button-primary" id="btnCreateTeacherTest" style="width: 100%;">
                     <span>➕</span>
                     <span>${lang === 'uz' ? 'Yangi test yaratish' : 'Создать новый тест'}</span>
                 </button>
-            </div>
+                </div>
 
             <div class="teacher-tests-panel" style="overflow: hidden;">
                 <h2 style="margin: 0 0 1.25rem 0;">${lang === 'uz' ? 'Mavjud testlar' : 'Существующие тесты'}</h2>
@@ -6288,7 +6287,8 @@ async function loadTeacherTests() {
         container.innerHTML = tests.map(test => {
             const testId = getTeacherTestId(test);
             const createdAt = getTeacherTestDate(test);
-            const createdDate = createdAt ? new Date(createdAt).toLocaleDateString('ru-RU') : '-';
+            const locale = lang === 'uz' ? 'uz-UZ' : 'ru-RU';
+            const createdDate = createdAt ? new Date(createdAt).toLocaleDateString(locale) : '-';
             const title = test?.title || '';
             const description = test?.description || '';
             const actions = testId ? `
@@ -6322,6 +6322,11 @@ async function loadTeacherTests() {
                             <span>📝 ${test.questionsCount || 0} ${lang === 'uz' ? 'ta savol' : 'вопросов'}</span>
                             <span>⏱️ ${test.duration || 30} ${lang === 'uz' ? 'daqiqa' : 'минут'}</span>
                             <span>📅 ${createdDate}</span>
+                            <span>👩‍🏫 ${(() => {
+                    const teachers = test.assignedTeachers || test.teachers || test.teachingStaff || [];
+                    if (!teachers || teachers.length === 0) return '—';
+                    return teachers.map(t => `${(t.firstName || t.name || '').trim()} ${(t.lastName || '').trim()}`.trim()).filter(Boolean).join(', ');
+                })()}</span>
                         </div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
@@ -6480,15 +6485,17 @@ async function renderAdminTeacherTestEditor({ testId }) {
 
     const content = `
         <div class="page-header" style="margin-bottom: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                 <div>
                     <h1 style="margin-bottom: 0.5rem;">${lang === 'uz' ? 'Testni tahrirlash' : 'Редактирование теста'}</h1>
                     <p style="color: var(--text-muted); margin: 0;">${test.title || ''}</p>
                 </div>
-                <button class="button button-secondary" id="btnBackToTeacherTests" style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span>←</span>
-                    <span>${lang === 'uz' ? 'Testlar ro\'yxati' : 'Список тестов'}</span>
-                </button>
+                <div>
+                    <button class="button button-secondary" id="btnBackToTeacherTests" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <span>←</span>
+                        <span>${lang === 'uz' ? "Testlar ro'yxati" : 'Список тестов'}</span>
+                    </button>
+                </div>
             </div>
         </div>
 
