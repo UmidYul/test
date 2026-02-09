@@ -890,6 +890,37 @@ const DEFAULT_SUBJECT_ORDER = [
     { id: '10', name: 'Информатика' }
 ];
 
+const SUBJECT_NAME_ALIASES = [
+    { ru: 'Алгебра', uz: 'Algebra', en: 'Algebra' },
+    { ru: 'Геометрия', uz: 'Geometriya', en: 'Geometry' },
+    { ru: 'Физика', uz: 'Fizika', en: 'Physics' },
+    { ru: 'Химия', uz: 'Kimyo', en: 'Chemistry' },
+    { ru: 'Биология', uz: 'Biologiya', en: 'Biology' },
+    { ru: 'История', uz: 'Tarix', en: 'History' },
+    { ru: 'Литература', uz: 'Adabiyot', en: 'Literature' },
+    { ru: 'География', uz: 'Geografiya', en: 'Geography' },
+    { ru: 'Английский язык', uz: 'Ingliz tili', en: 'English' },
+    { ru: 'Информатика', uz: 'Informatika', en: 'Informatics' },
+    { ru: 'Математика', uz: 'Matematika', en: 'Mathematics' }
+];
+
+function getSubjectAliasKeys(name) {
+    if (!name) return [];
+    const normalized = String(name).toLowerCase();
+    const aliasSet = new Set([normalized]);
+
+    SUBJECT_NAME_ALIASES.forEach(entry => {
+        const values = [entry.ru, entry.uz, entry.en]
+            .filter(Boolean)
+            .map(value => String(value).toLowerCase());
+        if (values.includes(normalized)) {
+            values.forEach(value => aliasSet.add(value));
+        }
+    });
+
+    return Array.from(aliasSet);
+}
+
 function getChartLineColor() {
     return document.documentElement.classList.contains('light-theme') ? '#000000' : '#FFFFFF';
 }
@@ -1011,7 +1042,10 @@ function buildSubjectAverageChart(chartData, seriesLabel, options = {}) {
         if (idKey && averagesByKey.has(idKey)) return averagesByKey.get(idKey);
         const nameKey = (subject.name || '').toLowerCase();
         if (nameKey && averagesByKey.has(nameKey)) return averagesByKey.get(nameKey);
-        if (uzKey && averagesByKey.has(uzKey)) return averagesByKey.get(uzKey);
+        const aliasKeys = getSubjectAliasKeys(subject.name);
+        for (const aliasKey of aliasKeys) {
+            if (averagesByKey.has(aliasKey)) return averagesByKey.get(aliasKey);
+        }
         return null;
     });
 
