@@ -225,7 +225,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     }
 
     // Check if password reset is required (includes OTP-based resets)
-    if (user.password_reset_required || user.is_temporary_password || user.require_password_change) {
+    if (user.password_reset_required) {
       // Return special token for forced password change
       const resetToken = jwt.sign(
         {
@@ -237,7 +237,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
         { expiresIn: '1h' }  // Short expiry for security
       );
 
-      console.log(`[LOGIN] Success for ${username} (FORCE PASSWORD CHANGE) - flags: password_reset_required=${user.password_reset_required}, is_temporary_password=${user.is_temporary_password}, require_password_change=${user.require_password_change}`);
+      console.log(`[LOGIN] Success for ${username} (FORCE PASSWORD CHANGE) - password_reset_required=${user.password_reset_required}`);
 
       // Generate access token for forced password change flow
       const accessToken = jwt.sign(
@@ -280,8 +280,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
           role: user.role,
           firstName: user.first_name,
           lastName: user.last_name,
-          isTemporaryPassword: user.is_temporary_password,
-          requirePasswordChange: user.require_password_change
+          requirePasswordChange: user.password_reset_required
         },
         message: 'Password change required'
       });
@@ -665,12 +664,12 @@ app.post('/api/auth/change-password', auth, async (req, res) => {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }
     const hashed = await bcrypt.hash(newPassword, 10);
-    // Clear password reset flags after successful password change
+    // Clear password reset flag after successful password change
     await pool.query(
       `UPDATE users SET password_hash = $1, 
-       is_temporary_password = false, 
-       require_password_change = false,
        password_reset_required = false,
+       otp = NULL,
+       otp_expires_at = NULL,
        updated_at = NOW() 
        WHERE id = $2`,
       [hashed, req.userId]
@@ -1414,8 +1413,7 @@ app.post('/api/users/:id/reset-password', auth, async (req, res) => {
     await pool.query(
       `UPDATE users SET 
         password_hash = $1, 
-        is_temporary_password = true, 
-        require_password_change = true, 
+        password_reset_required = true, 
         otp = $3,
         otp_expires_at = $4,
         updated_at = NOW() 
@@ -3742,13 +3740,12 @@ app.post('/api/admin/users/:id/reset-password', auth, async (req, res) => {
     // Hash OTP for password_hash
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    // Update password_hash with OTP and set flags
+    // Update password_hash with OTP and set flag
     try {
       await pool.query(
         `UPDATE users SET 
           password_hash = $1, 
-          is_temporary_password = true, 
-          require_password_change = true,
+          password_reset_required = true,
           otp = $2, 
           otp_expires_at = $3 
          WHERE id = $4`,
