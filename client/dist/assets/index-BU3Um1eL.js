@@ -4830,9 +4830,11 @@ var Tr=Object.defineProperty;var Er=(e,t,i)=>t in e?Tr(e,t,{enumerable:!0,config
                                 <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 1.1rem;">🔍</span>
                             </div>
                         </div>
+                        ${l.length>0?`
                         <div style="color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap;">
                             <span id="filteredCount">${l.length}</span> / <strong style="color: var(--text-primary);">${l.length}</strong>
                         </div>
+                        `:""}
                     </div>
 
                     <!-- Students Table -->

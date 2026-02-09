@@ -12621,9 +12621,11 @@ async function viewClassStudents(classId) {
                                 <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 1.1rem;">🔍</span>
                             </div>
                         </div>
+                        ${students.length > 0 ? `
                         <div style="color: var(--text-secondary); font-size: 0.9rem; white-space: nowrap;">
                             <span id="filteredCount">${students.length}</span> / <strong style="color: var(--text-primary);">${students.length}</strong>
                         </div>
+                        ` : ''}
                     </div>
 
                     <!-- Students Table -->
